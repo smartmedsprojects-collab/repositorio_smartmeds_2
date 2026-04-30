@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="gradient">
+    <div class="container d-flex align-items-center justify-content-center login-container">
+        <div class="login-card bg-white p-4 d-flex align-items-center gap-4">
+
+            <!-- LOGO -->
+            <div class="logo">
+                <img src="{{ url_for('static', filename='logo/logodecadastro.png') }}" 
+                     alt="logo" class="img-form" style="max-width:400px;">
+            </div>
+
+            <!-- FORMULÁRIO -->
+            <div>
+                <h4 class="mb-3 text">
+                    {% if cliente %}Editar Cliente{% else %}Crie sua conta{% endif %}
+                </h4>
+
+                <form method="POST"
+                      action="{% if cliente and cliente.id %}
+                              {{ url_for('atualizar_cliente', id=cliente.id) }}
+                              {% else %}
+                              {{ url_for('salvar_cliente') }}
+                              {% endif %}">
+
+                    <!-- NOME -->
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input name="nome"
+                               class="form-control"
+                               value="{{ cliente.nome if cliente else '' }}"
+                               placeholder="Digite seu nome"
+                               required>
+                    </div>
+
+                    <!-- EMAIL -->
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input name="email"
+                               type="email"
+                               class="form-control"
+                               value="{{ cliente.email if cliente else '' }}"
+                               placeholder="Digite seu email"
+                               required>
+                    </div>
+
+                    <!-- SENHA -->
+                    <div class="mb-3">
+                        <label class="form-label">Senha</label>
+                        <input name="senha"
+                               type="password"
+                               class="form-control"
+                               placeholder="Digite sua senha"
+                               {% if not cliente %}required{% endif %}>
+                    </div>
+
+                    <!-- CNPJ -->
+                    <div class="mb-3">
+                        <label class="form-label">CNPJ</label>
+                        <input name="cnpj"
+                               type="text"
+                               id="cnpj"
+                               class="form-control"
+                               value="{{ cliente.cnpj if cliente else '' }}"
+                               placeholder="Digite o CNPJ"
+                               required>
+                    </div>
+
+                    <!-- BOTÃO -->
+                    <button type="submit" class="btn btn-login w-100 mt-2">
+                        {% if cliente %}Atualizar{% else %}Cadastrar{% endif %}
+                    </button>
+
+                </form>
+
+                <!-- RODAPÉ -->
+                <div class="mt-4 text" style="font-size: 13px;">
+                    © 2026 Senai - Sistema de Estoque
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
