@@ -1,85 +1,149 @@
 {% extends 'base.html' %}
-
 {% block conteudo %}
-<div class="gradient">
-    <div class="container d-flex align-items-center justify-content-center login-container">
-        <div class="login-card bg-white p-4 d-flex align-items-center gap-4">
+<div class="gradient min-vh-100">
+    <div class="container d-flex justify-content-center align-items-center py-5">
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden"
+             style="max-width: 1000px; width: 100%;">
+            <div class="row g-0">
 
-            <!-- LOGO -->
-            <div class="logo">
-                <img src="{{ url_for('static', filename='logo/logodecadastro.png') }}" 
-                     alt="logo" class="img-form" style="max-width:400px;">
-            </div>
+                <!-- LOGO -->
+                <div class="col-md-6 d-flex align-items-center justify-content-center bg-light p-4">
+                    <img
+                        src="{{ url_for('static', filename='logo/logodecadastro.png') }}"
+                        alt="Logo"
+                        class="img-fluid"
+                        style="max-width: 350px;"
+                    >
+                </div>
 
-            <!-- FORMULÁRIO -->
-            <div>
-                <h4 class="mb-3 text">
-                    {% if cliente %}Editar Cliente{% else %}Crie sua conta{% endif %}
-                </h4>
+                <!-- FORM -->
+                <div class="col-md-6 p-5">
 
-                <form method="POST"
-                      action="{% if cliente and cliente.id %}
-                              {{ url_for('atualizar_cliente', id=cliente.id) }}
-                              {% else %}
-                              {{ url_for('salvar_cliente') }}
-                              {% endif %}">
-
-                    <!-- NOME -->
-                    <div class="mb-3">
-                        <label class="form-label">nome</label>
-                        <input name="nome"
-                               class="form-control"
-                               value="{{ cliente.nome if cliente else '' }}"
-                               placeholder="Digite seu nome"
-                               required>
+                    <!-- TÍTULO -->
+                    <div class="mb-4">
+                        <h2 class="fw-bold text-dark">
+                            {% if cliente %}
+                                Editar Cliente
+                            {% else %}
+                                Criar Conta
+                            {% endif %}
+                        </h2>
+                        <p class="text-muted mb-0">
+                            Preencha os dados abaixo
+                        </p>
                     </div>
 
-                    <!-- EMAIL -->
-                    <div class="mb-3">
-                        <label class="form-label">email</label>
-                        <input name="email"
-                               type="email"
-                               class="form-control"
-                               value="{{ cliente.email if cliente else '' }}"
-                               placeholder="Digite seu email"
-                               required>
+                    <!-- MENSAGENS -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }} alert-dismissible fade show"
+                                     role="alert">
+                                    {{ message }}
+                                    <button type="button"
+                                            class="btn-close"
+                                            data-bs-dismiss="alert">
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- FORMULÁRIO -->
+                    <form method="POST"
+                          action="{% if cliente and cliente.id %}
+                                    {{ url_for('atualizar_cliente', id=cliente.id) }}
+                                  {% else %}
+                                    {{ url_for('salvar_cliente') }}
+                                  {% endif %}">
+                        <!-- NOME -->
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Nome
+                            </label>
+                            <input
+                                type="text"
+                                name="nome"
+                                class="form-control"
+                                placeholder="Digite seu nome"
+                                value="{{ cliente.nome if cliente else '' }}"
+                                required
+                            >
+                        </div>
+
+                        <!-- EMAIL -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                class="form-control"
+                                placeholder="Digite seu email"
+                                value="{{ cliente.email if cliente else '' }}"
+                                required
+                            >
+                        </div>
+
+                        <!-- SENHA -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Senha
+                            </label>
+                            <input
+                                type="password"
+                                name="senha"
+                                class="form-control"
+                                placeholder="{% if cliente %}Digite nova senha{% else %}Digite sua senha{% endif %}"
+                                {% if not cliente %}required{% endif %}
+                            >
+                            {% if cliente %}
+                                <small class="text-muted">
+                                    Preencha apenas se desejar alterar a senha.
+                                </small>
+                            {% endif %}
+                        </div>
+
+                        <!-- CNPJ -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                CNPJ
+                            </label>
+                            <input
+                                type="text"
+                                name="cnpj"
+                                id="cnpj"
+                                class="form-control"
+                                placeholder="Digite o CNPJ"
+                                value="{{ cliente.cnpj if cliente else '' }}"
+                                maxlength="18"
+                                required
+                            >
+                        </div>
+
+                        <!-- BOTÕES -->
+                        <div class="d-grid gap-2">
+                            <button type="submit"
+                                    class="btn btn-success">
+                                {% if cliente %}
+                                    Atualizar Cliente
+                                {% else %}
+                                    Cadastrar Cliente
+                                {% endif %}
+                            </button>                            
+                        </div>
+                    </form>
+
+                    <!-- RODAPÉ -->
+                    <div class="text-center mt-4">
+                        <small class="text-muted">
+                            © 2026 SENAI - Sistema de Estoque
+                        </small>
                     </div>
-
-                    <!-- SENHA -->
-                    <div class="mb-3">
-                        <label class="form-label">senha</label>
-                        <input name="senha"
-                               type="password"
-                               class="form-control"
-                               placeholder="Digite sua senha"
-                               {% if not cliente %}required{% endif %}>
-                    </div>
-
-                    <!-- CNPJ -->
-                    <div class="mb-3">
-                        <label class="form-label">cnpj</label>
-                        <input name="cnpj"
-                               type="text"
-                               id="cnpj"
-                               class="form-control"
-                               value="{{ cliente.cnpj if cliente else '' }}"
-                               placeholder="Digite o cnpj"
-                               required>
-                    </div>
-
-                    <!-- BOTÃO -->
-                    <button type="submit" class="btn btn-login w-100 mt-2">
-                        {% if cliente %}Atualizar{% else %}Cadastrar{% endif %}
-                    </button>
-
-                </form>
-
-                <!-- RODAPÉ -->
-                <div class="mt-4 text" style="font-size: 13px;">
-                    © 2026 Senai - Sistema de Estoque
                 </div>
             </div>
-
         </div>
     </div>
 </div>

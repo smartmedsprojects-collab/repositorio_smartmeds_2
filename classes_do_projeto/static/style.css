@@ -2,7 +2,7 @@
 body {
     font-family: 'Inter', Arial, sans-serif;
     margin: 0;
-    background-color: #f1f5f9;
+    background: linear-gradient(135deg, #e43fe7, #d7a7ee);
 }
 
 /* LAYOUT */
@@ -120,18 +120,19 @@ body {
 
 /* FORMULÁRIOS */
 form {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
+    background: linear-gradient(135deg, #e43fe7, #d7a7ee);
+    padding: 10px;
+    border-radius: 5px;
+
 }
 
 form label {
     font-weight: 500;
-    margin-top: 10px;
+    margin-top: 5px;
 }
 
 form input {
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 /* RESPONSIVO */

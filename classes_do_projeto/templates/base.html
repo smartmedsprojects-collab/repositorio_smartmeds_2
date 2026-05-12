@@ -46,13 +46,13 @@
             </a>
 
             <!-- (FUTURO) PRODUTOS -->
-            <a href="#" class="nav-link text-muted">
-                <i class="bi bi-box-seam"></i> Produtos
+            <a href="{{ url_for('novo_produto') }}" class= "nav-link {% if request.endpoint == 'novo_produto' %}active fw-bold{% endif %}">
+                <i class="bi bi-box-seam"></i> Novos produtos
             </a>
 
             <!-- (FUTURO) PEDIDOS -->
-            <a href="#" class="nav-link text-muted">
-                <i class="bi bi-clipboard-data"></i> Pedidos
+            <a href="{{ url_for('listar_produtos') }}" class="nav-link text-muted">
+                <i class="bi bi-clipboard-data"></i> Produtos
             </a>
 
         </nav>

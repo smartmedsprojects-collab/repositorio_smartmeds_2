@@ -32,6 +32,7 @@ class Produto(CrudBase):
             Validator.non_negative(self.categoria, "categoria"),
             Validator.non_negative(self.descricao, "descricao"),
             Validator.non_negative(self.unidade_medida, "unidade_medida")
+            
         ]
         return [erro for erro in erros if erro]
 
@@ -70,7 +71,7 @@ class Produto(CrudBase):
         cursor = conexao.cursor()
         try:
             queries = [
-                "SELECT COUNT(*) FROM movimentacao WHERE produto_id = %s",
+                "SELECT COUNT(*) FROM estoque WHERE produto_id = %s",
                 "SELECT COUNT(*) FROM pedido_movimentacao WHERE produto_id = %s"
             ]
             total = 0

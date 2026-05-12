@@ -2,125 +2,202 @@
 
 {% block conteudo %}
 
-<div class="container-fluid">
+<div class="gradient min-vh-100">
 
-    <!-- TÍTULO + BOTÃO -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="titulo-pagina">
-                <i class="bi bi-box-seam"></i> Produtos
-            </h2>
-            <p class="text-muted mb-0">Gerencie os produtos do estoque</p>
-        </div>
+    <div class="container d-flex justify-content-center align-items-center py-5">
 
-        <a href="{{ url_for('novo_produto') }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Novo Produto
-        </a>
-    </div>
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden"
+             style="max-width: 1000px; width: 100%;">
 
-    <!-- CARD -->
-    <div class="card shadow-sm">
-        <div class="card-body">
+            <div class="row g-0">
 
-            {% if produtos %}
+                <!-- LOGO -->
+                <div class="col-md-6 d-flex align-items-center justify-content-center bg-light p-4">
 
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                    <img
+                        src="{{ url_for('static', filename='logo/logodecadastro.png') }}"
+                        alt="Logo"
+                        class="img-fluid"
+                        style="max-width: 350px;"
+                    >
 
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Produto</th>
-                            <th>Categoria</th>
-                            <th>Estoque</th>
-                            <th>Mínimo</th>
-                            <th>Preço</th>
-                            <th class="text-end">Ações</th>
-                        </tr>
-                    </thead>
+                </div>
 
-                    <tbody>
-                        {% for produto in produtos %}
-                        <tr>
+                <!-- FORM -->
+                <div class="col-md-6 p-5">
 
-                            <td>{{ produto.id }}</td>
+                    <!-- TÍTULO -->
+                    <div class="mb-4">
 
-                            <td>
-                                <strong>{{ produto.nome }}</strong>
-                            </td>
+                        <h2 class="fw-bold text-dark">
 
-                            <!-- CATEGORIA -->
-                            <td>
-                                <span class="badge bg-secondary">
-                                    {{ produto.categoria or 'Sem categoria' }}
-                                </span>
-                            </td>
+                            {% if cliente %}
+                                Editar Cliente
+                            {% else %}
+                                Criar Conta
+                            {% endif %}
 
-                            <!-- ESTOQUE -->
-                            <td>
-                                {% if produto.quantidade <= produto.estoque_minimo %} <span class="badge bg-danger">
-                                    {{ produto.quantidade }}
-                                    </span>
-                                    {% else %}
-                                    <span class="badge bg-success">
-                                        {{ produto.quantidade }}
-                                    </span>
-                                    {% endif %}
-                            </td>
+                        </h2>
 
-                            <!-- ESTOQUE MIN -->
-                            <td>{{ produto.estoque_minimo }}</td>
+                        <p class="text-muted mb-0">
+                            Preencha os dados abaixo
+                        </p>
 
-                            <!-- PREÇO -->
-                            <td>
-                                <strong>R$ {{ '%.2f'|format(produto.preco_venda) }}</strong>
-                            </td>
+                    </div>
 
-                            <!-- AÇÕES -->
-                            <td class="text-end">
+                    <!-- MENSAGENS -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
 
-                                <a href="{{ url_for('editar_produto', id=produto.id) }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
+                            {% for category, message in messages %}
 
-                                <a href="{{ url_for('excluir_produto', id=produto.id) }}"
-                                    class="btn btn-sm btn-outline-danger"
-                                    onclick="return confirm('Deseja excluir este produto?')">
-                                    <i class="bi bi-trash"></i>
-                                </a>
+                                <div class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }} alert-dismissible fade show"
+                                     role="alert">
 
-                                <a href="{{ url_for('novo_pedido', tipo='ENTRADA', produto_id=produto.id) }}"
-                                    class="btn btn-sm btn-success">
-                                    <i class="bi bi-arrow-down"></i>
-                                </a>
+                                    {{ message }}
 
-                                <a href="{{ url_for('novo_pedido', tipo='SAIDA', produto_id=produto.id) }}"
-                                    class="btn btn-sm btn-danger">
-                                    <i class="bi bi-arrow-up"></i>
-                                </a>
+                                    <button type="button"
+                                            class="btn-close"
+                                            data-bs-dismiss="alert">
+                                    </button>
 
-                            </td>
+                                </div>
 
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                            {% endfor %}
 
-                </table>
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- FORMULÁRIO -->
+                    <form method="POST"
+                          action="{% if cliente and cliente.id %}
+                                    {{ url_for('atualizar_cliente', id=cliente.id) }}
+                                  {% else %}
+                                    {{ url_for('salvar_cliente') }}
+                                  {% endif %}">
+
+                        <!-- NOME -->
+                        <div class="mb-3">
+
+                            <label class="form-label fw-semibold">
+                                Nome
+                            </label>
+
+                            <input
+                                type="text"
+                                name="nome"
+                                class="form-control"
+                                placeholder="Digite seu nome"
+                                value="{{ cliente.nome if cliente else '' }}"
+                                required
+                            >
+
+                        </div>
+
+                        <!-- EMAIL -->
+                        <div class="mb-3">
+
+                            <label class="form-label fw-semibold">
+                                Email
+                            </label>
+
+                            <input
+                                type="email"
+                                name="email"
+                                class="form-control"
+                                placeholder="Digite seu email"
+                                value="{{ cliente.email if cliente else '' }}"
+                                required
+                            >
+
+                        </div>
+
+                        <!-- SENHA -->
+                        <div class="mb-3">
+
+                            <label class="form-label fw-semibold">
+                                Senha
+                            </label>
+
+                            <input
+                                type="password"
+                                name="senha"
+                                class="form-control"
+                                placeholder="{% if cliente %}Digite nova senha{% else %}Digite sua senha{% endif %}"
+                                {% if not cliente %}required{% endif %}
+                            >
+
+                            {% if cliente %}
+                                <small class="text-muted">
+                                    Preencha apenas se desejar alterar a senha.
+                                </small>
+                            {% endif %}
+
+                        </div>
+
+                        <!-- CNPJ -->
+                        <div class="mb-4">
+
+                            <label class="form-label fw-semibold">
+                                CNPJ
+                            </label>
+
+                            <input
+                                type="text"
+                                name="cnpj"
+                                id="cnpj"
+                                class="form-control"
+                                placeholder="Digite o CNPJ"
+                                value="{{ cliente.cnpj if cliente else '' }}"
+                                maxlength="18"
+                                required
+                            >
+
+                        </div>
+
+                        <!-- BOTÕES -->
+                        <div class="d-grid gap-2">
+
+                            <button type="submit"
+                                    class="btn btn-success">
+
+                                {% if cliente %}
+                                    Atualizar Cliente
+                                {% else %}
+                                    Cadastrar Cliente
+                                {% endif %}
+
+                            </button>
+
+                            <a href="{{ url_for('listar_clientes') }}"
+                               class="btn btn-outline-secondary">
+
+                                Voltar
+
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                    <!-- RODAPÉ -->
+                    <div class="text-center mt-4">
+
+                        <small class="text-muted">
+                            © 2026 SENAI - Sistema de Estoque
+                        </small>
+
+                    </div>
+
+                </div>
+
             </div>
 
-            {% else %}
-
-            <div class="alert alert-info mb-0">
-                <i class="bi bi-info-circle"></i>
-                Nenhum produto cadastrado.
-            </div>
-
-            {% endif %}
-
         </div>
+
     </div>
 
 </div>
 
 {% endblock %}
+

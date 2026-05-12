@@ -23,592 +23,37 @@ def get_cliente_form():
         "cnpj": request.form.get("cnpj", "").strip(),
     }
 
-# SALVAR FORNECEDOR
-@app.route("/fornecedor/salvar", methods=["POST"])
-def salvar_fornecedor():
-    dados = get_fornecedor_form()
-    fornecedor = Fornecedor(**dados)
-    erros = fornecedor.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("fornecedor.html", fornecedor=dados)
-    try:
-        fornecedor.insert()
-        flash("Fornecedor cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("listar_fornecedores"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar fornecedor: {e}", "erro")
-        return render_template("fornecedor.html", fornecedor=dados)
-
-# BUSCAR FORNECEDOR (EDITAR)
-@app.route("/fornecedor/<int:id>/editar")
-def buscar_fornecedor(id):
-    fornecedor = next((f for f in fornecedores if f["id"] == id), None)
-    if not fornecedor:
-        flash("Fornecedor não encontrado", "erro")
-        return redirect(url_for("listar_fornecedores"))
-    return render_template("fornecedor.html", fornecedor=fornecedor)
-
-# ATUALIZAR FORNECEDOR
-@app.route("/fornecedor/atualizar/<int:id>", methods=["POST"])
-def atualizar_fornecedor(id):
-    dados = get_fornecedor_form()
-    fornecedor = Fornecedor(**dados)
-    erros = fornecedor.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("fornecedor.html", fornecedor=dados)
-    try:
-        if not Fornecedor.find_by_id(id):
-            flash("Fornecedor não encontrado.", "erro")
-            return redirect(url_for("listar_fornecedores"))
-        fornecedor.update(id)
-        flash("Fornecedor atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_fornecedores"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar fornecedor: {e}", "erro")
-        return render_template("fornecedor.html", fornecedor=dados)
-
-# DELETAR FORNECEDOR
-@app.route("/fornecedor/excluir/<int:id>")
-def excluir_fornecedor(id):
-    try:
-        Fornecedor.safe_delete(id)
-        flash("Fornecedor excluído com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir fornecedor: {e}", "erro")
-    return redirect(url_for("listar_fornecedores"))
-
-pedidos_entrada = []
-# LISTAR PEDIDOS DE ENTRADA
-@app.route("/pedidos_entrada")
-def listar_pedidos_entrada():
-    return render_template("pedidos_entrada_lista.html", pedidos_entrada=pedidos_entrada)
-
-# ABRIR FORMULÁRIO (NOVO PEDIDO)
-@app.route("/pedido_entrada/novo")
-def novo_pedido_entrada():
-    return render_template("pedido_entrada.html", pedido_entrada=None)
-
-# SALVAR PEDIDO DE ENTRADA
-@app.route("/pedido_entrada/salvar", methods=["POST"])
-def salvar_pedido_entrada():
-    dados = get_pedido_entrada_form()
-    pedido_entrada = PedidoEntrada(**dados)
-    erros = pedido_entrada.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("pedido_entrada.html", pedido_entrada=dados)
-    try:
-        pedido_entrada.insert()
-        flash("Pedido de entrada cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("listar_pedidos_entrada"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar pedido de entrada: {e}", "erro")
-        return render_template("pedido_entrada.html", pedido_entrada=dados)
-
-# BUSCAR PEDIDO (EDITAR)
-@app.route("/pedido_entrada/<int:id>/editar")
-def buscar_pedido_entrada(id):
-    pedido_entrada = next((p for p in pedidos_entrada if p["id"] == id), None)
-    if not pedido_entrada:
-        flash("Pedido não encontrado", "erro")
-        return redirect(url_for("listar_pedidos_entrada"))
-    return render_template("pedido_entrada.html", pedido_entrada=pedido_entrada)
-
-# ATUALIZAR PEDIDO
-@app.route("/pedido_entrada/atualizar/<int:id>", methods=["POST"])
-def atualizar_pedido_entrada(id):
-    dados = get_pedido_entrada_form()
-    pedido_entrada = PedidoEntrada(**dados)
-    erros = pedido_entrada.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("pedido_entrada.html", pedido_entrada=dados)
-    try:
-        if not PedidoEntrada.find_by_id(id):
-            flash("Pedido não encontrado.", "erro")
-            return redirect(url_for("listar_pedidos_entrada"))
-        pedido_entrada.update(id)
-        flash("Pedido atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_pedidos_entrada"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar pedido: {e}", "erro")
-        return render_template("pedido_entrada.html", pedido_entrada=dados)
-
-# DELETAR PEDIDO
-@app.route("/pedido_entrada/excluir/<int:id>")
-def excluir_pedido_entrada(id):
-    try:
-        PedidoEntrada.safe_delete(id)
-        flash("Pedido excluído com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir pedido: {e}", "erro")
-    return redirect(url_for("listar_pedidos_entrada"))
-
-localizacoes = []
-# LISTAR LOCALIZAÇÕES
-@app.route("/localizacoes")
-def listar_localizacoes():
-    return render_template("localizacoes_lista.html", localizacoes=localizacoes)
-
-# ABRIR FORMULÁRIO (NOVA LOCALIZAÇÃO)
-@app.route("/localizacao/novo")
-def nova_localizacao():
-    return render_template("localizacao.html", localizacao=None)
-
-# SALVAR LOCALIZAÇÃO
-@app.route("/localizacao/salvar", methods=["POST"])
-def salvar_localizacao():
-    dados = get_localizacao_form()
-    localizacao = Localizacao(**dados)
-    erros = localizacao.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("localizacao.html", localizacao=dados)
-    try:
-        localizacao.insert()
-        flash("Localização cadastrada com sucesso.", "sucesso")
-        return redirect(url_for("listar_localizacoes"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar localização: {e}", "erro")
-        return render_template("localizacao.html", localizacao=dados)
-
-# BUSCAR LOCALIZAÇÃO (EDITAR)
-@app.route("/localizacao/<int:id>/editar")
-def buscar_localizacao(id):
-    localizacao = next((l for l in localizacoes if l["id"] == id), None)
-    if not localizacao:
-        flash("Localização não encontrada", "erro")
-        return redirect(url_for("listar_localizacoes"))
-    return render_template("localizacao.html", localizacao=localizacao)
-
-# ATUALIZAR LOCALIZAÇÃO
-@app.route("/localizacao/atualizar/<int:id>", methods=["POST"])
-def atualizar_localizacao(id):
-    dados = get_localizacao_form()
-    localizacao = Localizacao(**dados)
-    erros = localizacao.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("localizacao.html", localizacao=dados)
-    try:
-        if not Localizacao.find_by_id(id):
-            flash("Localização não encontrada.", "erro")
-            return redirect(url_for("listar_localizacoes"))
-        localizacao.update(id)
-        flash("Localização atualizada com sucesso.", "sucesso")
-        return redirect(url_for("listar_localizacoes"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar localização: {e}", "erro")
-        return render_template("localizacao.html", localizacao=dados)
-
-# DELETAR LOCALIZAÇÃO
-@app.route("/localizacao/excluir/<int:id>")
-def excluir_localizacao(id):
-    try:
-        Localizacao.safe_delete(id)
-        flash("Localização excluída com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir localização: {e}", "erro")
-    return redirect(url_for("listar_localizacoes"))
-
-estoques = []
-# LISTAR ESTOQUE
-@app.route("/estoques")
-def listar_estoques():
-    return render_template("estoques_lista.html", estoques=estoques)
-
-# ABRIR FORMULÁRIO (NOVO ESTOQUE)
-@app.route("/estoque/novo")
-def novo_estoque():
-    return render_template("estoque.html", estoque=None)
-
-# SALVAR ESTOQUE
-@app.route("/estoque/salvar", methods=["POST"])
-def salvar_estoque():
-    dados = get_estoque_form()
-    estoque = Estoque(**dados)
-    erros = estoque.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("estoque.html", estoque=dados)
-    try:
-        estoque.insert()
-        flash("Estoque cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("listar_estoques"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar estoque: {e}", "erro")
-        return render_template("estoque.html", estoque=dados)
-
-# BUSCAR ESTOQUE (EDITAR)
-@app.route("/estoque/<int:id>/editar")
-def buscar_estoque(id):
-    estoque = next((e for e in estoques if e["id"] == id), None)
-    if not estoque:
-        flash("Estoque não encontrado", "erro")
-        return redirect(url_for("listar_estoques"))
-    return render_template("estoque.html", estoque=estoque)
-
-# ATUALIZAR ESTOQUE
-@app.route("/estoque/atualizar/<int:id>", methods=["POST"])
-def atualizar_estoque(id):
-    dados = get_estoque_form()
-    estoque = Estoque(**dados)
-    erros = estoque.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("estoque.html", estoque=dados)
-    try:
-        if not Estoque.find_by_id(id):
-            flash("Estoque não encontrado.", "erro")
-            return redirect(url_for("listar_estoques"))
-        estoque.update(id)
-        flash("Estoque atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_estoques"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar estoque: {e}", "erro")
-        return render_template("estoque.html", estoque=dados)
-
-# DELETAR ESTOQUE
-@app.route("/estoque/excluir/<int:id>")
-def excluir_estoque(id):
-    try:
-        Estoque.safe_delete(id)
-        flash("Estoque excluído com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir estoque: {e}", "erro")
-    return redirect(url_for("listar_estoques"))
-
-produtos = []
-
-# LISTAR PRODUTOS
-@app.route("/produtos")
-def listar_produtos():
-    return render_template("produtos_lista.html", produtos=produtos)
-
-
-# SALVAR PRODUTO
-@app.route("/produto/salvar", methods=["POST"])
-def salvar_produto():
-    dados = get_produto_form()
-    produto = Produto(**dados)
-    erros = produto.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("formulario_produto.html", produto=dados)
-    try:
-        produto.insert()
-        flash("Produto cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("listar_produtos"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar produto: {e}", "erro")
-        return render_template("formulario_produto.html", produto=dados)
-
-# BUSCAR PRODUTO (EDITAR)
-@app.route("/produto/<int:id>/editar")
-def buscar_produto(id):
-    produto = next((p for p in produtos if p["id"] == id), None)
-    if not produto:
-        flash("Produto não encontrado", "erro")
-        return redirect(url_for("listar_produtos"))
-    return render_template("formulario_produto.html", produto=produto)
-
-# ATUALIZAR PRODUTO
-@app.route("/produto/atualizar/<int:id>", methods=["POST"])
-def atualizar_produto(id):
-    dados = get_produto_form()
-    produto = Produto(**dados)
-    erros = produto.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("formulario_produto.html", produto=dados)
-    try:
-        if not Produto.find_by_id(id):
-            flash("Produto não encontrado.", "erro")
-            return redirect(url_for("listar_produtos"))
-        produto.update(id)
-        flash("Produto atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_produtos"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar produto: {e}", "erro")
-        return render_template("formulario_produto.html", produto=dados)
-
-# DELETAR PRODUTO
-@app.route("/produto/excluir/<int:id>")
-def excluir_produto(id):
-    try:
-        Produto.safe_delete(id)
-        flash("Produto excluído com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir produto: {e}", "erro")
-    return redirect(url_for("listar_produtos"))
-
-itens_entrada = []
-# LISTAR ITENS DE ENTRADA
-@app.route("/itens_entrada")
-def listar_itens_entrada():
-    return render_template("itens_entrada_lista.html", itens_entrada=itens_entrada)
-
-# ABRIR FORMULÁRIO (NOVO ITEM)
-@app.route("/item_entrada/novo")
-def novo_item_entrada():
-    return render_template("item_entrada.html", item_entrada=None)
-
-# SALVAR ITEM DE ENTRADA
-@app.route("/item_entrada/salvar", methods=["POST"])
-def salvar_item_entrada():
-    dados = get_item_entrada_form()
-    item_entrada = ItemEntrada(**dados)
-    erros = item_entrada.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("item_entrada.html", item_entrada=dados)
-    try:
-        item_entrada.insert()
-        flash("Item de entrada cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("listar_itens_entrada"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar item de entrada: {e}", "erro")
-        return render_template("item_entrada.html", item_entrada=dados)
-
-# BUSCAR ITEM (EDITAR)
-@app.route("/item_entrada/<int:id>/editar")
-def buscar_item_entrada(id):
-    item_entrada = next((i for i in itens_entrada if i["id"] == id), None)
-    if not item_entrada:
-        flash("Item não encontrado", "erro")
-        return redirect(url_for("listar_itens_entrada"))
-    return render_template("item_entrada.html", item_entrada=item_entrada)
-
-# ATUALIZAR ITEM
-@app.route("/item_entrada/atualizar/<int:id>", methods=["POST"])
-def atualizar_item_entrada(id):
-    dados = get_item_entrada_form()
-    item_entrada = ItemEntrada(**dados)
-    erros = item_entrada.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("item_entrada.html", item_entrada=dados)
-    try:
-        if not ItemEntrada.find_by_id(id):
-            flash("Item não encontrado.", "erro")
-            return redirect(url_for("listar_itens_entrada"))
-        item_entrada.update(id)
-        flash("Item atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_itens_entrada"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar item: {e}", "erro")
-        return render_template("item_entrada.html", item_entrada=dados)
-
-# DELETAR ITEM
-@app.route("/item_entrada/excluir/<int:id>")
-def excluir_item_entrada(id):
-    try:
-        ItemEntrada.safe_delete(id)
-        flash("Item excluído com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir item: {e}", "erro")
-    return redirect(url_for("listar_itens_entrada"))
-
-itens_saida = []
-# LISTAR ITENS DE SAÍDA
-@app.route("/itens_saida")
-def listar_itens_saida():
-    return render_template("itens_saida_lista.html", itens_saida=itens_saida)
-
-# ABRIR FORMULÁRIO (NOVO ITEM)
-@app.route("/item_saida/novo")
-def novo_item_saida():
-    return render_template("item_saida.html", item_saida=None)
-
-# SALVAR ITEM DE SAÍDA
-@app.route("/item_saida/salvar", methods=["POST"])
-def salvar_item_saida():
-    dados = get_item_saida_form()
-    item_saida = ItemSaida(**dados)
-    erros = item_saida.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("item_saida.html", item_saida=dados)
-    try:
-        item_saida.insert()
-        flash("Item de saída cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("listar_itens_saida"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar item de saída: {e}", "erro")
-        return render_template("item_saida.html", item_saida=dados)
-
-# BUSCAR ITEM (EDITAR)
-@app.route("/item_saida/<int:id>/editar")
-def buscar_item_saida(id):
-    item_saida = next((i for i in itens_saida if i["id"] == id), None)
-    if not item_saida:
-        flash("Item não encontrado", "erro")
-        return redirect(url_for("listar_itens_saida"))
-    return render_template("item_saida.html", item_saida=item_saida)
-
-# ATUALIZAR ITEM
-@app.route("/item_saida/atualizar/<int:id>", methods=["POST"])
-def atualizar_item_saida(id):
-    dados = get_item_saida_form()
-    item_saida = ItemSaida(**dados)
-    erros = item_saida.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("item_saida.html", item_saida=dados)
-    try:
-        if not ItemSaida.find_by_id(id):
-            flash("Item não encontrado.", "erro")
-            return redirect(url_for("listar_itens_saida"))
-        item_saida.update(id)
-        flash("Item atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_itens_saida"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar item: {e}", "erro")
-        return render_template("item_saida.html", item_saida=dados)
-
-# DELETAR ITEM
-@app.route("/item_saida/excluir/<int:id>")
-def excluir_item_saida(id):
-    try:
-        ItemSaida.safe_delete(id)
-        flash("Item excluído com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir item: {e}", "erro")
-    return redirect(url_for("listar_itens_saida"))
-
-pedidos_saida = []
-# LISTAR PEDIDOS DE SAÍDA
-@app.route("/pedidos_saida")
-def listar_pedidos_saida():
-    return render_template("pedidos_saida_lista.html", pedidos_saida=pedidos_saida)
-
-# ABRIR FORMULÁRIO (NOVO PEDIDO)
-@app.route("/pedido_saida/novo")
-def novo_pedido_saida():
-    return render_template("pedido_saida.html", pedido_saida=None)
-
-# SALVAR PEDIDO DE SAÍDA
-@app.route("/pedido_saida/salvar", methods=["POST"])
-def salvar_pedido_saida():
-    dados = get_pedido_saida_form()
-    pedido_saida = PedidoSaida(**dados)
-    erros = pedido_saida.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        return render_template("pedido_saida.html", pedido_saida=dados)
-    try:
-        pedido_saida.insert()
-        flash("Pedido de saída cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("listar_pedidos_saida"))
-    except Exception as e:
-        flash(f"Erro ao cadastrar pedido de saída: {e}", "erro")
-        return render_template("pedido_saida.html", pedido_saida=dados)
-
-# BUSCAR PEDIDO (EDITAR)
-@app.route("/pedido_saida/<int:id>/editar")
-def buscar_pedido_saida(id):
-    pedido_saida = next((p for p in pedidos_saida if p["id"] == id), None)
-    if not pedido_saida:
-        flash("Pedido não encontrado", "erro")
-        return redirect(url_for("listar_pedidos_saida"))
-    return render_template("pedido_saida.html", pedido_saida=pedido_saida)
-
-# ATUALIZAR PEDIDO
-@app.route("/pedido_saida/atualizar/<int:id>", methods=["POST"])
-def atualizar_pedido_saida(id):
-    dados = get_pedido_saida_form()
-    pedido_saida = PedidoSaida(**dados)
-    erros = pedido_saida.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("pedido_saida.html", pedido_saida=dados)
-    try:
-        if not PedidoSaida.find_by_id(id):
-            flash("Pedido não encontrado.", "erro")
-            return redirect(url_for("listar_pedidos_saida"))
-        pedido_saida.update(id)
-        flash("Pedido atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_pedidos_saida"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao atualizar pedido: {e}", "erro")
-        return render_template("pedido_saida.html", pedido_saida=dados)
-
-# DELETAR PEDIDO
-@app.route("/pedido_saida/excluir/<int:id>")
-def excluir_pedido_saida(id):
-    try:
-        PedidoSaida.safe_delete(id)
-        flash("Pedido excluído com sucesso.", "sucesso")
-    except ValueError as e:
-        flash(str(e), "erro")
-    except Exception as e:
-        flash(f"Erro ao excluir pedido: {e}", "erro")
-    return redirect(url_for("listar_pedidos_saida"))
-
-
-clientes=[]
-# LISTAR CLIENTES (opcional, mas recomendado)
-@app.route("/clientes")
-def listar_clientes():
-    return render_template("clientes_lista.html", clientes=clientes)
-
-# ABRIR FORMULÁRIO (NOVO CLIENTE)
+def get_produto_form():
+    return {
+        "nome": request.form.get("nome", "").strip(),
+        "descricao": request.form.get("descricao", "").strip(),
+        "categoria": request.form.get("categoria", "").strip(),
+        "unidade_medida": request.form.get("unidade_medida", "").strip(),
+        "quantidade": to_int(request.form.get("quantidade")),
+        "estoque_minimo": to_int(request.form.get("estoque_minimo")),
+    }
+    
+#(Cliente)
 @app.route("/cliente/novo")
 def novo_cliente():
     return render_template("cliente.html", cliente=None)
-# SALVAR CLIENTE (CREATE)
-@app.route("/cliente/salvar", methods=["POST"])
+@app.route("/clientes") #Listar Clientes
+def listar_clientes():
+    try:
+        clientes = Cliente.find_all()
+        return render_template(
+            "clientes_lista.html",
+            clientes=clientes
+        )
+    except Exception as e:
+        flash(f"Erro ao carregar clientes: {e}", "erro")
+        return render_template(
+        "clientes_lista.html",
+        clientes=[]
+    )
+@app.route("/cliente/salvar", methods=["POST"]) #Salvar Clientes
 def salvar_cliente():
     dados = get_cliente_form()
-    print("TEMP",dados)
     cliente = Cliente(**dados)
     erros = cliente.validate()
     if erros:
@@ -622,18 +67,17 @@ def salvar_cliente():
     except Exception as e:
         flash(f"Erro ao cadastrar cliente: {e}", "erro")
         return render_template("cliente.html", cliente=dados)
-  
-# BUSCAR CLIENTE (ABRIR PARA EDIÇÃO)
-@app.route("/cliente/<int:id>/editar")
+@app.route("/cliente/<int:id>/editar") #Buscar Cliente
 def buscar_cliente(id):
-    cliente = next((c for c in clientes if c["id"] == id), None)
+    cliente = Cliente.find_by_id(id)
     if not cliente:
-        flash("Cliente não encontrado", "error")
+        flash("Cliente não encontrado", "erro")
         return redirect(url_for("listar_clientes"))
-    return render_template("cliente.html", cliente=cliente)
-
-# ATUALIZAR CLIENTE
-@app.route("/cliente/atualizar/<int:id>", methods=["POST"])
+    return render_template(
+        "cliente.html",
+        cliente=cliente
+    )
+@app.route("/cliente/atualizar/<int:id>", methods=["POST"]) #Atualizar Cliente
 def atualizar_cliente(id):
     dados = get_cliente_form()
     cliente = Cliente(**dados)
@@ -654,9 +98,7 @@ def atualizar_cliente(id):
         dados["id"] = id
         flash(f"Erro ao atualizar cliente: {e}", "erro")
         return render_template("cliente.html", cliente=dados)
-
-# DELETAR CLIENTE
-@app.route("/cliente/excluir/<int:id>")
+@app.route("/cliente/excluir/<int:id>", methods=["POST"])# Excluir Cliente
 def excluir_cliente(id):
     try:
         Cliente.safe_delete(id)
@@ -667,5 +109,92 @@ def excluir_cliente(id):
         flash(f"Erro ao excluir cliente: {e}", "erro")
     return redirect(url_for("listar_clientes"))
 
+#(Produto)
+@app.route("/produto/novo")
+def novo_produto():
+    return render_template("base.html", produto=None)
+@app.route("/produtos")  # Listar Produtos
+def listar_produtos():
+    try:
+        produtos = Produto.find_all()
+        return render_template(
+            "produtos_lista.html",
+            produtos=produtos
+        )
+    except Exception as e:
+        flash(f"Erro ao carregar produtos: {e}", "erro")
+        return render_template(
+            "produtos_lista.html",
+            produtos=[]
+        )
+@app.route("/produto/salvar", methods=["GET"])  # Salvar Produto
+def salvar_produto():
+    dados = get_produto_form()
+    produto = Produto(**dados)
+    erros = produto.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return render_template(
+            "produto.html",
+            produto=dados
+        )
+    try:
+        produto.insert()
+        flash("Produto cadastrado com sucesso.", "sucesso")
+        return redirect(url_for("listar_produtos"))
+    except Exception as e:
+        flash(f"Erro ao cadastrar produto: {e}", "erro")
+        return render_template(
+            "produto.html",
+            produto=dados
+        )
+@app.route("/produto/<int:id>/editar", methods=["GET"])  # Buscar Produto
+def buscar_produto(id):
+    produto = Produto.find_by_id(id)
+    if not produto:
+        flash("Produto não encontrado", "erro")
+        return redirect(url_for("listar_produtos"))
+    return render_template(
+        "produto.html",
+        produto=produto
+    )
+@app.route("/produto/atualizar/<int:id>", methods=["PUT"]) # Atualizar Produto
+def atualizar_produto(id):
+    dados = get_produto_form()
+    produto = Produto(**dados)
+    erros = produto.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        dados["id"] = id
+        return render_template(
+            "produto.html",
+            produto=dados
+        )
+    try:
+        if not Produto.find_by_id(id):
+            flash("Produto não encontrado.", "erro")
+            return redirect(url_for("listar_produtos"))
+        produto.update(id)
+        flash("Produto atualizado com sucesso.", "sucesso")
+        return redirect(url_for("listar_produtos"))
+    except Exception as e:
+        dados["id"] = id
+        flash(f"Erro ao atualizar produto: {e}", "erro")
+        return render_template(
+            "produto.html",
+            produto=dados
+        )
+@app.route("/produto/excluir/<int:id>", methods=["DELETE"])# Excluir Produto
+def excluir_produto(id):
+    try:
+        Produto.safe_delete(id)
+        flash("Produto excluído com sucesso.", "sucesso")
+    except ValueError as e:
+        flash(str(e), "erro")
+    except Exception as e:
+        flash(f"Erro ao excluir produto: {e}", "erro")
+    return redirect(url_for("listar_produtos"))
 if __name__=="__main__":
     app.run(debug=True)
