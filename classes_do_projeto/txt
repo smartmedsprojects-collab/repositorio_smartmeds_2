@@ -611,26 +611,3 @@ def excluir_pedido_saida(id):
     except Exception as e:
         flash(f"Erro ao excluir pedido: {e}", "erro")
     return redirect(url_for("listar_pedidos_saida"))
-    
-    # LISTAR CLIENTES 
-@app.route("/cliente/listar/<int:id>", methods=["POST"])
-def listar_clientes(id):
-    dados = get_cliente_form()
-    cliente = Cliente(**dados)
-    erros = cliente.validate()
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template("cliente.html", cliente=dados)
-    try:
-        if not Cliente.find_by_id(id):
-            flash("Cliente não encontrado.", "erro")
-            return redirect(url_for("listar_clientes"))
-        cliente.listar(id)
-        flash("Cliente listado com sucesso.", "sucesso")
-        return redirect(url_for("listar_clientes"))
-    except Exception as e:
-        dados["id"] = id
-        flash(f"Erro ao listar cliente: {e}", "erro")
-    return render_template("clientes_lista.html", clientes=clientes)'''

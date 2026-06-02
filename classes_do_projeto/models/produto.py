@@ -7,72 +7,70 @@ class Produto(CrudBase):
     table = "produto"
     fields = [
         "nome",
-        "descricao",
-        "categoria",
+        "marca",
+        "data_de_validade",
+        "especificacao",
         "unidade_medida",
-        "quantidade",
-        "estoque_minimo"
     ]
 
-    def __init__(self, nome, descricao, categoria, unidade_medida,
-                 quantidade, estoque_minimo):
+    def __init__(self, nome, marca, data_de_validade, especificacao, unidade_medida):
         self.nome = nome
-        self.descricao = descricao
-        self.categoria = categoria
+        self.marca = marca
+        self.data_de_validade = data_de_validade
+        self.especificacao = especificacao
         self.unidade_medida = unidade_medida
-        self.quantidade = quantidade
-        self.estoque_minimo = estoque_minimo
-
 
     def validate(self):
         erros = [
-            Validator.required(self.nome, "nome"),
-            Validator.non_negative(self.quantidade, "quantidade"),
-            Validator.non_negative(self.estoque_minimo, "estoque mínimo"),
-            Validator.non_negative(self.categoria, "categoria"),
-            Validator.non_negative(self.descricao, "descricao"),
-            Validator.non_negative(self.unidade_medida, "unidade_medida")
-            
+            Validator.required(self.nome, "Nome"),
+            Validator.min_length(self.nome, "Nome", 3),
+            Validator.required(self.marca, "Marca"),
+            Validator.min_length(self.marca, "Marca", 2),
+            Validator.required(self.data_de_validade,"Data de validade"),
+            Validator.date(self.data_de_validade,"Data de validade"),
+            Validator.required(self.especificacao,"Especificação"),
+            Validator.min_length(self.especificacao,"Especificação",5),
+            Validator.required(self.unidade_medida,"Unidade de medida"),
         ]
         return [erro for erro in erros if erro]
-
     @classmethod
-    def low_stock(cls):
+    def find_all(cls, order_by="id DESC"):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
-            sql = "SELECT * FROM produto WHERE quantidade <= estoque_minimo ORDER BY nome"
+            sql = """
+            SELECT * FROM produto
+            ORDER BY nome
+            """
             cursor.execute(sql)
             return cursor.fetchall()
-        finally: conexao.close()
-
-    @classmethod
-    def update_quantity(cls, id, nova_quantidade, connection=None):
-        conexao = connection or Database.connect()
-        cursor = conexao.cursor()
-        try:
-            sql = "UPDATE produto SET quantidade = %s WHERE id = %s"
-            cursor.execute(sql, (nova_quantidade, id))
-            if connection is None:
-                conexao.commit()
-            return cursor.rowcount
-        except Exception:
-            if connection is None:
-                conexao.rollback()
-            raise
         finally:
             cursor.close()
-            if connection is None:
-                conexao.close()
+            conexao.close()
 
+    @classmethod
+    def find_by_nome(cls, nome):
+        conexao = Database.connect()
+        cursor = conexao.cursor(dictionary=True)
+        try:
+            sql = f"""
+                SELECT * FROM {cls.table} WHERE nome LIKE %s ORDER BY nome ASC
+            """
+            cursor.execute(sql, (f"%{nome}%",))
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conexao.close()
     @classmethod
     def has_related_records(cls, id):
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
             queries = [
-                "SELECT COUNT(*) FROM estoque WHERE produto_id = %s",
-                "SELECT COUNT(*) FROM pedido_movimentacao WHERE produto_id = %s"
+                "SELECT COUNT(*) FROM pedido_entrada WHERE produto_id = %s",
+                "SELECT COUNT(*) FROM pedido_saida WHERE produto_id = %s",
+                "SELECT COUNT(*) FROM item_entrada WHERE produto_id = %s",
+                "SELECT COUNT(*) FROM item_saida WHERE produto_id = %s"
             ]
             total = 0
             for sql in queries:
@@ -89,7 +87,8 @@ class Produto(CrudBase):
         if not produto:
             raise ValueError("Produto não encontrado.")
         if cls.has_related_records(id):
-            raise ValueError("Não é possível excluir o produto porque ele possui pedidos ou movimentações vinculadas.")
-        cls.delete(id)
-
-
+            raise ValueError(
+                "Não é possível excluir o produto "
+                "porque existem movimentações vinculadas."
+            )
+        return cls.delete(id)

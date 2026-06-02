@@ -21,7 +21,9 @@ class ItemSaida(CrudBase):
         erros = [
             Validator.required(self.Pedido_saida_id, "pedido de saída"),
             Validator.required(self.estoque_id, "estoque"),
-            Validator.non_negative(self.valor, "valor")
+            Validator.non_negative(self.valor, "valor"),
+            Validator.required(self.quantidade, "Quantidade"),
+            Validator.non_negative(self.quantidade, "Quantidade")
         ]
         return [erro for erro in erros if erro]
 

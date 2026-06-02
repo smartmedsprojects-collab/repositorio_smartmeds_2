@@ -1,24 +1,29 @@
 {% extends 'base.html' %}
+
 {% block conteudo %}
+
 <div class="container mt-4">
 
-    <!-- TÍTULO + BOTÃO -->
+    <!-- TÍTULO + BOTÕES -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4>Lista de Produtos</h4>
-        <a href="{{ url_for('novo_produto') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Novo produto
-        </a>
-        <a href="{{ url_for('listar_produtos') }}"
-            class="btn btn-success">
-                 Voltar
-        </a>
+
+        <div>
+            <a href="{{ url_for('novo_produto') }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Novo produto
+            </a>
+
+            <a href="{{ url_for('listar_produtos') }}" class="btn btn-secondary">
+                Atualizar
+            </a>
+        </div>
     </div>
 
     <!-- MENSAGENS -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, message in messages %}
-    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+    <div class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }}">
         {{ message }}
     </div>
     {% endfor %}
@@ -28,29 +33,32 @@
     <!-- TABELA -->
     <div class="card shadow-sm">
         <div class="card-body">
-            {% if produto %}
+
+            {% if produtos %}
+
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>nome</th>
-                        <th>descricao</th>
-                        <th>categoria</th>
-                        <th>unidade_medida</th>
-                        <th>quantidade</th>
-                        <th>estoque_minimo</th>
-                        
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Unidade</th>
+                        <th>Quantidade</th>
+                        <th>Estoque mínimo</th>
                         <th class="text-end">Ações</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    {% for produto in Produtos %}
+                    {% for produto in produtos %}
                     <tr>
                         <td>{{ produto.nome }}</td>
-                        <td>{{ produto.descricao}}</td>
-                        <td>{{ produto.categoria }}</td>
+                        <td>{{ produto.especificacao }}</td>
+                        <td>{{ produto.marca }}</td>
                         <td>{{ produto.unidade_medida }}</td>
                         <td>{{ produto.quantidade }}</td>
                         <td>{{ produto.estoque_minimo }}</td>
+
                         <td class="text-end">
 
                             <!-- EDITAR -->
@@ -59,26 +67,31 @@
                                 Editar
                             </a>
 
-                            <!-- DELETAR -->
-                            <form method="DELETE" action="{{ url_for('excluir_produto', id=produto.id) }}"
-                                style="display:inline;"
-                                onsubmit="return confirm('Tem certeza que deseja excluir este produto?');">
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-trash"></i>
-                                    Excluir
-                                </button>
-                            </form>
+                            <!-- EXCLUIR -->
+                            <a href="{{ url_for('excluir_produto', id=produto.id) }}" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Tem certeza que deseja excluir este produto?');">
+
+                                <i class="bi bi-trash"></i>
+                                Excluir
+
+                            </a>
+
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
+
             </table>
+
             {% else %}
             <div class="text-center text-muted">
                 Nenhum produto cadastrado.
             </div>
             {% endif %}
+
         </div>
     </div>
+
 </div>
+
 {% endblock %}

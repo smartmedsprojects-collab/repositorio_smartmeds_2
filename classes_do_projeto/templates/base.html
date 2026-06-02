@@ -21,147 +21,154 @@
 
 <body>
 
-<div class="wrapper d-flex">
+    <div class="wrapper d-flex">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar p-3 bg-light" style="width: 250px; min-height: 100vh;">
+        <!-- SIDEBAR -->
+        <aside class="sidebar p-3 bg-light" style="width: 250px; min-height: 100vh;">
 
-        <div class="logo mb-4 text-center">
-            <img src="https://logodownload.org/wp-content/uploads/2019/08/senai-logo-2.png" 
-                 alt="logo" style="max-width:120px;">
-        </div>
+            <div class="logo mb-4 text-center">
+                <img src="{{ url_for('static', filename='logo.png') }}"
+                     alt="Logo"
+                     class="img-fluid">
+            </div>
 
-        <nav class="nav flex-column">
+            <nav class="nav flex-column">
 
-            <!-- CLIENTES -->
-            <a href="{{ url_for('listar_clientes') }}"
-               class="nav-link {% if request.endpoint == 'listar_clientes' %}active fw-bold{% endif %}">
-                <i class="bi bi-people"></i> Clientes
-            </a>
+                <!-- CLIENTES -->
+                <a href="{{ url_for('listar_clientes') }}"
+                    class="nav-link {% if request.endpoint == 'listar_clientes' %}active fw-bold{% endif %}">
+                    <i class="bi bi-people"></i> Clientes
+                </a>
 
-            <!-- NOVO CLIENTE -->
-            <a href="{{ url_for('novo_cliente') }}"
-               class="nav-link {% if request.endpoint == 'novo_cliente' %}active fw-bold{% endif %}">
-                <i class="bi bi-person-plus"></i> Novo Cliente
-            </a>
+            
 
-            <!-- (FUTURO) PRODUTOS -->
-            <a href="{{ url_for('novo_produto') }}" class= "nav-link {% if request.endpoint == 'novo_produto' %}active fw-bold{% endif %}">
-                <i class="bi bi-box-seam"></i> Novos produtos
-            </a>
+            
 
-            <!-- (FUTURO) PEDIDOS -->
-            <a href="{{ url_for('listar_produtos') }}" class="nav-link text-muted">
-                <i class="bi bi-clipboard-data"></i> Produtos
-            </a>
+                <!-- (FUTURO) PEDIDOS -->
+                <a href="{{ url_for('listar_produtos') }}"
+                    class="nav-link {% if request.endpoint == 'listar_produtos' %}active fw-bold{% endif %}">
+                    <i class="bi bi-clipboard-data"></i> Produtos
+                </a>
 
-        </nav>
+                <a href="{{ url_for('listar_fornecedor') }}"
+                    class="nav-link {% if request.endpoint == 'listar_fornecedor' %}active fw-bold{% endif %}">
+                    <i class="bi bi-people"></i> Fornecedores
+                </a>
 
-    </aside>
+                <a href="{{ url_for('novo_fornecedor') }}"
+                    class="nav-link {% if request.endpoint == 'novo_fornecedor' %}active fw-bold{% endif %}">
+                    <i class="bi bi-person-plus"></i> Novo Fornecedor
+                </a>
 
-    <!-- CONTEÚDO -->
-    <main class="content flex-fill p-4">
 
-        <!-- HEADER -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="m-0">Sistema de Gestão</h4>
-        </div>
+            </nav>
 
-        <!-- MENSAGENS FLASH -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
+        </aside>
+
+        <!-- CONTEÚDO -->
+        <main class="content flex-fill p-4">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="m-0">Sistema de Gestão</h4>
+            </div>
+
+            <!-- MENSAGENS FLASH -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                {{ message }}
+            </div>
+            {% endfor %}
             {% endif %}
-        {% endwith %}
+            {% endwith %}
 
-        <!-- CONTEÚDO DINÂMICO -->
-        {% block conteudo %}{% endblock %}
+            <!-- CONTEÚDO DINÂMICO -->
+            {% block conteudo %}{% endblock %}
 
-    </main>
+        </main>
 
-</div>
+    </div>
 
-<!-- JS SEGURO (não quebra se elemento não existir) -->
-<script>
-    const produtoSelect = document.getElementById("produtoSelect");
-    const quantidadeInput = document.getElementById("quantidade");
-    const formPedido = document.getElementById("formPedido");
+    <!-- JS SEGURO (não quebra se elemento não existir) -->
+    <script>
+        const produtoSelect = document.getElementById("produtoSelect");
+        const quantidadeInput = document.getElementById("quantidade");
+        const formPedido = document.getElementById("formPedido");
 
-    let estoqueAtual = 0;
+        let estoqueAtual = 0;
 
-    if (produtoSelect) {
-        produtoSelect.addEventListener("change", async function () {
-            const id = this.value;
-            if (!id) return;
+        if (produtoSelect) {
+            produtoSelect.addEventListener("change", async function () {
+                const id = this.value;
+                if (!id) return;
 
-            try {
-                const res = await fetch(`/api/produto/${id}`);
-                const data = await res.json();
+                try {
+                    const res = await fetch(`/api/produto/${id}`);
+                    const data = await res.json();
 
-                estoqueAtual = data.quantidade;
+                    estoqueAtual = data.quantidade;
 
-                document.getElementById("infoProduto").innerHTML = `
+                    document.getElementById("infoProduto").innerHTML = `
                     <div class="alert alert-info">
                         Estoque atual: <strong>${data.quantidade}</strong>
                     </div>
                 `;
-            } catch (e) {
-                console.error("Erro ao carregar produto");
-            }
-        });
-    }
-
-    if (quantidadeInput) {
-        quantidadeInput.addEventListener("input", function () {
-            const tipo = document.getElementById("tipo")?.value;
-            const qtd = parseInt(this.value);
-
-            if (tipo === "SAIDA" && qtd > estoqueAtual) {
-                this.classList.add("is-invalid");
-            } else {
-                this.classList.remove("is-invalid");
-            }
-        });
-    }
-
-    if (formPedido) {
-        formPedido.addEventListener("submit", async function (e) {
-            e.preventDefault();
-
-            const btn = document.getElementById("btnSalvar");
-            if (btn) {
-                btn.innerText = "Salvando...";
-                btn.disabled = true;
-            }
-
-            const formData = new FormData(this);
-
-            try {
-                const res = await fetch("/pedido/salvar", {
-                    method: "POST",
-                    body: formData
-                });
-
-                const data = await res.json();
-
-                if (data.erro) {
-                    alert(data.erro);
-                } else {
-                    location.reload();
+                } catch (e) {
+                    console.error("Erro ao carregar produto");
                 }
-            } catch (e) {
-                alert("Erro ao salvar pedido");
-            }
-        });
-    }
-</script>
+            });
+        }
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        if (quantidadeInput) {
+            quantidadeInput.addEventListener("input", function () {
+                const tipo = document.getElementById("tipo")?.value;
+                const qtd = parseInt(this.value);
+
+                if (tipo === "SAIDA" && qtd > estoqueAtual) {
+                    this.classList.add("is-invalid");
+                } else {
+                    this.classList.remove("is-invalid");
+                }
+            });
+        }
+
+        if (formPedido) {
+            formPedido.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                const btn = document.getElementById("btnSalvar");
+                if (btn) {
+                    btn.innerText = "Salvando...";
+                    btn.disabled = true;
+                }
+
+                const formData = new FormData(this);
+
+                try {
+                    const res = await fetch("/pedido/salvar", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await res.json();
+
+                    if (data.erro) {
+                        alert(data.erro);
+                    } else {
+                        location.reload();
+                    }
+                } catch (e) {
+                    alert("Erro ao salvar pedido");
+                }
+            });
+        }
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
+
 </html>
