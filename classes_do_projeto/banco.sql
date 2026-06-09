@@ -1,3 +1,5 @@
+
+
 -- MySQL Workbench Forward Engineering
 
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
@@ -77,23 +79,17 @@ SHOW WARNINGS;
 CREATE TABLE IF NOT EXISTS produto (
   id INT NOT NULL AUTO_INCREMENT,
   nome VARCHAR(100) NOT NULL,
-  marca VARCHAR(100) NULL DEFAULT NULL,
-  data_de_validade DATE NULL DEFAULT NULL,
-  especificacao TEXT NULL DEFAULT NULL,
-  unidade_medida VARCHAR(50) NULL DEFAULT NULL,
-  localizacao_id INT NULL DEFAULT NULL,
-  usuario_id INT NOT NULL,
+  marca VARCHAR(100) DEFAULT NULL,
+  data_de_validade DATE DEFAULT NULL,
+  especificacao TEXT DEFAULT NULL,
+  unidade_medida VARCHAR(50) DEFAULT NULL,
+  localizacao_id INT DEFAULT NULL,
   PRIMARY KEY (id),
   INDEX fk_produto_localizacao (localizacao_id ASC) VISIBLE,
-  INDEX fk_produto_usuario1_idx (usuario_id ASC) VISIBLE,
   CONSTRAINT fk_produto_localizacao
     FOREIGN KEY (localizacao_id)
-    REFERENCES localizacao (id),
-  CONSTRAINT fk_produto_usuario1
-    FOREIGN KEY (usuario_id)
-    REFERENCES usuario (id)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    REFERENCES localizacao (id)
+)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
@@ -103,7 +99,7 @@ SHOW WARNINGS;
 -- -----------------------------------------------------
 -- Table estoque
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS estoque (
+CREATE TABLE IF NOT EXISTS movimentacao (
   id INT NOT NULL AUTO_INCREMENT,
   tipo_movimentacao VARCHAR(50) NULL DEFAULT NULL,
   data_movimentacao DATE NULL DEFAULT NULL,
@@ -111,15 +107,13 @@ CREATE TABLE IF NOT EXISTS estoque (
   quantidade_min INT NULL DEFAULT NULL,
   produto_id INT NULL DEFAULT NULL,
   PRIMARY KEY (id),
-  INDEX fk_estoque_produto (produto_id ASC) VISIBLE,
-  CONSTRAINT fk_estoque_produto
+  INDEX fk_movimentacao_produto (produto_id ASC) VISIBLE,
+  CONSTRAINT fk_movimentacao_produto
     FOREIGN KEY (produto_id)
     REFERENCES produto (id))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
-
-SHOW WARNINGS;
 
 -- -----------------------------------------------------
 -- Table fornecedor
@@ -176,13 +170,13 @@ CREATE TABLE IF NOT EXISTS item_entrada (
   quantidade INT NOT NULL,
   valor DECIMAL(10,2) NULL DEFAULT NULL,
   pedido_entrada_id INT NULL DEFAULT NULL,
-  estoque_id INT NULL DEFAULT NULL,
+  movimentacao_id INT NULL DEFAULT NULL,
   PRIMARY KEY (id),
   INDEX fk_item_entrada_pedido (pedido_entrada_id ASC) VISIBLE,
-  INDEX fk_item_entrada_estoque (estoque_id ASC) VISIBLE,
-  CONSTRAINT fk_item_entrada_estoque
-    FOREIGN KEY (estoque_id)
-    REFERENCES estoque (id),
+  INDEX fk_item_entrada_movimentacao (movimentacao_id ASC) VISIBLE,
+  CONSTRAINT fk_item_entrada_movimentacao
+    FOREIGN KEY (movimentacao_id)
+  REFERENCES movimentacao (id),
   CONSTRAINT fk_item_entrada_pedido
     FOREIGN KEY (pedido_entrada_id)
     REFERENCES pedido_entrada (id))
@@ -229,13 +223,13 @@ CREATE TABLE IF NOT EXISTS item_saida (
   quantidade INT NOT NULL,
   valor DECIMAL(10,2) NULL DEFAULT NULL,
   pedido_saida_id INT NULL DEFAULT NULL,
-  estoque_id INT NULL DEFAULT NULL,
+  movimentacao_id INT NULL DEFAULT NULL,
   PRIMARY KEY (id),
   INDEX fk_item_saida_pedido (pedido_saida_id ASC) VISIBLE,
-  INDEX fk_item_saida_estoque (estoque_id ASC) VISIBLE,
-  CONSTRAINT fk_item_saida_estoque
-    FOREIGN KEY (estoque_id)
-    REFERENCES estoque (id),
+ INDEX fk_item_saida_movimentacao (movimentacao_id ASC) VISIBLE,
+  CONSTRAINT fk_item_saida_movimentacao
+  FOREIGN KEY (movimentacao_id)
+  REFERENCES movimentacao (id),
   CONSTRAINT fk_item_saida_pedido
     FOREIGN KEY (pedido_saida_id)
     REFERENCES pedido_saida (id))
@@ -248,3 +242,40 @@ SHOW WARNINGS;
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+
+INSERT INTO produto (nome,marca,data_de_validade,especificacao,unidade_medida,localizacao_id)
+VALUES ('Dipirona 500mg','EMS','2027-12-31','Caixa com 20 comprimidos','Caixa',1), 
+('paretamol 500mg','EMS','2027-12-31','Caixa com 20 comprimidos','Caixa',1), 
+('dramin 500mg','EMS','2027-12-31','Caixa com 20 comprimidos','Caixa',1);
+
+INSERT INTO localizacao (rua,numero,andar)
+VALUES('Corredor A','01','Térreo'),('Corredor B','15','1º Andar'),('Prateleira C','08','2º Andar');
+
+SELECT * FROM produto;
+SELECT * FROM localizacao;
+
+SELECT COUNT(*) FROM movimentacao WHERE produto_id = 1;
+SELECT COUNT(*) FROM pedido_movimentacao WHERE produto_id = 1;
+
+
+SELECT * FROM movimentacao;
+
+ALTER TABLE movimentacao
+MODIFY data_movimentacao DATETIME;
+
+SELECT * FROM pedido_entrada;
+SELECT * FROM pedido_saida;
+SELECT * FROM item_entrada;
+SELECT * FROM item_saida;
+
+SHOW CREATE TABLE movimentacao;
+
+
+DESCRIBE pedido_entrada;
+DESCRIBE pedido_saida;
+DESCRIBE item_entrada;
+DESCRIBE item_saida;
+
+
+SELECT COUNT(*) FROM pedido_entrada WHERE produto_id = 1;

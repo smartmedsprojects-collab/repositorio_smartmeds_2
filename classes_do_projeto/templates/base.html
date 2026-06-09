@@ -40,24 +40,15 @@
                     <i class="bi bi-people"></i> Clientes
                 </a>
 
-            
-
-            
-
                 <!-- (FUTURO) PEDIDOS -->
                 <a href="{{ url_for('listar_produtos') }}"
                     class="nav-link {% if request.endpoint == 'listar_produtos' %}active fw-bold{% endif %}">
                     <i class="bi bi-clipboard-data"></i> Produtos
                 </a>
-
-                <a href="{{ url_for('listar_fornecedor') }}"
-                    class="nav-link {% if request.endpoint == 'listar_fornecedor' %}active fw-bold{% endif %}">
-                    <i class="bi bi-people"></i> Fornecedores
-                </a>
-
-                <a href="{{ url_for('novo_fornecedor') }}"
-                    class="nav-link {% if request.endpoint == 'novo_fornecedor' %}active fw-bold{% endif %}">
-                    <i class="bi bi-person-plus"></i> Novo Fornecedor
+                
+                <a href="{{ url_for('movimentacoes') }}"
+                    class="nav-link {% if request.endpoint == 'movimentacoes' %}active fw-bold{% endif %}">
+                    <i class="bi bi-person-plus"></i> movimentações
                 </a>
 
 
