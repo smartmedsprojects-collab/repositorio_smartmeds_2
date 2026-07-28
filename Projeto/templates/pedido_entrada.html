@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="gradient">
+    <div class="container login-container">
+        <div class="login-card">
+            <!-- LADO ESQUERDO -->
+            <div class="left-side">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="img-fluid"
+                    style="max-width: 350px">
+                <div class="left-text">
+                    <h2>SmartMeds</h2>
+                    <p>
+                        Controle de pedidos de entrada de forma rápida e organizada.
+                    </p>
+                </div>
+            </div>
+            <!-- LADO DIREITO -->
+            <div class="right-side">
+                <div class="top-form">
+                    <h3>
+                        {% if pedido_entrada and pedido_entrada.id_pedido_entrada %}
+                        Editar Pedido de Entrada
+                        {% else %}
+                        Novo Pedido de Entrada
+                        {% endif %}
+                    </h3>
+                    <p>Preencha os dados do pedido</p>
+                </div>
+                <!-- FORMULÁRIO DO PEDIDO -->
+                <form method="POST" action="
+                    {% if pedido_entrada and pedido_entrada.id_pedido_entrada %}
+                        {{ url_for('atualizar_pedido_entrada', id=pedido_entrada.id_pedido_entrada) }}
+                    {% else %}
+                        {{ url_for('salvar_pedido_entrada') }}
+                    {% endif %}
+                    ">
+                    <div class="input-group-custom">
+                        <label>Número do Documento</label>
+                        <input type="text" name="numero_documento" class="form-control"
+                            value="{{ pedido_entrada.numero_documento if pedido_entrada else '' }}" required>
+                    </div>
+                    <div class="input-group-custom">
+                        <label>Fornecedor</label>
+                        <input type="text" name="fornecedor" class="form-control"
+                            value="{{ pedido_entrada.fornecedor if pedido_entrada else '' }}" required>
+                    </div>
+                    <div class="input-group-custom">
+                        <label>Data de Entrada</label>
+                        <input type="date" name="data_entrada" class="form-control"
+                            value="{{ pedido_entrada.data_entrada if pedido_entrada else '' }}" required>
+                    </div>
+                    <div class="input-group-custom">
+                        <label>Usuário</label>
+                        <select name="id_usuario" class="form-control" required>
+                            <option value="">
+                                Selecione
+                            </option>
+                            {% for usuario in usuarios %}
+                            <option value="{{ usuario.id }}" {% if pedido_entrada and
+                                pedido_entrada.id_usuario==usuario.id %} selected {% endif %}>
+                                {{ usuario.nome }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="input-group-custom">
+                        <label>Status</label>
+                        <select name="status" class="form-control" required>
+                            <option value="">Selecione</option>
+                            <option value="ABERTO" {% if pedido_entrada and pedido_entrada.status=='ABERTO' %} selected
+                                {% endif %}>
+                                ABERTO
+                            </option>
+                            <option value="PENDENTE" {% if pedido_entrada and pedido_entrada.status=='PENDENTE' %}
+                                selected {% endif %}>
+                                PENDENTE
+                            </option>
+                            <option value="FINALIZADO" {% if pedido_entrada and pedido_entrada.status=='FINALIZADO' %}
+                                selected {% endif %}>
+                                FINALIZADO
+                            </option>
+                            <option value="CANCELADO" {% if pedido_entrada and pedido_entrada.status=='CANCELADO' %}
+                                selected {% endif %}>
+                                CANCELADO
+                            </option>
+                        </select>
+                    </div>
+                    <div class="input-group-custom">
+                        <label>Observação</label>
+                        <textarea name="observacao" class="form-control"
+                            rows="4">{{ pedido_entrada.observacao if pedido_entrada else '' }}</textarea>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            Salvar Pedido
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- ITENS DO PEDIDO -->
+        {% if pedido_entrada and pedido_entrada.id_pedido_entrada %}
+        <div class="mt-5">
+            <h4 class="mb-3 text-white">
+                Itens do Pedido
+            </h4>
+            <!-- FORM ITEM -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('salvar_item_entrada') }}">
+                        <input type="hidden" name="pedido_entrada_id" value="{{ pedido_entrada.id_pedido_entrada }}">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <label>Produto</label>
+                                <select name="movimentacao_id" class="form-control" required>
+                                    <option value="">
+                                        Selecione
+                                    </option>
+                                    {% for mov in movimentacoes %}
+                                    <option value="{{ mov.id }}">
+                                        {{ mov.produto }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label>Quantidade</label>
+                                <input type="number" name="quantidade" class="form-control" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label>Valor</label>
+                                <input type="number" step="0.01" name="valor" class="form-control" required>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success w-100">
+                                    Adicionar Item
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- TABELA DE ITENS -->
+            <div class="card shadow-sm">
+                <div class="card-body table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Produto</th>
+                                <th>Quantidade</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if itens %}
+                            {% for item in itens %}
+                            <tr>
+                                <td>{{ item.produto }}</td>
+                                <td>{{ item.quantidade }}</td>
+                                <td>
+                                    R$ {{ item.valor }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center">
+                                    Nenhum item cadastrado.
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

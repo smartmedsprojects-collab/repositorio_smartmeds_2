@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+        <h2 class="titulo-pagina">
+            <i class="bi bi-arrow-left-right"></i> Movimentações
+        </h2>
+        <p class="text-muted">
+            Histórico de entradas e saídas do estoque
+        </p>
+    </div>
+
+    <!-- MOVIMENTAÇÕES DE ESTOQUE -->
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-box-seam"></i>
+                Movimentações de Estoque
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            {% if movimentacoes %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead class="table-light">
+                        <tr>
+                            <th>Produto</th>
+                            <th>Localização</th>
+                            <th>Data e Hora</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for mov in movimentacoes %}
+
+                        <tr>
+
+                            <td>
+                                {{ mov.produto }}
+                            </td>
+
+                            <td>
+
+                                {% if mov.rua %}
+
+                                Rua {{ mov.rua }},
+                                Nº {{ mov.numero }},
+                                Andar {{ mov.andar }}
+
+                                {% else %}
+
+                                Não definida
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if mov.data_movimentacao %}
+
+                                {{ mov.data_movimentacao.strftime('%d/%m/%Y %H:%M') }}
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <div class="alert alert-info">
+                Nenhuma movimentação encontrada.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- PEDIDOS DE ENTRADA -->
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-box-arrow-in-down"></i>
+                Movimentações de Pedidos de Entrada
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            {% if movimentacoes_entrada %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead class="table-light">
+                        <tr>
+                            <th>Documento</th>
+                            <th>Fornecedor</th>
+                            <th>Data de Entrada</th>
+                            <th>Usuário</th>
+                            <th>Status</th>
+                            <th>Observação</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for pedido in movimentacoes_entrada %}
+
+                        <tr>
+
+                            <td>{{ pedido.numero_documento }}</td>
+
+                            <td>{{ pedido.fornecedor }}</td>
+
+                            <td>
+
+                                {% if pedido.data_entrada %}
+
+                                {{ pedido.data_entrada.strftime('%d/%m/%Y') }}
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>{{ pedido.usuario }}</td>
+
+                            <td>
+
+                                {% if pedido.status == 'Finalizado' %}
+
+                                <span class="badge bg-success">
+                                    {{ pedido.status }}
+                                </span>
+
+                                {% elif pedido.status == 'Pendente' %}
+
+                                <span class="badge bg-warning text-dark">
+                                    {{ pedido.status }}
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge bg-secondary">
+                                    {{ pedido.status }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>{{ pedido.observacao }}</td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <div class="alert alert-info">
+                Nenhum pedido de entrada encontrado.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- PEDIDOS DE SAÍDA -->
+    <div class="card shadow-sm">
+
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-box-arrow-up"></i>
+                Movimentações de Pedidos de Saída
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            {% if movimentacoes_saida %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Cliente</th>
+                            <th>Usuário</th>
+                            <th>Pagamento</th>
+                            <th>Data da Retirada</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for pedido in movimentacoes_saida %}
+
+                        <tr>
+
+                            <td>{{ pedido.tipo }}</td>
+
+                            <td>{{ pedido.cliente }}</td>
+
+                            <td>{{ pedido.usuario }}</td>
+
+                            <td>{{ pedido.pagamento }}</td>
+
+                            <td>
+
+                                {% if pedido.data_pagamento %}
+
+                                {{ pedido.data_pagamento.strftime('%d/%m/%Y') }}
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <div class="alert alert-info">
+                Nenhum pedido de saída encontrado.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

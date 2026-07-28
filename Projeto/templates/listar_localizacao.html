@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between mb-3">
+
+        <h4>Localizações</h4>
+
+        <a href="{{ url_for('nova_localizacao') }}"
+           class="btn btn-success">
+
+            Nova Localização
+        </a>
+
+    </div>
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            {% if localizacoes %}
+
+            <table class="table table-hover">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Rua</th>
+                        <th>Número</th>
+                        <th>Andar</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for localizacao in localizacoes %}
+                    <tr>
+
+                        <td>{{ localizacao.id }}</td>
+                        <td>{{ localizacao.rua }}</td>
+                        <td>{{ localizacao.numero }}</td>
+                        <td>{{ localizacao.andar }}</td>
+
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+
+            <div class="text-center text-muted">
+                Nenhuma localização cadastrada.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

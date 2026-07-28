@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+
+<div class="container mt-4">
+
+    <h4>Nova Localização</h4>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <form method="POST" action="{{ url_for('salvar_localizacao') }}">
+
+                <div class="mb-3">
+                    <label>Produto</label>
+
+                    <select name="produto_id" class="form-select" required>
+
+                        <option value="">
+                            Selecione um produto
+                        </option>
+
+                        {% for produto in produtos %}
+                        <option value="{{ produto.id }}">
+                            {{ produto.id }} - {{ produto.nome }}
+                        </option>
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Rua</label>
+                    <input type="text" name="rua" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label>Número</label>
+                    <input type="text" name="numero" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label>Andar</label>
+                    <input type="text" name="andar" class="form-control" required>
+                </div>
+
+                <button class="btn btn-success">
+                    Salvar
+                </button>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

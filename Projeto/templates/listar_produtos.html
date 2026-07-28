@@ -1,0 +1,92 @@
+{% extends 'base.html' %} {% block conteudo %}
+
+<div class="container mt-4">
+    <!-- TÍTULO + BOTÕES -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Estoque</h4>
+
+        <div>
+            <a href="{{ url_for('novo_produto') }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Novo produto
+            </a>
+
+            <a href="{{ url_for('listar_produtos') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-clockwise"></i>Atualizar
+            </a>
+        </div>
+    </div>
+
+    <!-- MENSAGENS -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- TABELA -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if produtos %}
+
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Unidade de medida</th>
+                        <th>Quantidade</th> <!-- 👈 ADICIONADO -->
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for produto in produtos %}
+                    <tr>
+                        <td>{{ produto.nome }}</td>
+                        <td>{{ produto.especificacao }}</td>
+                        <td>{{ produto.marca }}</td>
+                        <td>{{ produto.unidade_medida }}</td>
+                        <td>{{ produto.quantidade }}</td> <!-- 👈 ADICIONADO -->
+
+                        <td class="text-end">
+                            <!-- EDITAR -->
+                            <a href="{{ url_for('buscar_produto', id=produto.id) }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-pencil"></i>
+                                Editar
+                            </a>
+
+                            <!-- EXCLUIR -->
+                            <a href="{{ url_for('excluir_produto', id=produto.id) }}" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Tem certeza que deseja excluir este produto?');">
+                                <i class="bi bi-trash"></i>
+                                Excluir
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% else %}
+            <div class="text-center text-muted">Nenhum produto cadastrado.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <a href="{{ url_for('novo_pedido_entrada') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Pedido
+    </a>
+
+    <a href="{{ url_for('novo_pedido_saida') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Pedido saida
+    </a>
+
+
+</div>
+
+{% endblock %}
