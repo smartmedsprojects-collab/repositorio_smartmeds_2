@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SmartMeds - Controle e gestão inteligente de estoque de medicamentos">
+    <title>SmartMeds</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+        crossorigin="anonymous">
+</head>
+
+<body>
+
+    <!-- ================= HEADER ================= -->
+    <header>
+        <div id="logo">
+            <a href="#">
+                <img src="./imagens/unnamed.png" alt="Logo SmartMeds">
+            </a>
+        </div>
+
+        <button class="menu-toggle"
+            type="button"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="menu-principal">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <nav class="menu" id="menu-principal">
+            <ul>
+                <li>
+                    <a href="#inscreva">Menu</a>
+                </li>
+                <li>
+                    <a href="#empresa">Sobre</a>
+                </li>
+                <li>
+                    <a href="#sobre">Integrantes</a>
+                </li>
+                <li>
+                    <a href="#parallax-video">Apresentação</a>
+                </li>
+                <li>
+                    <a href="#contato" id="pedido">Fazer Pedido</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+
+    <!-- ================= CONTEÚDO PRINCIPAL ================= -->
+    <main class="main-section" id="inicio">
+
+        <aside class="main-text">
+
+            <h2 id="inscreva">Entre em contato</h2>
+            <h2 class="subtitulo">SAIBA MAIS</h2>
+
+            <p>
+                Hmm, quer mais segurança? 💊💉<br>
+                Bem-vindo ao SmartMeds!<br>
+                Tenha controle e estoque dos seus medicamentos
+                de forma segura e inteligente!
+            </p>
+
+            <!-- Botão do modal -->
+            <button type="button"
+                class="btn btn-primary btn-formulario"
+                data-bs-toggle="modal"
+                data-bs-target="#exampleModal">
+                Formulário
+            </button>
+
+        </aside>
+
+
+        <div class="main-img">
+            <img src="./imagens/REMEDIO.png" alt="Medicamentos SmartMeds">
+        </div>
+
+    </main>
+
+
+    <!-- ================= MODAL ================= -->
+    <div class="modal fade"
+        id="exampleModal"
+        tabindex="-1"
+        aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">
+                        Entre em contato
+                    </h5>
+
+                    <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar">
+                    </button>
+                </div>
+
+
+                <div class="modal-body">
+
+                    <form id="form-contato">
+
+                        <div class="row g-3">
+
+                            <!-- Nome -->
+                            <div class="col-md-8">
+                                <label class="form-label">
+                                    Nome completo *
+                                </label>
+
+                                <input type="text"
+                                    class="form-control"
+                                    placeholder="Nome completo"
+                                    required>
+                            </div>
+
+
+                            <!-- Celular -->
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Celular *
+                                </label>
+
+                                <input type="tel"
+                                    class="form-control"
+                                    placeholder="Celular"
+                                    required>
+                            </div>
+
+
+                            <!-- Cidade -->
+                            <div class="col-md-8">
+                                <label class="form-label">
+                                    Cidade *
+                                </label>
+
+                                <input type="text"
+                                    class="form-control"
+                                    placeholder="Cidade"
+                                    required>
+                            </div>
+
+
+                            <!-- Estado -->
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Estado *
+                                </label>
+
+                                <select class="form-select" required>
+                                    <option value="" selected disabled>
+                                        Selecione um estado
+                                    </option>
+                                    <option>AC</option>
+                                    <option>AL</option>
+                                    <option>AP</option>
+                                    <option>AM</option>
+                                    <option>BA</option>
+                                    <option>CE</option>
+                                    <option>DF</option>
+                                    <option>ES</option>
+                                    <option>GO</option>
+                                    <option>MA</option>
+                                    <option>MT</option>
+                                    <option>MS</option>
+                                    <option>MG</option>
+                                    <option>PA</option>
+                                    <option>PB</option>
+                                    <option>PR</option>
+                                    <option>PE</option>
+                                    <option>PI</option>
+                                    <option>RJ</option>
+                                    <option>RN</option>
+                                    <option>RS</option>
+                                    <option>RO</option>
+                                    <option>RR</option>
+                                    <option>SC</option>
+                                    <option>SP</option>
+                                    <option>SE</option>
+                                    <option>TO</option>
+                                </select>
+                            </div>
+
+
+                            <!-- E-mail -->
+                            <div class="col-md-8">
+                                <label class="form-label">
+                                    E-mail *
+                                </label>
+
+                                <input type="email"
+                                    class="form-control"
+                                    placeholder="E-mail"
+                                    required>
+                            </div>
+
+
+                            <!-- Empresa -->
+                            <div class="col-12">
+                                <label class="form-label">
+                                    Empresa *
+                                </label>
+
+                                <input type="text"
+                                    class="form-control"
+                                    placeholder="Nome da empresa"
+                                    required>
+                            </div>
+
+
+                            <!-- Mensagem -->
+                            <div class="col-12">
+                                <label class="form-label">
+                                    Mensagem *
+                                </label>
+
+                                <textarea class="form-control"
+                                    rows="4"
+                                    placeholder="Mensagem"
+                                    required></textarea>
+                            </div>
+
+                        </div>
+
+
+                        <div class="mt-4 text-end">
+                            <button type="submit"
+                                class="btn btn-primary">
+                                Enviar informações
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+
+
+                <div class="modal-footer">
+                    <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= WHATSAPP ================= -->
+    <a href="https://web.whatsapp.com/"
+        id="whatsapp_fixo"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Abrir WhatsApp">
+
+        <img src="./imagens/whatsapp.png" alt="WhatsApp">
+    </a>
+
+
+    <!-- ================= INTEGRANTES ================= -->
+    <section id="sobre">
+
+        <div class="sobre-container">
+
+            <div class="sobre-img">
+                <img src="./imagens/Pharm Vid-20260310 (1).mp4 A4 Floral Bege e Branco.png"
+                    alt="Apresentação dos integrantes SmartMeds">
+            </div>
+
+
+            <div class="sobre-texto">
+
+                <h2>Sobre Nós</h2>
+
+                <p>
+                    Somos os <strong>desenvolvedores</strong> da SmartMeds!
+
+                    Desenvolvedores:
+                    Samuel Rodrigues Vieira,
+                    Guilherme Jesuino Marques,
+                    Davi Rocha Ribeiro,
+                    Nathan Elias Pardim,
+                    Matheus de Jesus Toledo,
+                    Maria Luísa Joaquim Ortolan.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= VÍDEO ================= -->
+    <section id="parallax-video">
+
+        <video autoplay muted loop playsinline id="bg-video">
+            <source src="./imagens/Pharm Vid-20260310 (1).mp4"
+                type="video/mp4">
+
+            Seu navegador não suporta vídeos HTML5.
+        </video>
+
+
+        <div class="parallax-text">
+
+            <h2>SmartMeds</h2>
+
+            <p>
+                Você está vendo o melhor sistema de estoque.
+                Junte-se a nós e tenha seu estoque sempre em ordem!
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= EMPRESA ================= -->
+    <section id="empresa">
+
+        <div class="sobre-container">
+
+            <div class="sobre-img">
+                <img src="./logo/unnamed.png"
+                    alt="Logo da SmartMeds">
+            </div>
+
+
+            <div class="sobre-texto">
+
+                <h2>Sobre Nossa Empresa</h2>
+
+                <p class="texto">
+                    A SmartMeds é uma empresa especializada no desenvolvimento
+                    de soluções inteligentes para o controle e gestão de
+                    suprimentos médicos e farmacêuticos.
+
+                    Em um setor onde cada segundo e cada miligrama contam,
+                    nossa missão é eliminar o erro humano e garantir a máxima
+                    eficiência na cadeia de suprimentos.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= CONTATO / PEDIDO ================= -->
+    <section id="contato" class="contato-section">
+
+        <div class="contato-container">
+
+            <h2>Faça seu pedido</h2>
+
+            <p>
+                Entre em contato com a SmartMeds e descubra como
+                podemos ajudar no controle do seu estoque.
+            </p>
+
+            <button type="button"
+                class="btn btn-primary btn-formulario"
+                data-bs-toggle="modal"
+                data-bs-target="#exampleModal">
+                Entrar em contato
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= FOOTER ================= -->
+    <footer id="rodape">
+
+        <div class="footer-container">
+
+            <!-- Coluna 1 -->
+            <div class="footer-col">
+
+                <img src="./logo/logo.png"
+                    alt="SmartMeds"
+                    class="footer-logo">
+
+                <p>
+                    Organize os seus produtos com mais segurança e cuidado.
+                </p>
+
+            </div>
+
+
+            <!-- Coluna 2 -->
+            <div class="footer-col">
+
+                <h3>Siga-nos</h3>
+
+                <nav class="redes">
+                    <ul>
+
+                        <li>
+                            <a href="#"
+                                aria-label="WhatsApp">
+                                <img src="./logo/logowhatsapp.png"
+                                    alt="WhatsApp">
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="#"
+                                aria-label="Instagram">
+                                <img src="./logo/logoinsta.png"
+                                    alt="Instagram">
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+
+            </div>
+
+
+            <!-- Coluna 3 -->
+            <div class="footer-col">
+
+                <h3>Contatos</h3>
+
+                <address>
+
+                    Itapira/SP<br>
+
+                    <a href="tel:+551199999999">
+                        📞 (11) 99999-9999
+                    </a>
+
+                    <br>
+
+                    <a href="mailto:contato@SmartMeds.com">
+                        ✉ contato@SmartMeds.com
+                    </a>
+
+                </address>
+
+            </div>
+
+        </div>
+
+
+        <div class="footer-bottom">
+
+            <p>
+                &copy; 2025 SmartMeds.
+                Todos os direitos reservados.
+            </p>
+
+        </div>
+
+    </footer>
+
+
+    <!-- ================= BOOTSTRAP ================= -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous">
+    </script>
+
+
+    <!-- ================= MENU MOBILE ================= -->
+    <script>
+
+        const menuToggle = document.querySelector(".menu-toggle");
+        const menu = document.querySelector(".menu");
+        const menuLinks = document.querySelectorAll(".menu a");
+
+        menuToggle.addEventListener("click", () => {
+
+            const aberto = menu.classList.toggle("ativo");
+
+            menuToggle.classList.toggle("ativo");
+
+            menuToggle.setAttribute(
+                "aria-expanded",
+                aberto
+            );
+
+        });
+
+
+        /* Fecha o menu depois de clicar em um link */
+        menuLinks.forEach(link => {
+
+            link.addEventListener("click", () => {
+
+                menu.classList.remove("ativo");
+                menuToggle.classList.remove("ativo");
+
+                menuToggle.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+            });
+
+        });
+
+    </script>
+
+</body>
+
+</html>
