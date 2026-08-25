@@ -217,40 +217,78 @@ class Produto(CrudBase):
     def safe_delete(cls, produto_id):
         conexao = Database.connect()
         cursor = conexao.cursor()
+
         try:
-            sql_produto = """
-                SELECT id
-                FROM produto
-                WHERE id = %s
+        # 1. Verifica se o produto existe
+            cursor.execute(
             """
-            cursor.execute(sql_produto, (produto_id,))
+            SELECT id
+            FROM produto
+            WHERE id = %s
+            """,
+            (produto_id,)
+        )
+
             produto = cursor.fetchone()
+
             if not produto:
                 raise ValueError("Produto não encontrado.")
-            sql_movimentacao = """
-                DELETE FROM movimentacao
+
+        # 2. Exclui os itens de entrada ligados às
+        #    movimentações desse produto
+            cursor.execute(
+            """
+            DELETE FROM item_entrada
+            WHERE movimentacao_id IN (
+                SELECT id
+                FROM movimentacao
                 WHERE produto_id = %s
+            )
+            """,
+            (produto_id,)
+        )
+
+        # 3. Exclui os itens de saída ligados às
+        #    movimentações desse produto
+            cursor.execute(
             """
-            cursor.execute(sql_movimentacao, (produto_id,))
-            movimentacoes_excluidas = cursor.rowcount
-            sql_produto_delete = """
-                DELETE FROM produto
-                WHERE id = %s
+            DELETE FROM item_saida
+            WHERE movimentacao_id IN (
+                SELECT id
+                FROM movimentacao
+                WHERE produto_id = %s
+            )
+            """,
+            (produto_id,)
+        )
+
+        # 4. Exclui as movimentações
+            cursor.execute(
             """
-            cursor.execute(sql_produto_delete, (produto_id,))
-            produto_excluido = cursor.rowcount
+            DELETE FROM movimentacao
+            WHERE produto_id = %s
+            """,
+            (produto_id,)
+        )
+
+        # 5. Exclui o produto
+            cursor.execute(
+            """
+            DELETE FROM produto
+            WHERE id = %s
+            """,
+            (produto_id,)
+        )
+
             conexao.commit()
-            return {
-                "produto_excluido": produto_excluido,
-                "movimentacoes_excluidas": movimentacoes_excluidas
-            }
+
         except Exception:
             conexao.rollback()
             raise
+
         finally:
             cursor.close()
-            conexao.close()
-    
+            conexao.close()    
     @classmethod
     def aumentar_estoque(cls, produto_id, quantidade):
         conexao = Database.connect()
