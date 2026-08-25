@@ -15,14 +15,7 @@ class PedidoSaida(CrudBase):
         "usuario_id",
     ]
 
-    def __init__(
-        self,
-        tipo,
-        pagamento,
-        data_pagamento,
-        cliente_id,
-        usuario_id,
-    ):
+    def __init__(self, tipo, pagamento, data_pagamento, cliente_id, usuario_id,):
         self.tipo = tipo.strip()
         self.pagamento = pagamento.strip()
         self.data_pagamento = data_pagamento
@@ -30,7 +23,6 @@ class PedidoSaida(CrudBase):
         self.usuario_id = int(usuario_id)
 
     def validate(self):
-
         erros = [
             Validator.required(self.tipo, "Tipo"),
             Validator.required(self.pagamento, "Pagamento"),
@@ -38,17 +30,13 @@ class PedidoSaida(CrudBase):
             Validator.required(self.cliente_id, "Cliente"),
             Validator.required(self.usuario_id, "Usuário"),
         ]
-
         return [erro for erro in erros if erro]
 
     @classmethod
     def listar_pedidos(cls):
-
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
-
         try:
-
             sql = """
                 SELECT
                     ps.*,
@@ -61,11 +49,8 @@ class PedidoSaida(CrudBase):
                     ON ps.usuario_id = u.id
                 ORDER BY ps.id DESC
             """
-
             cursor.execute(sql)
-
             return cursor.fetchall()
-
         finally:
             cursor.close()
             conexao.close()

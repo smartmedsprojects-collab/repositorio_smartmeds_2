@@ -105,9 +105,8 @@ class Produto(CrudBase):
             cursor.close()
             conexao.close()
 
-
     @classmethod
-    def aumentar_estoque(cls,id, quantidade):
+    def aumentar_estoque(cls, produto_id, quantidade):
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
@@ -116,7 +115,7 @@ class Produto(CrudBase):
                 SET quantidade = quantidade + %s
                 WHERE id = %s
             """
-            cursor.execute(sql,(quantidade, produto_id))
+            cursor.execute(sql, (quantidade, produto_id))
             conexao.commit()
         except Exception:
             conexao.rollback()
@@ -125,9 +124,8 @@ class Produto(CrudBase):
             cursor.close()
             conexao.close()
 
-
     @classmethod
-    def diminuir_estoque(cls,id, quantidade):
+    def diminuir_estoque(cls, produto_id, quantidade):
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
@@ -137,7 +135,10 @@ class Produto(CrudBase):
                 WHERE id = %s
                 AND quantidade >= %s
             """
-            cursor.execute(sql,(quantidade, produto_id, quantidade))
+            cursor.execute(
+                sql,
+                (quantidade, produto_id, quantidade)
+            )
             conexao.commit()
             return cursor.rowcount
         except Exception:
