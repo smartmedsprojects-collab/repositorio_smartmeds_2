@@ -216,60 +216,123 @@ class Produto(CrudBase):
 
     @classmethod
     def safe_delete(cls, produto_id):
-        """
-        Exclui primeiro as movimentações do produto
-        e depois exclui o produto.
-        """
-
         conexao = Database.connect()
         cursor = conexao.cursor()
 
         try:
-            # 1. Verifica se o produto existe
-            sql_produto = """
-                SELECT id
-                FROM produto
-                WHERE id = %s
+        # 1. Verifica se o produto existe
+            cursor.execute(
             """
+            SELECT id
+            FROM produto
+            WHERE id = %s
+            """,
+            (produto_id,)
+        )
 
-            cursor.execute(sql_produto, (produto_id,))
             produto = cursor.fetchone()
 
             if not produto:
                 raise ValueError("Produto não encontrado.")
 
-            # 2. Exclui as movimentações do produto
-            sql_movimentacao = """
-                DELETE FROM movimentacao
+        # 2. Exclui os itens de entrada ligados às
+        #    movimentações desse produto
+            cursor.execute(
+            """
+            DELETE FROM item_entrada
+            WHERE movimentacao_id IN (
+                SELECT id
+                FROM movimentacao
                 WHERE produto_id = %s
+            )
+            """,
+            (produto_id,)
+        )
+
+        # 3. Exclui os itens de saída ligados às
+        #    movimentações desse produto
+            cursor.execute(
             """
+            DELETE FROM item_saida
+            WHERE movimentacao_id IN (
+                SELECT id
+                FROM movimentacao
+                WHERE produto_id = %s
+            )
+            """,
+            (produto_id,)
+        )
 
-            cursor.execute(sql_movimentacao, (produto_id,))
-
-            movimentacoes_excluidas = cursor.rowcount
-
-            # 3. Exclui o produto
-            sql_produto_delete = """
-                DELETE FROM produto
-                WHERE id = %s
+        # 4. Exclui as movimentações
+            cursor.execute(
             """
+            DELETE FROM movimentacao
+            WHERE produto_id = %s
+            """,
+            (produto_id,)
+        )
 
-            cursor.execute(sql_produto_delete, (produto_id,))
+        # 5. Exclui o produto
+            cursor.execute(
+            """
+            DELETE FROM produto
+            WHERE id = %s
+            """,
+            (produto_id,)
+        )
 
-            produto_excluido = cursor.rowcount
-
-            # 4. Confirma tudo
             conexao.commit()
-
-            return {
-                "produto_excluido": produto_excluido,
-                "movimentacoes_excluidas": movimentacoes_excluidas
-            }
 
         except Exception:
             conexao.rollback()
             raise
 
+        finally:
+            cursor.close()
+            conexao.close()    
+    @classmethod
+    def aumentar_estoque(cls, produto_id, quantidade):
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+        try:
+            sql = """
+                UPDATE produto
+                SET quantidade = quantidade + %s
+                WHERE id = %s
+            """
+            cursor.execute(sql, (quantidade, produto_id))
+            conexao.commit()
+
+            return cursor.rowcount
+
+        except Exception:
+            conexao.rollback()
+            raise
+
+        finally:
+            cursor.close()
+            conexao.close()
+
+
+    @classmethod
+    def diminuir_estoque(cls, produto_id, quantidade):
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+
+        try:
+            sql = """
+                UPDATE produto
+                SET quantidade = quantidade - %s
+                WHERE id = %s
+                AND quantidade >= %s
+            """
+
+            cursor.execute(sql,(quantidade, produto_id, quantidade))
+            conexao.commit()
+            return cursor.rowcount
+        except Exception:
+            conexao.rollback()
+            raise
         finally:
             cursor.close()
             conexao.close()

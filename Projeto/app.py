@@ -65,15 +65,7 @@ def get_login_form():
     }
 
 
-def get_pedido_saida_form():
-    return {
-        "tipo": request.form.get("tipo", "").strip(),
-        "pagamento": request.form.get("pagamento", "").strip(),
-        "data_pagamento": request.form.get("data_pagamento", "").strip(),
-        "cliente_id": int(request.form.get("cliente_id", 0)),
-        "usuario_id": int(request.form.get("usuario_id", 0)),
-        "localizacao_id": int(request.form.get("localizacao_id", 0)),
-    }
+
 
 
 def get_pedido_saida_form():

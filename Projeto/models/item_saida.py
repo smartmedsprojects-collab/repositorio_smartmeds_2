@@ -11,7 +11,11 @@ class ItemSaida(CrudBase):
         "quantidade",
         "valor",
         "pedido_saida_id",
+<<<<<<< HEAD
         "movimentacao_id"
+=======
+        "movimentacao_id",
+>>>>>>> 3e8710a53226466da3f72d48d915e91247e78511
     ]
 
     def __init__(
@@ -19,13 +23,28 @@ class ItemSaida(CrudBase):
         quantidade,
         valor,
         pedido_saida_id,
+<<<<<<< HEAD
         movimentacao_id
+=======
+        produto_id
+>>>>>>> 3e8710a53226466da3f72d48d915e91247e78511
     ):
         self.quantidade = int(quantidade)
         self.valor = float(valor)
         self.pedido_saida_id = int(pedido_saida_id)
+<<<<<<< HEAD
         self.movimentacao_id = int(movimentacao_id)
 
+=======
+
+        # Mantemos produto_id no objeto para o endpoint usar,
+        # mas ele NÃO será inserido na tabela item_saida.
+        self.produto_id = int(produto_id)
+
+        # Será preenchido antes do insert()
+        self.movimentacao_id = None
+
+>>>>>>> 3e8710a53226466da3f72d48d915e91247e78511
     def validate(self):
         erros = [
             Validator.required(self.quantidade, "Quantidade"),
@@ -47,14 +66,22 @@ class ItemSaida(CrudBase):
                     i.id,
                     i.quantidade,
                     i.valor,
+<<<<<<< HEAD
                     p.nome AS produto,
                     p.id AS produto_id
+=======
+                    i.pedido_saida_id,
+                    i.movimentacao_id,
+                    m.produto_id,
+                    p.nome AS produto
+>>>>>>> 3e8710a53226466da3f72d48d915e91247e78511
                 FROM item_saida i
                 INNER JOIN movimentacao m
                     ON i.movimentacao_id = m.id
                 INNER JOIN produto p
                     ON m.produto_id = p.id
                 WHERE i.pedido_saida_id = %s
+                ORDER BY i.id DESC
             """
 
             cursor.execute(sql, (pedido_id,))
