@@ -7,9 +7,20 @@ class ItemSaida(CrudBase):
 
     table = "item_saida"
 
-    fields = ["quantidade", "valor", "pedido_saida_id", "produto_id"]
+    fields = [
+        "quantidade",
+        "valor",
+        "pedido_saida_id",
+        "movimentacao_id"
+    ]
 
-    def __init__(self, quantidade, valor, pedido_saida_id, movimentacao_id):
+    def __init__(
+        self,
+        quantidade,
+        valor,
+        pedido_saida_id,
+        movimentacao_id
+    ):
         self.quantidade = int(quantidade)
         self.valor = float(valor)
         self.pedido_saida_id = int(pedido_saida_id)
@@ -22,12 +33,14 @@ class ItemSaida(CrudBase):
             Validator.required(self.pedido_saida_id, "Pedido"),
             Validator.required(self.movimentacao_id, "Movimentação"),
         ]
-    return [erro for erro in erros if erro]
-       
+
+        return [erro for erro in erros if erro]
+
     @classmethod
     def find_by_pedido(cls, pedido_id):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
+
         try:
             sql = """
                 SELECT
@@ -43,8 +56,10 @@ class ItemSaida(CrudBase):
                     ON m.produto_id = p.id
                 WHERE i.pedido_saida_id = %s
             """
+
             cursor.execute(sql, (pedido_id,))
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conexao.close()
