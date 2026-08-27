@@ -4,23 +4,92 @@
 
 <div class="container-fluid">
 
-    <div class="mb-4">
-        <h2 class="titulo-pagina">
-            <i class="bi bi-arrow-left-right"></i> Movimentações
-        </h2>
-        <p class="text-muted">
-            Histórico de entradas e saídas do estoque
-        </p>
+    <!-- TÍTULO -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="titulo-pagina mb-1">
+                <i class="bi bi-arrow-left-right"></i> Movimentações
+            </h2>
+            <p class="text-muted mb-0">Histórico de entradas e saídas do estoque</p>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="resumo-icon bg-success-subtle text-success">
+                        <i class="bi bi-arrow-down"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Entradas</div>
+                        <div class="fs-5 fw-bold" id="totalEntradas">{{movimentacoes.quantidade}}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="resumo-icon bg-danger-subtle text-danger">
+                        <i class="bi bi-arrow-up"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Saídas</div>
+                        <div class="fs-5 fw-bold" id="totalSaidas">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="resumo-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-plus-circle"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Cadastros</div>
+                        <div class="fs-5 fw-bold" id="totalCadastros">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="resumo-icon bg-secondary-subtle text-secondary">
+                        <i class="bi bi-list-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Total de registros</div>
+                        <div class="fs-5 fw-bold" id="totalRegistros">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MOVIMENTAÇÕES DE ESTOQUE -->
     <div class="card shadow-sm mb-4">
-
-        <div class="card-header bg-primary text-white">
+        <div
+            class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0">
                 <i class="bi bi-box-seam"></i>
                 Movimentações de Estoque
             </h5>
+
+            {% if movimentacoes %}
+            <div class="d-flex gap-2 flex-wrap">
+                <select class="form-select form-select-sm" id="filtroTipo" style="width: auto;">
+                    <option value="">Todos os tipos</option>
+                    <option value="entrada">Entrada</option>
+                    <option value="saida">Saída</option>
+                    <option value="cadastro">Cadastro</option>
+                </select>
+                <input type="text" class="form-control form-control-sm" id="filtroProduto"
+                    placeholder="Buscar produto..." style="width: 200px;">
+            </div>
+            {% endif %}
         </div>
 
         <div class="card-body">
@@ -28,38 +97,50 @@
             {% if movimentacoes %}
 
             <div class="table-responsive">
-
-                <table class="table table-hover align-middle">
-
+                <table class="table table-hover align-middle mb-0" id="tabelaMovimentacoes">
                     <thead class="table-light">
                         <tr>
+                            <th>#</th>
                             <th>Produto</th>
-                            <th>Localização</th>
-                            <th>Data e Hora</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>Data</th>
                         </tr>
                     </thead>
 
                     <tbody>
 
                         {% for mov in movimentacoes %}
+                        <tr data-tipo="{{ mov.tipo_movimentacao|lower }}" data-produto="{{ mov.produto|lower }}">
 
-                        <tr>
+                            <td>{{ mov.id }}</td>
 
                             <td>
-                                {{ mov.produto }}
+                                <strong>{{ mov.produto }}</strong>
                             </td>
 
                             <td>
 
-                                {% if mov.rua %}
+                                {% if mov.tipo_movimentacao == 'entrada' %}
 
-                                Rua {{ mov.rua }},
-                                Nº {{ mov.numero }},
-                                Andar {{ mov.andar }}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-arrow-down"></i>
+                                    Entrada
+                                </span>
+
+                                {% elif mov.tipo_movimentacao == 'CADASTRO' %}
+
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-plus-circle"></i>
+                                    Cadastro
+                                </span>
 
                                 {% else %}
 
-                                Não definida
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-arrow-up"></i>
+                                    Saída
+                                </span>
 
                                 {% endif %}
 
@@ -67,42 +148,65 @@
 
                             <td>
 
-                                {% if mov.data_movimentacao %}
+                                {% if mov.tipo_movimentacao == 'entrada' %}
 
-                                {{ mov.data_movimentacao.strftime('%d/%m/%Y %H:%M') }}
+                                <span class="text-success fw-bold">
+                                    +{{ mov.quantidade }}
+                                </span>
+
+                                {% elif mov.tipo_movimentacao == 'CADASTRO' %}
+
+                                <span class="text-primary fw-bold">
+                                    {{ mov.quantidade }}
+                                </span>
+
+                                {% else %}
+
+                                <span class="text-danger fw-bold">
+                                    -{{ mov.quantidade }}
+                                </span>
 
                                 {% endif %}
 
                             </td>
 
-                        </tr>
+                            <td>
+                                {% if mov.data_movimentacao %}
+                                {{ mov.data_movimentacao.strftime('%d/%m/%Y') }}
+                                {% endif %}
+                            </td>
 
+                        </tr>
                         {% endfor %}
 
                     </tbody>
 
                 </table>
 
+                <div class="text-center text-muted py-4 d-none" id="semResultados">
+                    <i class="bi bi-search fs-3 d-block mb-2"></i>
+                    Nenhum resultado para o filtro aplicado.
+                </div>
             </div>
 
             {% else %}
 
-            <div class="alert alert-info">
-                Nenhuma movimentação encontrada.
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                Nenhuma movimentação registrada.
             </div>
 
             {% endif %}
 
         </div>
-
     </div>
 
     <!-- PEDIDOS DE ENTRADA -->
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm">
 
         <div class="card-header bg-success text-white">
             <h5 class="mb-0">
-                <i class="bi bi-box-arrow-in-down"></i>
+                <i class="bi bi-file-earmark-text"></i>
                 Movimentações de Pedidos de Entrada
             </h5>
         </div>
@@ -113,13 +217,13 @@
 
             <div class="table-responsive">
 
-                <table class="table table-hover align-middle">
-
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
+                            <th>ID</th>
                             <th>Documento</th>
                             <th>Fornecedor</th>
-                            <th>Data de Entrada</th>
+                            <th>Data Entrada</th>
                             <th>Usuário</th>
                             <th>Status</th>
                             <th>Observação</th>
@@ -129,21 +233,20 @@
                     <tbody>
 
                         {% for pedido in movimentacoes_entrada %}
-
                         <tr>
 
-                            <td>{{ pedido.numero_documento }}</td>
+                            <td>{{ pedido.id_pedido_entrada }}</td>
+
+                            <td>
+                                <strong>{{ pedido.numero_documento }}</strong>
+                            </td>
 
                             <td>{{ pedido.fornecedor }}</td>
 
                             <td>
-
                                 {% if pedido.data_entrada %}
-
                                 {{ pedido.data_entrada.strftime('%d/%m/%Y') }}
-
                                 {% endif %}
-
                             </td>
 
                             <td>{{ pedido.usuario }}</td>
@@ -172,10 +275,9 @@
 
                             </td>
 
-                            <td>{{ pedido.observacao }}</td>
+                            <td>{{ pedido.observacao or '-' }}</td>
 
                         </tr>
-
                         {% endfor %}
 
                     </tbody>
@@ -186,7 +288,8 @@
 
             {% else %}
 
-            <div class="alert alert-info">
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                 Nenhum pedido de entrada encontrado.
             </div>
 
@@ -196,80 +299,84 @@
 
     </div>
 
-    <!-- PEDIDOS DE SAÍDA -->
-    <div class="card shadow-sm">
-
-        <div class="card-header bg-danger text-white">
-            <h5 class="mb-0">
-                <i class="bi bi-box-arrow-up"></i>
-                Movimentações de Pedidos de Saída
-            </h5>
-        </div>
-
-        <div class="card-body">
-
-            {% if movimentacoes_saida %}
-
-            <div class="table-responsive">
-
-                <table class="table table-hover align-middle">
-
-                    <thead class="table-light">
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Cliente</th>
-                            <th>Usuário</th>
-                            <th>Pagamento</th>
-                            <th>Data da Retirada</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                        {% for pedido in movimentacoes_saida %}
-
-                        <tr>
-
-                            <td>{{ pedido.tipo }}</td>
-
-                            <td>{{ pedido.cliente }}</td>
-
-                            <td>{{ pedido.usuario }}</td>
-
-                            <td>{{ pedido.pagamento }}</td>
-
-                            <td>
-
-                                {% if pedido.data_pagamento %}
-
-                                {{ pedido.data_pagamento.strftime('%d/%m/%Y') }}
-
-                                {% endif %}
-
-                            </td>
-
-                        </tr>
-
-                        {% endfor %}
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-            {% else %}
-
-            <div class="alert alert-info">
-                Nenhum pedido de saída encontrado.
-            </div>
-
-            {% endif %}
-
-        </div>
-
-    </div>
-
 </div>
+
+<style>
+    .resumo-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .card {
+        border-radius: 12px;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.04);
+    }
+
+    @media print {
+
+        .btn,
+        #filtroTipo,
+        #filtroProduto,
+        .card-header .d-flex {
+            display: none !important;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tabela = document.getElementById('tabelaMovimentacoes');
+        if (!tabela) return;
+
+        const linhas = Array.from(tabela.querySelectorAll('tbody tr'));
+        const filtroTipo = document.getElementById('filtroTipo');
+        const filtroProduto = document.getElementById('filtroProduto');
+        const semResultados = document.getElementById('semResultados');
+
+        function atualizarResumo() {
+            let entradas = 0, saidas = 0, cadastros = 0;
+            linhas.forEach(function (linha) {
+                const tipo = linha.dataset.tipo;
+                if (tipo === 'entrada') entradas++;
+                else if (tipo === 'cadastro') cadastros++;
+                else saidas++;
+            });
+            document.getElementById('totalEntradas').textContent = entradas;
+            document.getElementById('totalSaidas').textContent = saidas;
+            document.getElementById('totalCadastros').textContent = cadastros;
+            document.getElementById('totalRegistros').textContent = linhas.length;
+        }
+
+        function aplicarFiltros() {
+            const tipo = filtroTipo.value;
+            const produto = filtroProduto.value.trim().toLowerCase();
+            let visiveis = 0;
+
+            linhas.forEach(function (linha) {
+                const tipoOk = !tipo || linha.dataset.tipo === tipo;
+                const produtoOk = !produto || linha.dataset.produto.includes(produto);
+                const mostrar = tipoOk && produtoOk;
+                linha.classList.toggle('d-none', !mostrar);
+                if (mostrar) visiveis++;
+            });
+
+            semResultados.classList.toggle('d-none', visiveis !== 0);
+        }
+
+        filtroTipo.addEventListener('change', aplicarFiltros);
+        filtroProduto.addEventListener('input', aplicarFiltros);
+
+        atualizarResumo();
+    });
+</script>
 
 {% endblock %}
