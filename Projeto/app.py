@@ -28,6 +28,16 @@ def dashboard():
     return render_template("base.html")
 
 
+def get_usuario_form():
+    return {
+        "nome": request.form.get("nome", "").strip(),
+        "email": request.form.get("email", "").strip(),
+        "senha": request.form.get("senha", "").strip(),
+        "identificacao": request.form.get("identificacao", "").strip(),
+        "tipo": request.form.get("tipo", "").strip(),
+    }
+
+
 def get_cliente_form():
     return {
         "nome": request.form.get("nome", "").strip(),
@@ -63,9 +73,6 @@ def get_login_form():
         "email": request.form.get("email", "").strip(),
         "senha": request.form.get("senha", "").strip(),
     }
-
-
-
 
 
 def get_pedido_saida_form():
@@ -723,5 +730,4 @@ def salvar_item_saida():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-    # print(app.url_map)
+    print(app.url_map)
