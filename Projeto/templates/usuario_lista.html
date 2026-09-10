@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block conteudo %}
+<div class="container mt-4">
+
+    <!-- TÍTULO + BOTÃO -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Lista de Usuários</h4>
+        {% if tem_permissao("usuarios_criar") %}
+        <a href="{{ url_for('novo_usuario') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Novo Usuário
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- MENSAGENS -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div class="alert alert-{{ 'success' if category == 'success' else 'success' }}">
+        {{ message }}
+    </div>
+    {% endfor %} {% endif %} {% endwith %}
+
+    <!-- TABELA -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if usuarios %}
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Tipo</th>
+                        <th>Identificação</th>
+                        <th>Permissão</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>{{ usuario.id }}</td>
+                        <td>{{ usuario.nome }}</td>
+                        <td>{{ usuario.email }}</td>
+                        <td>{{ usuario.tipo }}</td>
+                        <td>{{ usuario.identificacao }}</td>
+                        <td>{{ usuario.permissao }}</td>
+                        <td class="text-end">
+
+                            <!-- EDITAR -->
+                            {% if tem_permissao("usuarios_editar") %}
+                            <a href="{{ url_for('buscar_usuario', id=usuario.id) }}" class="btn btn-sm btn-primary"
+                                onclick="return confirm('Deseja editar este usuário?');">
+                                <i class="bi bi-pencil"></i>
+                                Editar
+                            </a>
+                            {% endif %}
+
+                            <!-- DELETAR -->
+                            {% if tem_permissao("usuarios_excluir") %}
+                            <a href="{{ url_for('excluir_usuario', id=usuario.id) }}" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Deseja excluir este usuário?');">
+                                <i class="bi bi-trash"></i>
+                                Excluir
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center text-muted">Nenhum usuário cadastrado.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

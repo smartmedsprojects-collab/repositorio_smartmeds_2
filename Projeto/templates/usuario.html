@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block conteudo %}
+<div class="sm-user-cadastro-page">
+    <div class="sm-user-cadastro-container">
+        <div class="sm-user-cadastro-card">
+
+            <!-- CABEÇALHO -->
+            <div class="sm-user-cadastro-header">
+                <div class="sm-user-cadastro-icon">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="sm-user-cadastro-heading">
+                    <h2 class="sm-user-cadastro-title">
+                        Novo usuário
+                    </h2>
+                    <p class="sm-user-cadastro-subtitle">
+                        Cadastre um novo usuário no SmartMeds.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FORMULÁRIO -->
+            <form method="POST" class="sm-user-cadastro-form" action="{{ url_for('salvar_usuario') }}">
+
+                <!-- NOME -->
+                <div class="sm-user-cadastro-field">
+                    <label for="sm-user-cadastro-nome" class="sm-user-cadastro-label">
+                        Nome completo
+                    </label>
+                    <input type="text" id="sm-user-cadastro-nome" name="nome" class="sm-user-cadastro-input"
+                        placeholder="Digite o nome completo" required>
+                </div>
+
+                <!-- IDENTIFICAÇÃO -->
+                <div class="sm-user-cadastro-field">
+                    <label for="sm-user-cadastro-identificacao" class="sm-user-cadastro-label">
+                        Identificação
+                    </label>
+                    <input type="text" id="sm-user-cadastro-identificacao" name="identificacao"
+                        class="sm-user-cadastro-input" placeholder="Digite a identificação" required>
+                </div>
+
+                <!-- E-MAIL -->
+                <div class="sm-user-cadastro-field">
+                    <label for="sm-user-cadastro-email" class="sm-user-cadastro-label">
+                        E-mail
+                    </label>
+                    <input type="email" id="sm-user-cadastro-email" name="email" class="sm-user-cadastro-input"
+                        placeholder="Digite o e-mail" required>
+                </div>
+
+                <!-- CNPJ -->
+                <div class="sm-user-cadastro-field">
+                    <label for="sm-user-cadastro-cnpj" class="sm-user-cadastro-label">
+                        CNPJ
+                    </label>
+                    <input type="text" id="sm-user-cadastro-cnpj" name="cnpj" class="sm-user-cadastro-input"
+                        placeholder="Digite o CNPJ">
+                </div>
+
+                <!-- TIPO -->
+                <div class="sm-user-cadastro-field">
+                    <label for="sm-user-cadastro-tipo" class="sm-user-cadastro-label">
+                        Tipo de usuário
+                    </label>
+                    <select id="sm-user-cadastro-tipo" name="tipo" class="sm-user-cadastro-select" required>
+                        <option value="">
+                            Selecione o tipo
+                        </option>
+                        <option value="adm">
+                            Administrador
+                        </option>
+                        <option value="estoquista">
+                            Estoquista
+                        </option>
+                        <option value="consulta">
+                            Consulta
+                        </option>
+                    </select>
+                </div>
+
+                <!-- SENHA -->
+                <div class="sm-user-cadastro-field">
+                    <label for="sm-user-cadastro-senha" class="sm-user-cadastro-label">
+                        Senha
+                    </label>
+                    <input type="password" id="sm-user-cadastro-senha" name="senha" class="sm-user-cadastro-input"
+                        placeholder="Digite uma senha" required>
+                </div>
+
+                <!-- BOTÕES -->
+                <div class="sm-user-cadastro-actions">
+                    <a href="{{ url_for('listar_usuarios') }}" class="sm-user-cadastro-btn-back">
+                        <i class="bi bi-arrow-left"></i>
+                        Cancelar
+                    </a>
+                    <button type="submit" class="sm-user-cadastro-btn-save">
+                        <i class="bi bi-check-lg"></i>
+                        Cadastrar usuário
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
