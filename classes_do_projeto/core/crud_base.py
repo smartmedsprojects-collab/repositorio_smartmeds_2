@@ -3,12 +3,15 @@ from core.database import Database
 class CrudBase:
     table = ""
     fields = []
+    pk = "id"
 
     @classmethod
-    def find_all(cls, order_by="id"):
+    def find_all(cls, order_by=None):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
+            if not order_by:
+                order_by = cls.pk
             sql = f"SELECT * FROM {cls.table} ORDER BY {order_by}"
             cursor.execute(sql)
             return cursor.fetchall()
@@ -21,7 +24,7 @@ class CrudBase:
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
-            sql = f"SELECT * FROM {cls.table} WHERE id = %s"
+            sql = f"SELECT * FROM {cls.table} WHERE {cls.pk} = %s"
             cursor.execute(sql, (id,))
             return cursor.fetchone()
         finally:
@@ -33,7 +36,7 @@ class CrudBase:
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
-            sql = f"DELETE FROM {cls.table} WHERE id = %s"
+            sql = f"DELETE FROM {cls.table} WHERE {cls.pk} = %s"
             cursor.execute(sql, (id,))
             conexao.commit()
             return cursor.rowcount
@@ -67,8 +70,12 @@ class CrudBase:
         cursor = conexao.cursor()
         try:
             campos = ", ".join([f"{campo} = %s" for campo in self.fields])
-            valores = tuple(getattr(self, campo) for campo in self.fields) + (id,)
-            sql = f"UPDATE {self.table} SET {campos} WHERE id = %s"
+            valores = (tuple(getattr(self, campo) for campo in self.fields)+ (id,))
+            sql = f"""
+                UPDATE {self.table}
+                SET {campos}
+                WHERE {self.pk} = %s
+            """
             cursor.execute(sql, valores)
             conexao.commit()
             return cursor.rowcount

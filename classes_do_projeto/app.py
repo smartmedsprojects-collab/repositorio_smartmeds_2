@@ -1,18 +1,79 @@
+from datetime import date, timedelta
 from flask import Flask, render_template, request, redirect, session, url_for, flash
+from core.database import Database
+from models.item_saida import ItemSaida
+from models.localizaçao import Localizacao
+from models.pedido_saida import PedidoSaida
 from models.produto import Produto
 from models.movimentacao import Movimentacao
-#from models.pedido_movimentacao import Pedidos
-#from models.item_entrada import ItemEntrada
-from models.fornecedor import Fornecedor
+from models.pedido_entrada import PedidoEntrada
 from models.cliente import Cliente
-
+from models.usuario import Usuario
+from core.permissoes import permissao_obrigatoria
+from models.item_entrada import ItemEntrada
+from core.security import login_obrigatorio
 
 app = Flask(__name__)
 app.secret_key = "chave_secreta"
 
+
 @app.route("/")
 def index():
-    return render_template("login.html")
+    if "usuario_id" in session:
+        return redirect(url_for("dashboard"))
+    return redirect(url_for("login"))
+
+
+@app.route("/dashboard")
+@login_obrigatorio
+def dashboard():
+    LIMITE_ESTOQUE_BAIXO = 10
+    DIAS_ALERTA_VALIDADE = 30
+
+    produtos = Produto.find_all()
+    movimentacoes = Movimentacao.find_all_with_product()
+    clientes = Cliente.find_all()
+
+    hoje = date.today()
+    limite_validade = hoje + timedelta(days=DIAS_ALERTA_VALIDADE)
+
+    produtos_baixo = [
+        p for p in produtos
+        if int(p.get("quantidade") or 0) <= LIMITE_ESTOQUE_BAIXO
+    ]
+
+    produtos_vencendo = [
+        p for p in produtos
+        if p.get("data_de_validade") and hoje <= p["data_de_validade"] <= limite_validade
+    ]
+
+    entradas = sum(
+        1 for m in movimentacoes
+        if (m.get("tipo_movimentacao") or "").upper() == "ENTRADA"
+    )
+    saidas = sum(
+        1 for m in movimentacoes
+        if (m.get("tipo_movimentacao") or "").upper() == "SAIDA"
+    )
+
+    produtos_ordenados = sorted(
+        produtos, key=lambda p: int(p.get("quantidade") or 0), reverse=True
+    )[:8]
+
+    return render_template(
+        "index.html",
+        total_produtos=len(produtos),
+        total_clientes=len(clientes),
+        total_movimentacoes=len(movimentacoes),
+        produtos_baixo=produtos_baixo,
+        produtos_vencendo=produtos_vencendo,
+        entradas=entradas,
+        saidas=saidas,
+        movimentacoes_recentes=movimentacoes[:6],
+        labels_estoque=[p["nome"] for p in produtos_ordenados],
+        quantidades_estoque=[int(p.get("quantidade") or 0) for p in produtos_ordenados],
+    )
+
 
 def get_cliente_form():
     return {
@@ -22,53 +83,310 @@ def get_cliente_form():
         "cnpj": request.form.get("cnpj", "").strip(),
     }
 
-def get_fornecedor_form():
-    return {
-    "nome": request.form.get("nome", "").strip(),
-    "email": request.form.get("email", "").strip(),
-    "senha": request.form.get("senha", "").strip(),
-    "cnpj": request.form.get("cnpj", "").strip(),
-    }
 
 def get_produto_form():
+    qtd_str = request.form.get("quantidade", "0").strip()
     return {
         "nome": request.form.get("nome", "").strip(),
         "marca": request.form.get("marca", "").strip(),
         "data_de_validade": request.form.get("data_de_validade", "").strip(),
         "especificacao": request.form.get("especificacao", "").strip(),
         "unidade_medida": request.form.get("unidade_medida", "").strip(),
+        "quantidade": int(qtd_str) if qtd_str.isdigit() else 0,
     }
+
+
+def get_pedido_entrada_form():
+    id_usuario_str = request.form.get("id_usuario", "0").strip()
+    return {
+        "numero_documento": request.form.get("numero_documento", "").strip(),
+        "fornecedor": request.form.get("fornecedor", "").strip(),
+        "data_entrada": request.form.get("data_entrada", "").strip(),
+        "id_usuario": int(id_usuario_str) if id_usuario_str.isdigit() else 0,
+        "observacao": request.form.get("observacao", "").strip(),
+        "status": request.form.get("status", "").strip(),
+    }
+
+
 def get_login_form():
+    return {
+        "email": request.form.get("email", "").strip(),
+        "senha": request.form.get("senha", "").strip(),
+    }
+
+
+def get_pedido_saida_form():
+    cliente_id_str = request.form.get("cliente_id", "0").strip()
+    usuario_id_str = request.form.get("usuario_id", "0").strip()
+    return {
+        "tipo": request.form.get("tipo", "").strip(),
+        "pagamento": request.form.get("pagamento", "").strip(),
+        "data_pagamento": request.form.get("data_pagamento", "").strip(),
+        "cliente_id": int(cliente_id_str) if cliente_id_str.isdigit() else 0,
+        "usuario_id": int(usuario_id_str) if usuario_id_str.isdigit() else 0,
+    }
+
+
+def get_usuario_form():
     return {
         "nome": request.form.get("nome", "").strip(),
         "email": request.form.get("email", "").strip(),
+        "senha": request.form.get("senha", "").strip(),
+        "identificacao": request.form.get("identificacao", "").strip(),
+        "tipo": request.form.get("tipo", "").strip()
     }
 
-#(Login)===========================================================================================
-# FORMULÁRIO DE LOGIN
-@app.route("/login", methods=["GET"])
+
+# (Login)===========================================================================================
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    return render_template("login.html",usuario=None)
+    if "usuario_id" in session:
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        senha = request.form.get("senha", "").strip()
+        usuario = Usuario.autenticar(email, senha)
+        if usuario:
+            session["usuario_id"] = usuario["id"]
+            session["usuario_nome"] = usuario["nome"]
+            session["usuario_tipo"] = usuario["tipo"]
+            flash("Login realizado com sucesso!", "success")
+            return redirect(url_for("dashboard"))
+        flash("E-mail ou senha inválidos.", "danger")
+    return render_template("login.html")
 
-    
-#(Cliente)===========================================================================================
-# FORMULÁRIO NOVO CLIENTE
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Você saiu do sistema.", "info")
+    return redirect(url_for("login"))
+
+
+# (Usuario)===========================================================================================
+PERMISSOES = {
+    "adm": {
+        "usuarios_ver",
+        "usuarios_criar",
+        "usuarios_editar",
+        "usuarios_excluir",
+
+        "clientes_ver",
+        "clientes_criar",
+        "clientes_editar",
+        "clientes_excluir",
+
+        "produtos_ver",
+        "produtos_criar",
+        "produtos_editar",
+        "produtos_excluir",
+
+        "estoque_ver",
+        "estoque_editar",
+
+        "pedido_entrada",
+        "pedido_saida",
+
+        "localizacoes_ver",
+        "localizacoes_criar",
+        "localizacoes_editar",
+        "localizacoes_excluir",
+    },
+
+    "estoquista": {
+        "clientes_ver",
+
+        "produtos_ver",
+        "produtos_criar",
+        "produtos_editar",
+
+        "estoque_ver",
+        "estoque_editar",
+
+        "pedido_entrada",
+        "pedido_saida",
+
+        "localizacoes_ver",
+    },
+
+    "consulta": {
+        "clientes_ver",
+        "produtos_ver",
+        "estoque_ver",
+        "localizacoes_ver",
+    }
+}
+
+
+def obter_usuario_logado():
+    usuario_id = session.get("usuario_id")
+    if not usuario_id:
+        return None
+
+    try:
+        return Usuario.find_by_id(usuario_id)
+    except Exception as e:
+        print(f"Erro ao buscar usuário logado: {e}")
+        return None
+
+
+def tem_permissao(permissao):
+    usuario = obter_usuario_logado()
+    if not usuario:
+        return False
+
+    tipo = usuario.get("tipo")
+    if tipo == "admin":
+        tipo = "adm"
+
+    if not tipo:
+        return False
+
+    return permissao in PERMISSOES.get(tipo, set())
+
+
+@app.context_processor
+def inject_permissoes():
+    usuario = obter_usuario_logado()
+    return {
+        "usuario_logado": usuario,
+        "tem_permissao": tem_permissao
+    }
+
+
+# LISTAR USUÁRIOS
+@app.route("/usuarios", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("usuarios_ver")
+def listar_usuarios():
+    try:
+        usuarios = Usuario.find_all(order_by="id DESC")
+        return render_template("usuario_lista.html", usuarios=usuarios)
+    except Exception as e:
+        print("ERRO AO LISTAR USUÁRIOS:", e)
+        flash(f"Erro ao carregar usuários: {e}", "erro")
+        return render_template("usuario_lista.html", usuarios=[])
+
+
+# FORMULÁRIO NOVO USUÁRIO
+@app.route("/usuario/novo", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("usuarios_criar")
+def novo_usuario():
+    return render_template("usuario.html")
+
+
+# SALVAR USUÁRIO
+@app.route("/usuario/salvar", methods=["POST"])
+@login_obrigatorio
+@permissao_obrigatoria("usuarios_criar")
+def salvar_usuario():
+    dados = get_usuario_form()
+    try:
+        usuario = Usuario(**dados)
+        usuario.insert()
+        flash("Usuário cadastrado com sucesso.", "sucesso")
+        return redirect(url_for("listar_usuarios"))
+    except Exception as e:
+        print("ERRO AO CADASTRAR USUÁRIO:", e)
+        flash(f"Erro ao cadastrar usuário: {e}", "erro")
+        return render_template("usuario.html", usuario=dados)
+
+
+# BUSCAR USUÁRIO
+@app.route("/usuario/<int:id>/editar", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("usuarios_editar")
+def buscar_usuario(id):
+    try:
+        usuario = Usuario.find_by_id(id)
+        if not usuario:
+            flash("Usuário não encontrado.", "erro")
+            return redirect(url_for("listar_usuarios"))
+        return render_template("usuario.html", usuario=usuario)
+    except Exception as e:
+        print("ERRO AO BUSCAR USUÁRIO:", e)
+        flash(f"Erro ao carregar usuário: {e}", "erro")
+        return redirect(url_for("listar_usuarios"))
+
+
+# ATUALIZAR USUÁRIO
+@app.route("/usuario/<int:id>/atualizar", methods=["POST"])
+@login_obrigatorio
+@permissao_obrigatoria("usuarios_editar")
+def atualizar_usuario(id):
+    dados = get_usuario_form()
+    try:
+        usuario_existente = Usuario.find_by_id(id)
+        if not usuario_existente:
+            flash("Usuário não encontrado.", "erro")
+            return redirect(url_for("listar_usuarios"))
+
+        usuario = Usuario(**dados)
+        erros = usuario.validate() if hasattr(usuario, "validate") else []
+
+        if erros:
+            for erro in erros:
+                flash(erro, "erro")
+            dados["id"] = id
+            return render_template("usuario.html", usuario=dados)
+
+        linhas_afetadas = usuario.update(id)
+        if linhas_afetadas == 0:
+            flash("Nenhuma alteração realizada.", "erro")
+            return redirect(url_for("buscar_usuario", id=id))
+
+        flash("Usuário atualizado com sucesso.", "sucesso")
+        return redirect(url_for("listar_usuarios"))
+    except Exception as e:
+        print("ERRO AO ATUALIZAR USUÁRIO:", e)
+        flash(f"Erro ao atualizar usuário: {e}", "erro")
+        dados["id"] = id
+        return render_template("usuario.html", usuario=dados)
+
+
+# EXCLUIR USUÁRIO
+@app.route("/usuario/<int:id>/excluir", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("usuarios_excluir")
+def excluir_usuario(id):
+    try:
+        usuario = Usuario.find_by_id(id)
+        if not usuario:
+            flash("Usuário não encontrado.", "erro")
+            return redirect(url_for("listar_usuarios"))
+
+        Usuario.delete(id)
+        flash("Usuário excluído com sucesso.", "sucesso")
+    except ValueError as e:
+        flash(str(e), "erro")
+    except Exception as e:
+        print("ERRO AO EXCLUIR USUÁRIO:", e)
+        flash(f"Erro ao excluir usuário: {e}", "erro")
+
+    return redirect(url_for("listar_usuarios"))
+
+
+# (Cliente)===========================================================================================
 @app.route("/cliente/novo", methods=["GET"])
+@login_obrigatorio
 def novo_cliente():
-    return render_template("Cliente.html",cliente=None)
+    return render_template("Cliente.html", cliente=None)
 
-#LISTAR CLIENTES
+
 @app.route("/clientes", methods=["GET"])
+@login_obrigatorio
 def listar_clientes():
     try:
         clientes = Cliente.find_all(order_by="id DESC")
-        return render_template("cliente_lista.html",clientes=clientes)
+        return render_template("cliente_lista.html", clientes=clientes)
     except Exception as e:
-        flash("Erro ao carregar clientes.","erro")
-        return render_template("cliente_lista.html",clientes=[])
+        flash("Erro ao carregar clientes.", "erro")
+        return render_template("cliente_lista.html", clientes=[])
 
-# SALVAR CLIENTE
+
 @app.route("/cliente/salvar", methods=["POST"])
+@login_obrigatorio
 def salvar_cliente():
     dados = get_cliente_form()
     dados["email"] = dados["email"].lower().strip()
@@ -77,30 +395,33 @@ def salvar_cliente():
     if erros:
         for erro in erros:
             flash(erro, "erro")
-        return render_template("Cliente.html",cliente=cliente)
+        return render_template("Cliente.html", cliente=cliente)
     try:
-        novo_id = cliente.insert()
-        flash("Cliente cadastrado com sucesso.","sucesso")
-        return redirect(url_for("listar_clientes",id=novo_id))
+        cliente.insert()
+        flash("Cliente cadastrado com sucesso.", "sucesso")
+        return redirect(url_for("listar_clientes"))
     except Exception as e:
-        flash("Erro ao cadastrar cliente.","erro")
-        return render_template("cliente_lista.html",cliente=cliente)
+        print("ERRO REAL:", e)
+        flash("Erro ao cadastrar cliente.", "erro")
+        return render_template("Cliente.html", cliente=cliente)
 
-# BUSCAR CLIENTE
+
 @app.route("/cliente/<int:id>/editar", methods=["GET"])
+@login_obrigatorio
 def buscar_cliente(id):
     try:
         cliente = Cliente.find_by_id(id)
         if not cliente:
-            flash("Cliente não encontrado.","erro")
-            return redirect(url_for("cliente_lista"))
-        return render_template("Cliente.html",cliente=cliente)
+            flash("Cliente não encontrado.", "erro")
+            return redirect(url_for("listar_clientes"))
+        return render_template("Cliente.html", cliente=cliente)
     except Exception as e:
-        flash("Erro ao carregar cliente.","erro")
-        return redirect(url_for("cliente_lista"))
+        flash("Erro ao carregar cliente.", "erro")
+        return redirect(url_for("listar_clientes"))
 
-# ATUALIZAR CLIENTE
+
 @app.route("/cliente/<int:id>/atualizar", methods=["POST"])
+@login_obrigatorio
 def atualizar_cliente(id):
     dados = get_cliente_form()
     dados["email"] = dados["email"].lower().strip()
@@ -110,146 +431,587 @@ def atualizar_cliente(id):
         for erro in erros:
             flash(erro, "erro")
         dados["id"] = id
-        return render_template("Cliente.html",cliente=dados)
+        return render_template("Cliente.html", cliente=dados)
     try:
         cliente_existente = Cliente.find_by_id(id)
         if not cliente_existente:
-            flash("Cliente não encontrado.","erro")
+            flash("Cliente não encontrado.", "erro")
             return redirect(url_for("listar_clientes"))
         linhas_afetadas = cliente.update(id)
         if linhas_afetadas == 0:
-            flash("Nenhuma alteração realizada.","erro")
-            return redirect(url_for("buscar_cliente",id=id))
-        flash("Cliente atualizado com sucesso.","sucesso")
-        return redirect(url_for("buscar_cliente",id=id))
+            flash("Nenhuma alteração realizada.", "erro")
+            return redirect(url_for("buscar_cliente", id=id))
+        flash("Cliente atualizado com sucesso.", "sucesso")
+        return redirect(url_for("buscar_cliente", id=id))
     except Exception as e:
-        flash("Erro ao atualizar cliente.","erro")
-        return render_template("Cliente.html",cliente=dados)
+        flash("Erro ao atualizar cliente.", "erro")
+        return render_template("Cliente.html", cliente=dados)
 
-# EXCLUIR CLIENTE
+
 @app.route("/cliente/<int:id>/excluir")
+@login_obrigatorio
 def excluir_cliente(id):
     try:
         cliente = Cliente.find_by_id(id)
         if not cliente:
-            flash("Cliente não encontrado.","erro")
+            flash("Cliente não encontrado.", "erro")
             return redirect(url_for("listar_clientes"))
         Cliente.safe_delete(id)
-        flash("Cliente excluído com sucesso.","sucesso")
+        flash("Cliente excluído com sucesso.", "sucesso")
     except ValueError as e:
         flash(str(e), "erro")
     except Exception as e:
-        flash("Erro ao excluir cliente.","erro")
+        flash("Erro ao excluir cliente.", "erro")
     return redirect(url_for("listar_clientes"))
 
 
-
-
-
-
-
-
-    
-
-#(Produto)============================================================================================
-# FORMULÁRIO NOVO PRODUTO
+# (Produto)============================================================================================
 @app.route("/produto/novo", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("produtos_criar")
 def novo_produto():
     return render_template("produtos.html", produto=None)
 
-# LISTAR PRODUTOS
+
 @app.route("/produtos", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("produtos_ver")
 def listar_produtos():
     try:
         produtos = Produto.find_all(order_by="id DESC")
         return render_template("listar_produtos.html", produtos=produtos)
     except Exception as e:
+        print(f"Erro ao carregar produtos: {e}")
         flash("Erro ao carregar produtos.", "erro")
         return render_template("listar_produtos.html", produtos=[])
 
-# SALVAR PRODUTO
+
 @app.route("/produto/salvar", methods=["POST"])
+@login_obrigatorio
+@permissao_obrigatoria("produtos_criar")
 def salvar_produto():
     dados = get_produto_form()
     produto = Produto(**dados)
-    erros = produto.validate()
+    erros = produto.validate() if hasattr(produto, "validate") else []
+
     if erros:
         for erro in erros:
             flash(erro, "erro")
         return render_template("produtos.html", produto=produto)
+
     try:
         novo_id = produto.insert()
-        movimentacao = Movimentacao(produto_id=novo_id,tipo_movimentacao="CADASTRO",quantidade=1)
+        qtd_inicial = dados.get("quantidade", 0)
+        movimentacao = Movimentacao(
+            produto_id=novo_id,
+            tipo_movimentacao="CADASTRO",
+            quantidade=qtd_inicial
+        )
         movimentacao.insert()
         flash("Produto cadastrado com sucesso.", "sucesso")
         return redirect(url_for("listar_produtos"))
     except Exception as e:
         flash(f"Erro ao cadastrar produto: {e}", "erro")
-        print("TEMP")
         return render_template("produtos.html", produto=produto)
-    
-# BUSCAR PRODUTO
+
+
 @app.route("/produto/<int:id>/editar", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("produtos_editar")
 def buscar_produto(id):
     try:
         produto = Produto.find_by_id(id)
         if not produto:
-            flash("Produto não encontrado.","erro")
+            flash("Produto não encontrado.", "erro")
             return redirect(url_for("listar_produtos"))
-        return render_template("produtos.html",produto=produto)
+        return render_template("produtos.html", produto=produto)
     except Exception as e:
-        flash("Erro ao carregar produto.","erro")
+        print(f"Erro ao buscar produto: {e}")
+        flash("Erro ao carregar produto.", "erro")
         return redirect(url_for("listar_produtos"))
 
-# ATUALIZAR PRODUTO
+
 @app.route("/produto/<int:id>/atualizar", methods=["POST"])
+@login_obrigatorio
+@permissao_obrigatoria("produtos_editar")
 def atualizar_produto(id):
     dados = get_produto_form()
     produto = Produto(**dados)
-    erros = produto.validate()
+    erros = produto.validate() if hasattr(produto, "validate") else []
+
     if erros:
         for erro in erros:
             flash(erro, "erro")
         dados["id"] = id
-        return render_template("produtos.html",produto=dados)
+        return render_template("produtos.html", produto=dados)
+
     try:
         produto_existente = Produto.find_by_id(id)
         if not produto_existente:
-            flash("Produto não encontrado.","erro")
+            flash("Produto não encontrado.", "erro")
             return redirect(url_for("listar_produtos"))
+
         linhas_afetadas = produto.update(id)
         if linhas_afetadas == 0:
             flash("Nenhuma alteração realizada.", "erro")
             return redirect(url_for("buscar_produto", id=id))
+
         flash("Produto atualizado com sucesso.", "sucesso")
         return redirect(url_for("listar_produtos"))
     except Exception as e:
-        flash("Erro ao atualizar produto.","erro")
-        return render_template("produtos.html",produto=dados)
+        print(f"Erro ao atualizar produto: {e}")
+        flash("Erro ao atualizar produto.", "erro")
+        return render_template("produtos.html", produto=dados)
 
-# EXCLUIR PRODUTO
-@app.route("/produto/<int:id>/excluir")
+
+@app.route("/produto/<int:id>/excluir", methods=["GET"])
+@login_obrigatorio
+@permissao_obrigatoria("produtos_excluir")
 def excluir_produto(id):
     try:
         produto = Produto.find_by_id(id)
         if not produto:
             flash("Produto não encontrado.", "erro")
             return redirect(url_for("listar_produtos"))
+
         Produto.safe_delete(id)
         flash("Produto excluído com sucesso.", "sucesso")
     except Exception as e:
         flash(f"Erro ao excluir produto: {e}", "erro")
+
     return redirect(url_for("listar_produtos"))
 
 
-#(Movimentação)===========================================================================================
+# (Movimentação)===========================================================================================
 @app.route("/movimentacoes")
+@login_obrigatorio
 def movimentacoes():
-    dados = Movimentacao.find_all_with_product()
-    print("DADOS:", dados)
-    return render_template("movimentacoes.html",movimentacoes=dados)
-if __name__=="__main__":
-    
-    app.run(debug=True)
+    movimentacoes_list = Movimentacao.find_all_with_product()
+    movimentacoes_entrada = PedidoEntrada.listar_movimentacoes()
+    movimentacoes_saida = PedidoSaida.listar_movimentacoes()
 
-       #print(app.url_map)
+    return render_template(
+        "movimentacoes.html",
+        movimentacoes=movimentacoes_list,
+        movimentacoes_entrada=movimentacoes_entrada,
+        movimentacoes_saida=movimentacoes_saida
+    )
+
+
+# (PedidoEntrada)===========================================================================================
+@app.route("/pedido_entrada/novo", methods=["GET"])
+@login_obrigatorio
+def novo_pedido_entrada():
+    usuarios = Usuario.find_all(order_by="nome")
+    return render_template(
+        "pedido_entrada.html", pedido_entrada=None, usuarios=usuarios
+    )
+
+
+@app.route("/pedido_entrada", methods=["GET"])
+@login_obrigatorio
+def listar_pedido_entrada():
+    try:
+        pedidos_entrada = PedidoEntrada.find_all(order_by="id_pedido_entrada DESC")
+        return render_template(
+            "pedido_entrada_lista.html", pedidos_entrada=pedidos_entrada
+        )
+    except Exception as e:
+        print("ERRO:", e)
+        flash(f"Erro ao carregar pedidos de entrada: {e}", "erro")
+        return render_template("pedido_entrada_lista.html", pedidos_entrada=[])
+
+
+@app.route("/pedido_entrada/salvar", methods=["POST"])
+@login_obrigatorio
+def salvar_pedido_entrada():
+    dados = get_pedido_entrada_form()
+    pedido_entrada = PedidoEntrada(**dados)
+    erros = pedido_entrada.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return render_template(
+            "pedido_entrada.html",
+            pedido_entrada=pedido_entrada,
+            usuarios=Usuario.find_all(order_by="nome"),
+            movimentacoes=[],
+            itens=[],
+        )
+    try:
+        novo_id = pedido_entrada.insert()
+        flash("Pedido de entrada cadastrado com sucesso.", "sucesso")
+        return redirect(url_for("buscar_pedido_entrada", id=novo_id))
+    except Exception as e:
+        flash(f"Erro ao cadastrar pedido: {e}", "erro")
+        return render_template(
+            "pedido_entrada.html",
+            pedido_entrada=pedido_entrada,
+            usuarios=Usuario.find_all(order_by="nome"),
+            movimentacoes=[],
+            itens=[],
+        )
+
+
+@app.route("/pedido_entrada/<int:id>/editar")
+@login_obrigatorio
+def buscar_pedido_entrada(id):
+    try:
+        pedido_entrada = PedidoEntrada.find_by_id(id)
+        if not pedido_entrada:
+            flash("Pedido não encontrado.", "erro")
+            return redirect(url_for("listar_pedido_entrada"))
+        usuarios = Usuario.find_all(order_by="nome")
+        movimentacoes_list = Movimentacao.find_all_with_product()
+        itens = ItemEntrada.find_by_pedido(id)
+        return render_template(
+            "pedido_entrada.html",
+            pedido_entrada=pedido_entrada,
+            usuarios=usuarios,
+            movimentacoes=movimentacoes_list,
+            itens=itens,
+        )
+    except Exception as e:
+        flash(f"Erro ao carregar pedido: {e}", "erro")
+        return redirect(url_for("listar_pedido_entrada"))
+
+
+@app.route("/pedido_entrada/<int:id>/atualizar", methods=["POST"])
+@login_obrigatorio
+def atualizar_pedido_entrada(id):
+    dados = get_pedido_entrada_form()
+    pedido_entrada = PedidoEntrada(**dados)
+    erros = pedido_entrada.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        dados["id"] = id
+        return render_template(
+            "pedido_entrada.html",
+            pedido_entrada=dados,
+            usuarios=Usuario.find_all(order_by="nome"),
+        )
+    try:
+        pedido_existente = PedidoEntrada.find_by_id(id)
+        if not pedido_existente:
+            flash("Pedido não encontrado.", "erro")
+            return redirect(url_for("listar_pedido_entrada"))
+        linhas_afetadas = pedido_entrada.update(id)
+        if linhas_afetadas == 0:
+            flash("Nenhuma alteração realizada.", "erro")
+            return redirect(url_for("buscar_pedido_entrada", id=id))
+        flash("Pedido atualizado com sucesso.", "sucesso")
+        return redirect(url_for("listar_pedido_entrada"))
+    except Exception:
+        flash("Erro ao atualizar pedido.", "erro")
+        return render_template(
+            "pedido_entrada.html",
+            pedido_entrada=dados,
+            usuarios=Usuario.find_all(order_by="nome"),
+        )
+
+
+@app.route("/pedido_entrada/<int:id>/excluir")
+@login_obrigatorio
+def excluir_pedido_entrada(id):
+    try:
+        pedido_entrada = PedidoEntrada.find_by_id(id)
+        if not pedido_entrada:
+            flash("Pedido de entrada não encontrado.", "erro")
+            return redirect(url_for("listar_pedido_entrada"))
+        PedidoEntrada.safe_delete(id)
+        flash("Pedido de entrada excluído com sucesso.", "sucesso")
+    except ValueError as e:
+        flash(str(e), "erro")
+    except Exception as e:
+        flash("Erro ao excluir pedido de entrada.", "erro")
+    return redirect(url_for("listar_pedido_entrada"))
+
+
+# (Item Entrada)===========================================================================================
+@app.route("/item_entrada/salvar", methods=["POST"])
+@login_obrigatorio
+def salvar_item_entrada():
+    pedido_id = request.form.get("pedido_entrada_id")
+    qtd_str = request.form.get("quantidade", "0").strip()
+    valor_str = request.form.get("valor", "0").strip().replace(",", ".")
+    produto_id = request.form.get("produto_id")
+    movimentacao_id = request.form.get("movimentacao_id")
+
+    quantidade = int(qtd_str) if qtd_str.isdigit() else 0
+    try:
+        valor = float(valor_str)
+    except ValueError:
+        valor = 0.0
+
+    # Cria a movimentação de ENTRADA se receber o produto_id diretamente
+    if produto_id and not movimentacao_id:
+        try:
+            mov = Movimentacao(
+                produto_id=int(produto_id),
+                tipo_movimentacao="ENTRADA",
+                quantidade=quantidade
+            )
+            movimentacao_id = mov.insert()
+        except Exception as e:
+            print("Erro ao registrar movimentação de entrada:", e)
+
+    item = ItemEntrada(
+        quantidade,
+        valor,
+        pedido_id,
+        movimentacao_id,
+    )
+    erros = item.validate() if hasattr(item, "validate") else []
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
+
+    try:
+        item.insert()
+
+        # Identifica o produto vinculado para atualizar o estoque
+        prod_id = None
+        if movimentacao_id:
+            conexao = Database.connect()
+            cursor = conexao.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT produto_id FROM movimentacao WHERE id = %s",
+                (movimentacao_id,),
+            )
+            mov = cursor.fetchone()
+            cursor.close()
+            conexao.close()
+            if mov:
+                prod_id = mov.get("produto_id")
+
+        if not prod_id and produto_id:
+            prod_id = int(produto_id)
+
+        if prod_id:
+            Produto.aumentar_estoque(prod_id, quantidade)
+
+        flash("Item adicionado com sucesso.", "sucesso")
+    except Exception as e:
+        flash(f"Erro ao adicionar item: {e}", "erro")
+
+    return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
+
+
+# (Localização)===========================================================================================
+@app.route("/localizacao/novo")
+@login_obrigatorio
+def nova_localizacao():
+    produtos = Produto.find_all()
+    return render_template("localizacao.html", produtos=produtos)
+
+
+@app.route("/localizacao")
+@login_obrigatorio
+def listar_localizacao():
+    localizacoes = Localizacao.find_all("id DESC")
+    return render_template("listar_localizacao.html", localizacoes=localizacoes)
+
+
+@app.route("/localizacao/salvar", methods=["POST"])
+@login_obrigatorio
+def salvar_localizacao():
+    localizacao = Localizacao(
+        request.form.get("rua", ""),
+        request.form.get("numero", ""),
+        request.form.get("andar", "")
+    )
+    erros = localizacao.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return redirect(url_for("nova_localizacao"))
+    try:
+        localizacao_id = localizacao.insert()
+        produto_id = request.form.get("produto_id")
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+        cursor.execute(
+            """
+            UPDATE produto
+            SET localizacao_id = %s
+            WHERE id = %s
+            """,
+            (localizacao_id, produto_id),
+        )
+        conexao.commit()
+        cursor.close()
+        conexao.close()
+        flash("Localização cadastrada com sucesso.", "sucesso")
+    except Exception as e:
+        flash(f"Erro ao cadastrar localização: {e}", "erro")
+
+    return redirect(url_for("listar_localizacao"))
+
+
+# (Pedido de Saída)============================================================================================
+@app.route("/pedido_saida/novo")
+@login_obrigatorio
+def novo_pedido_saida():
+    clientes = Cliente.find_all(order_by="nome")
+    usuarios = Usuario.find_all(order_by="nome")
+    produtos = Produto.find_all_com_localizacao()
+    return render_template(
+        "pedido_saida.html",
+        pedido_saida=None,
+        clientes=clientes,
+        usuarios=usuarios,
+        produtos=produtos,
+        itens=[],
+    )
+
+
+@app.route("/pedido_saida", methods=["GET"])
+@login_obrigatorio
+def listar_pedido_saida():
+    try:
+        pedidos_saida = PedidoSaida.listar_pedidos()
+        return render_template("pedido_saida_lista.html", pedidos_saida=pedidos_saida)
+    except Exception as e:
+        flash(f"Erro ao carregar pedidos: {e}", "erro")
+        return render_template("pedido_saida_lista.html", pedidos_saida=[])
+
+
+@app.route("/pedido_saida/<int:id>/editar")
+@login_obrigatorio
+def buscar_pedido_saida(id):
+    try:
+        pedido_saida = PedidoSaida.find_by_id(id)
+        if not pedido_saida:
+            flash("Pedido de saída não encontrado.", "erro")
+            return redirect(url_for("listar_pedido_saida"))
+        clientes = Cliente.find_all(order_by="nome")
+        usuarios = Usuario.find_all(order_by="nome")
+        produtos = Produto.find_all_com_localizacao()
+        itens = ItemSaida.find_by_pedido(id)
+        return render_template(
+            "pedido_saida.html",
+            pedido_saida=pedido_saida,
+            clientes=clientes,
+            usuarios=usuarios,
+            produtos=produtos,
+            itens=itens,
+        )
+    except Exception as e:
+        flash(f"Erro ao carregar pedido: {e}", "erro")
+        return redirect(url_for("listar_pedido_saida"))
+
+
+@app.route("/pedido_saida/<int:id>/atualizar", methods=["POST"])
+@login_obrigatorio
+def atualizar_pedido_saida(id):
+    dados = get_pedido_saida_form()
+    pedido_saida = PedidoSaida(**dados)
+    erros = pedido_saida.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return redirect(url_for("buscar_pedido_saida", id=id))
+    try:
+        pedido_saida.update(id)
+        flash("Pedido de saída atualizado com sucesso.", "sucesso")
+    except Exception as e:
+        flash(f"Erro ao atualizar pedido: {e}", "erro")
+    return redirect(url_for("buscar_pedido_saida", id=id))
+
+
+@app.route("/pedido_saida/salvar", methods=["POST"])
+@login_obrigatorio
+def salvar_pedido_saida():
+    dados = get_pedido_saida_form()
+    pedido_saida = PedidoSaida(**dados)
+    erros = pedido_saida.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return render_template(
+            "pedido_saida.html",
+            pedido_saida=pedido_saida,
+            clientes=Cliente.find_all(order_by="nome"),
+            usuarios=Usuario.find_all(order_by="nome"),
+            movimentacoes=[],
+            itens=[],
+        )
+    try:
+        novo_id = pedido_saida.insert()
+        flash("Pedido de saída cadastrado com sucesso.", "sucesso")
+        return redirect(url_for("buscar_pedido_saida", id=novo_id))
+    except Exception as e:
+        flash(f"Erro ao cadastrar pedido: {e}", "erro")
+        return render_template(
+            "pedido_saida.html",
+            pedido_saida=pedido_saida,
+            clientes=Cliente.find_all(order_by="nome"),
+            usuarios=Usuario.find_all(order_by="nome"),
+            movimentacoes=[],
+            itens=[],
+        )
+
+
+@app.route("/pedido_saida/<int:id>/excluir")
+@login_obrigatorio
+def excluir_pedido_saida(id):
+    try:
+        PedidoSaida.safe_delete(id)
+        flash("Pedido excluído com sucesso.", "sucesso")
+    except Exception as e:
+        flash(f"Erro ao excluir pedido: {e}", "erro")
+    return redirect(url_for("listar_pedido_saida"))
+
+
+# (Salvar Item de Saída)============================================================================================
+@app.route("/item_saida/salvar", methods=["POST"])
+@login_obrigatorio
+def salvar_item_saida():
+    pedido_saida_id = request.form.get("pedido_saida_id")
+    qtd_str = request.form.get("quantidade", "0").strip()
+    valor_str = request.form.get("valor", "0").strip().replace(",", ".")
+    produto_id = request.form.get("produto_id")
+
+    quantidade = int(qtd_str) if qtd_str.isdigit() else 0
+    try:
+        valor = float(valor_str)
+    except ValueError:
+        valor = 0.0
+
+    item = ItemSaida(
+        quantidade,
+        valor,
+        pedido_saida_id,
+        produto_id,
+    )
+    erros = item.validate() if hasattr(item, "validate") else []
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return redirect(url_for("buscar_pedido_saida", id=pedido_saida_id))
+
+    try:
+        if produto_id and quantidade > 0:
+            Produto.diminuir_estoque(int(produto_id), quantidade)
+
+        item.insert()
+
+        if produto_id:
+            movimentacao = Movimentacao(
+                produto_id=int(produto_id),
+                tipo_movimentacao="SAIDA",
+                quantidade=quantidade,
+            )
+            movimentacao.insert()
+
+        flash("Item de saída adicionado com sucesso.", "sucesso")
+    except Exception as e:
+        flash(f"Erro ao adicionar item de saída: {e}", "erro")
+
+    return redirect(url_for("buscar_pedido_saida", id=pedido_saida_id))
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

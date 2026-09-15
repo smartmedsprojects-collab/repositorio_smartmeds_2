@@ -2,33 +2,38 @@ from datetime import datetime
 from core.crud_base import CrudBase
 from core.database import Database
 
-from datetime import datetime
-from core.crud_base import CrudBase
-from core.database import Database
 
 class Movimentacao(CrudBase):
+
     table = "movimentacao"
 
     fields = [
-        "produto_id",
         "tipo_movimentacao",
+        "data_movimentacao",
         "quantidade",
-        "data_movimentacao"
+        "produto_id"
     ]
 
-    def __init__(self,produto_id,tipo_movimentacao,quantidade,data_movimentacao=None
+    def __init__(
+        self,
+        produto_id,
+        tipo_movimentacao,
+        quantidade,
+        data_movimentacao=None
     ):
-        self.produto_id = produto_id
+        self.produto_id = int(produto_id)
         self.tipo_movimentacao = tipo_movimentacao
-        self.quantidade = quantidade
-        self.data_movimentacao = (data_movimentacao or datetime.now())
+        self.quantidade = int(quantidade)
+        self.data_movimentacao = data_movimentacao or datetime.now()
 
     @classmethod
     def find_all_with_product(cls):
+
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
 
         try:
+
             sql = """
                 SELECT
                     m.id,

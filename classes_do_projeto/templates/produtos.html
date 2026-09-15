@@ -17,7 +17,7 @@
             style="max-width: 350px"
           />
         </div>
-
+ 
         <!-- FORM -->
         <div class="col-md-6 p-5">
           <!-- TÍTULO -->
@@ -28,7 +28,7 @@
             </h2>
             <p class="text-muted mb-0">Preencha os dados abaixo</p>
           </div>
-
+ 
           <!-- MENSAGENS -->
           {% with messages = get_flashed_messages(with_categories=true) %} {% if
           messages %} {% for category, message in messages %}
@@ -44,7 +44,7 @@
             ></button>
           </div>
           {% endfor %} {% endif %} {% endwith %}
-
+ 
           <!-- FORMULÁRIO -->
           <form
             method="POST"
@@ -66,7 +66,7 @@
                 required
               />
             </div>
-
+ 
             <!-- Marca -->
             <div class="input-group-custom">
               <label class="form-label fw-semibold"> Marca </label>
@@ -79,7 +79,7 @@
                 required
               />
             </div>
-
+ 
             <!-- Data de validade -->
             <div class="input-group-custom">
               <label class="form-label fw-semibold"> Data de validade </label>
@@ -92,7 +92,7 @@
                 required
               />
             </div>
-
+ 
             <!-- Especificação -->
             <div class="input-group-custom">
               <label class="form-label fw-semibold"> Especificação </label>
@@ -105,7 +105,7 @@
                 required
               />
             </div>
-
+ 
             <!-- Unidade de medida -->
             <div class="input-group-custom">
               <label class="form-label fw-semibold"> Unidade de medida </label>
@@ -118,8 +118,25 @@
                 required
               />
             </div>
-
-            
+ 
+            <!-- Precisa de temperatura baixa -->
+            <div class="input-group-custom">
+              <label class="form-label fw-semibold"> Precisa de temperatura baixa? </label>
+              <select
+                name="precisa_temperatura_baixa"
+                class="form-control"
+                required
+              >
+                <option value="">Selecione</option>
+                <option value="1" {% if produto and produto.precisa_temperatura_baixa == 1 %} selected {% endif %}>
+                  Sim
+                </option>
+                <option value="0" {% if produto and produto.precisa_temperatura_baixa == 0 %} selected {% endif %}>
+                  Não
+                </option>
+              </select>
+            </div>
+ 
             <!-- BOTÕES -->
             <div class="d-grid gap-2">
               <button type="submit" class="btn btn-success">
@@ -134,11 +151,11 @@
               </a>
             </div>
           </form>
-
+ 
           <!-- RODAPÉ -->
           <div class="text-center mt-4">
             <small class="text-muted">
-              © 2026 SENAI - Sistema de Estoque
+              © 2026 SmartMeds - Sistema de Estoque
             </small>
           </div>
         </div>

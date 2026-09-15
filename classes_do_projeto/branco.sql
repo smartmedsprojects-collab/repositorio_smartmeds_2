@@ -228,3 +228,33 @@ DESCRIBE item_saida;
 
 
 SELECT COUNT(*) FROM pedido_entrada WHERE produto_id = 1;
+
+ALTER TABLE produto ADD quantidade INT DEFAULT 0;
+
+SELECT id, nome, quantidade FROM produto;
+
+ALTER TABLE pedido_saida
+DROP COLUMN quantidade,
+DROP COLUMN valor;
+
+ALTER TABLE item_saida
+DROP COLUMN movimentacao_id;
+
+ALTER TABLE item_saida
+ADD COLUMN produto_id INT NOT NULL;
+
+ALTER TABLE item_saida
+DROP FOREIGN KEY fk_item_saida_movimentacao;
+
+ALTER TABLE item_saida
+DROP COLUMN movimentacao_id;
+
+ALTER TABLE item_saida
+ADD CONSTRAINT fk_item_saida_produto
+FOREIGN KEY (produto_id)
+REFERENCES produto(id);
+
+SHOW CREATE TABLE movimentacao;
+SHOW CREATE TABLE item_saida;
+
+TRUNCATE TABLE movimentacao;

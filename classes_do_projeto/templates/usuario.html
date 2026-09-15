@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+
+<div class="sm-user-cadastro-page">
+
+    <div class="sm-user-cadastro-container">
+
+        <div class="sm-user-cadastro-card">
+
+            <!-- CABEÇALHO -->
+            <div class="sm-user-cadastro-header">
+
+                <div class="sm-user-cadastro-icon">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+
+                <div class="sm-user-cadastro-heading">
+
+                    <h2 class="sm-user-cadastro-title">
+                        Novo usuário
+                    </h2>
+
+                    <p class="sm-user-cadastro-subtitle">
+                        Cadastre um novo usuário no SmartMeds.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- FORMULÁRIO -->
+            <form
+                method="POST"
+                class="sm-user-cadastro-form"
+                action="{{ url_for('salvar_usuario') }}"
+                enctype="multipart/form-data"
+                id="form-cadastro-usuario"
+                onsubmit="return validarFormulario(event)"
+            >
+
+                <!-- FOTO DE PERFIL COM PREVIEW -->
+                <div class="sm-user-cadastro-field text-center mb-3">
+
+                    <label
+                        for="sm-user-cadastro-foto"
+                        class="sm-user-cadastro-label d-block mb-2"
+                    >
+                        Foto de perfil
+                    </label>
+
+                    <div class="mb-2">
+                        <img 
+                            id="sm-user-preview-foto" 
+                            src="https://via.placeholder.com/100?text=Sem+Foto" 
+                            alt="Prévia da foto" 
+                            class="rounded-circle border shadow-sm"
+                            style="width: 100px; height: 100px; object-fit: cover;"
+                        >
+                    </div>
+
+                    <input
+                        type="file"
+                        id="sm-user-cadastro-foto"
+                        name="foto"
+                        class="sm-user-cadastro-input"
+                        accept="image/*"
+                        onchange="previewFotoUsuario(event)"
+                    >
+
+                </div>
+
+
+                <!-- NOME -->
+                <div class="sm-user-cadastro-field">
+
+                    <label
+                        for="sm-user-cadastro-nome"
+                        class="sm-user-cadastro-label"
+                    >
+                        Nome completo
+                    </label>
+
+                    <input
+                        type="text"
+                        id="sm-user-cadastro-nome"
+                        name="nome"
+                        class="sm-user-cadastro-input"
+                        placeholder="Digite o nome completo"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- IDENTIFICAÇÃO -->
+                <div class="sm-user-cadastro-field">
+
+                    <label
+                        for="sm-user-cadastro-identificacao"
+                        class="sm-user-cadastro-label"
+                    >
+                        Identificação
+                    </label>
+
+                    <input
+                        type="text"
+                        id="sm-user-cadastro-identificacao"
+                        name="identificacao"
+                        class="sm-user-cadastro-input"
+                        placeholder="Digite a identificação"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- E-MAIL -->
+                <div class="sm-user-cadastro-field">
+
+                    <label
+                        for="sm-user-cadastro-email"
+                        class="sm-user-cadastro-label"
+                    >
+                        E-mail
+                    </label>
+
+                    <input
+                        type="email"
+                        id="sm-user-cadastro-email"
+                        name="email"
+                        class="sm-user-cadastro-input"
+                        placeholder="Digite o e-mail"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- CNPJ COM MÁSCARA AUTOMÁTICA -->
+                <div class="sm-user-cadastro-field">
+
+                    <label
+                        for="sm-user-cadastro-cnpj"
+                        class="sm-user-cadastro-label"
+                    >
+                        CNPJ
+                    </label>
+
+                    <input
+                        type="text"
+                        id="sm-user-cadastro-cnpj"
+                        name="cnpj"
+                        class="sm-user-cadastro-input"
+                        placeholder="00.000.000/0000-00"
+                        maxlength="18"
+                        oninput="aplicarMascaraCNPJ(this)"
+                    >
+
+                </div>
+
+
+                <!-- TIPO -->
+                <div class="sm-user-cadastro-field">
+
+                    <label
+                        for="sm-user-cadastro-tipo"
+                        class="sm-user-cadastro-label"
+                    >
+                        Tipo de usuário
+                    </label>
+
+                    <select
+                        id="sm-user-cadastro-tipo"
+                        name="tipo"
+                        class="sm-user-cadastro-select"
+                        required
+                    >
+
+                        <option value="">
+                            Selecione o tipo
+                        </option>
+
+                        <option value="adm">
+                            Administrador
+                        </option>
+
+                        <option value="estoquista">
+                            Estoquista
+                        </option>
+
+                        <option value="consulta">
+                            Consulta
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- SENHA -->
+                <div class="sm-user-cadastro-field">
+
+                    <label
+                        for="sm-user-cadastro-senha"
+                        class="sm-user-cadastro-label"
+                    >
+                        Senha
+                    </label>
+
+                    <input
+                        type="password"
+                        id="sm-user-cadastro-senha"
+                        name="senha"
+                        class="sm-user-cadastro-input"
+                        placeholder="Digite uma senha"
+                        oninput="validarSenhas()"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- CONFIRMAR SENHA -->
+                <div class="sm-user-cadastro-field">
+
+                    <label
+                        for="sm-user-cadastro-confirmar-senha"
+                        class="sm-user-cadastro-label"
+                    >
+                        Confirmar senha
+                    </label>
+
+                    <input
+                        type="password"
+                        id="sm-user-cadastro-confirmar-senha"
+                        name="confirmar_senha"
+                        class="sm-user-cadastro-input"
+                        placeholder="Confirme a senha"
+                        oninput="validarSenhas()"
+                        required
+                    >
+                    <small id="sm-user-senha-feedback" class="d-block mt-1 fw-bold" style="font-size: 0.85rem;"></small>
+
+                </div>
+
+
+                <!-- BOTÕES -->
+                <div class="sm-user-cadastro-actions">
+
+                    <a
+                        href="{{ url_for('listar_usuarios') }}"
+                        class="sm-user-cadastro-btn-back"
+                    >
+                        <i class="bi bi-arrow-left"></i>
+                        Cancelar
+                    </a>
+
+                    <button
+                        type="submit"
+                        class="sm-user-cadastro-btn-save"
+                    >
+                        <i class="bi bi-check-lg"></i>
+                        Cadastrar usuário
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- SCRIPTS DE FOTO, MÁSCARA CNPJ E SENHAS -->
+<script>
+    // 1. Preview da foto de perfil
+    function previewFotoUsuario(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const leitor = new FileReader();
+            leitor.onload = function(e) {
+                document.getElementById('sm-user-preview-foto').src = e.target.result;
+            }
+            leitor.readAsDataURL(file);
+        }
+    }
+
+    // 2. Máscara de formatação do CNPJ (Apenas visual)
+    function aplicarMascaraCNPJ(input) {
+        let value = input.value.replace(/\D/g, '');
+
+        if (value.length > 14) value = value.slice(0, 14);
+
+        // Aplica a máscara 00.000.000/0000-00
+        value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        value = value.replace(/(\d{4})(\d)/, '$1-$2');
+
+        input.value = value;
+    }
+
+    // 3. Validação em tempo real do campo Confirmar Senha
+    function validarSenhas() {
+        const senha = document.getElementById('sm-user-cadastro-senha').value;
+        const confirmarSenha = document.getElementById('sm-user-cadastro-confirmar-senha').value;
+        const feedback = document.getElementById('sm-user-senha-feedback');
+        const inputConfirmar = document.getElementById('sm-user-cadastro-confirmar-senha');
+
+        if (confirmarSenha.length === 0) {
+            feedback.innerText = '';
+            inputConfirmar.style.borderColor = '';
+            return true;
+        }
+
+        if (senha === confirmarSenha) {
+            feedback.innerText = '✓ As senhas coincidem';
+            feedback.style.color = '#198754';
+            inputConfirmar.style.borderColor = '#198754';
+            return true;
+        } else {
+            feedback.innerText = '✕ As senhas não coincidem';
+            feedback.style.color = '#dc3545';
+            inputConfirmar.style.borderColor = '#dc3545';
+            return false;
+        }
+    }
+
+    // 4. Bloqueia o envio se as senhas forem incompatíveis
+    function validarFormulario(event) {
+        const senhaValida = validarSenhas();
+
+        if (!senhaValida) {
+            alert('As senhas digitadas não coincidem!');
+            event.preventDefault();
+            return false;
+        }
+
+        return true;
+    }
+</script>
+
+{% endblock %}

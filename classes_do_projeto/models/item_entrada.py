@@ -2,54 +2,47 @@ from core.crud_base import CrudBase
 from core.database import Database
 from core.validator import Validator
 
+
 class ItemEntrada(CrudBase):
     table = "item_entrada"
-    fields = [
-        "quantidade",
-        "valor",
-        "pedido_entrada_id",
-        "estoque_id"
-    ]
 
-    def __init__(self, quantidade, valor, pedido_entrada_id, estoque_id):
-        self.quantidade = quantidade
-        self.valor = valor
-        self.pedido_entrada_id = pedido_entrada_id
-        self.estoque_id = estoque_id
+    fields = ["quantidade", "valor", "pedido_entrada_id", "movimentacao_id"]
+
+    def __init__(self, quantidade, valor, pedido_entrada_id, movimentacao_id):
+        self.quantidade = int(quantidade)
+        self.valor = float(valor)
+        self.pedido_entrada_id = int(pedido_entrada_id)
+        self.movimentacao_id = int(movimentacao_id)
 
     def validate(self):
         erros = [
-            Validator.required(self.pedido_entrada_id, "pedido de entrada"),
-            Validator.required(self.estoque_id, "estoque"),
-            Validator.non_negative(self.valor, "valor")
+            Validator.required(self.quantidade, "Quantidade"),
+            Validator.required(self.valor, "Valor"),
+            Validator.required(self.pedido_entrada_id, "Pedido"),
+            Validator.required(self.movimentacao_id, "Movimentação"),
         ]
-        return [erro for erro in erros if erro]
+        return [e for e in erros if e]
 
     @classmethod
-    def find_by_pedido(cls, pedido_entrada_id):
+    def find_by_pedido(cls, pedido_id):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
             sql = """
-                SELECT * FROM item_entrada 
-                WHERE pedido_entrada_id = %s 
-                ORDER BY id
+                SELECT
+                    ie.id,
+                    ie.quantidade,
+                    ie.valor, 
+                    p.nome AS produto
+                FROM item_entrada ie
+                INNER JOIN movimentacao m
+                    ON ie.movimentacao_id = m.id
+                INNER JOIN produto p
+                    ON m.produto_id = p.id
+                WHERE ie.pedido_entrada_id = %s
             """
-            cursor.execute(sql, (pedido_entrada_id,))
+            cursor.execute(sql, (pedido_id,))
             return cursor.fetchall()
         finally:
             cursor.close()
             conexao.close()
-
-    @classmethod
-    def has_related_records(cls, id):
-        # Normalmente item_entrada não depende de outras tabelas
-        # mas mantido para padrão do projeto
-        return False
-
-    @classmethod
-    def safe_delete(cls, id):
-        item = cls.find_by_id(id)
-        if not item:
-            raise ValueError("Item de entrada não encontrado.")
-        cls.delete(id)
