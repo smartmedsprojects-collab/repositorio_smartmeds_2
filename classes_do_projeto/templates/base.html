@@ -17,8 +17,8 @@
 
     <style>
         :root {
-            --blue-primary: #2563eb;
-            --blue-gradient: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+            --blue-primary: #82a5ef;
+            --blue-gradient: linear-gradient(135deg, #8aa5ef 0%, #3b82f6 100%);
             --navy-dark: #0f172a;
             --bg-light: #f8fafc;
             --text-muted: #94a3b8;
@@ -51,56 +51,147 @@
             transform: translateY(-1px);
         }
 
-        /* Offcanvas Sidebar */
+        /* Menu lateral - visual mais leve e natural */
         .offcanvas-custom {
-            background-color: var(--navy-dark) !important;
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2);
+            width: 285px !important;
+            background: rgba(255, 255, 255, 0.97) !important;
+            color: #334155 !important;
+            border-right: 1px solid #e2e8f0;
+            box-shadow: 12px 0 35px rgba(15, 23, 42, 0.10);
+            backdrop-filter: blur(14px);
         }
 
-        /* Navegação e Links */
+        .menu-header {
+            padding: 18px 18px 14px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .menu-title {
+            color: #1e293b;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .menu-subtitle {
+            color: #94a3b8;
+            font-size: 0.76rem;
+            margin-top: 2px;
+        }
+
+        .menu-section {
+            color: #94a3b8;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 4px 10px 7px;
+        }
+
         .nav-link-custom {
-            color: var(--text-muted) !important;
-            border-radius: 10px;
-            padding: 12px 16px;
+            position: relative;
+            color: #64748b !important;
+            border-radius: 12px;
+            padding: 11px 13px;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 12px;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: background-color .2s ease, color .2s ease, transform .2s ease;
+        }
+
+        .nav-link-custom::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 3px;
+            height: 0;
+            border-radius: 0 5px 5px 0;
+            background: #3b82f6;
+            transform: translateY(-50%);
+            transition: height .2s ease;
         }
 
         .nav-link-custom:hover {
-            color: #ffffff !important;
-            background: rgba(255, 255, 255, 0.06);
-            transform: translateX(6px);
+            color: #2563eb !important;
+            background: #f1f5ff;
+            transform: translateX(3px);
         }
 
         .nav-link-custom.active {
-            background: var(--blue-gradient) !important;
-            color: #ffffff !important;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+            background: #eef4ff !important;
+            color: #2563eb !important;
+            box-shadow: none;
+        }
+
+        .nav-link-custom.active::before {
+            height: 22px;
         }
 
         .nav-link-custom i {
-            font-size: 1.2rem;
-            transition: transform 0.2s ease;
+            width: 22px;
+            text-align: center;
+            font-size: 1.08rem;
+            transition: transform .2s ease;
         }
 
-        .nav-link-custom:hover i {
-            transform: scale(1.1);
+        .nav-link-custom:hover i,
+        .nav-link-custom.active i {
+            transform: scale(1.08);
         }
 
-        /* Botão de Logout */
+        .menu-footer {
+            padding-top: 14px;
+            border-top: 1px solid #edf2f7;
+        }
+
         .btn-logout {
-            border-radius: 10px;
-            transition: all 0.25s ease;
+            border-radius: 11px;
+            color: #64748b;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all .2s ease;
             font-weight: 500;
         }
 
         .btn-logout:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            color: #dc2626;
+            background: #fff5f5;
+            border-color: #fecaca;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(220, 38, 38, 0.10);
+        }
+
+        .menu-close {
+            border-radius: 9px;
+            transition: background-color .2s ease, transform .2s ease;
+        }
+
+        .menu-close:hover {
+            background: #f1f5f9;
+            transform: rotate(3deg);
+        }
+
+        .topbar-navbar {
+            min-height: 68px;
+        }
+
+        .btn-menu-toggle {
+            border-radius: 12px;
+            padding: 9px 14px !important;
+        }
+
+        .btn-menu-toggle i {
+            transition: transform .25s ease;
+        }
+
+        .btn-menu-toggle:hover i {
+            transform: rotate(90deg);
+        }
+
+        .offcanvas-backdrop.show {
+            opacity: .22;
         }
 
         /* Animação do Conteúdo */
@@ -144,20 +235,27 @@
     <!-- GAVETA RETRÁTIL (OFFCANVAS) -->
     <div class="offcanvas offcanvas-start offcanvas-custom text-white" tabindex="-1" id="menuOffcanvas">
         
-        <div class="offcanvas-header border-bottom border-secondary border-opacity-25 p-3">
-            <h5 class="offcanvas-title text-white fw-semibold">Navegação</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+        <div class="menu-header d-flex align-items-center justify-content-between">
+            <div>
+                <div class="menu-title">Sistema de Gestão</div>
+                <div class="menu-subtitle">Acesso rápido</div>
+            </div>
+            <button type="button" class="btn btn-sm menu-close border-0" data-bs-dismiss="offcanvas" aria-label="Fechar">
+                <i class="bi bi-x-lg text-secondary"></i>
+            </button>
         </div>
 
         <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
             <div>
-                <!-- LOGO COM EFEITO SUAVE -->
-                <div class="logo mb-4 text-center">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 75px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">
+                <!-- LOGO -->
+                <div class="logo mb-3 text-center">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 105px;">
                 </div>
 
+                <div class="menu-section">Navegação</div>
+
                 <!-- MENU DE NAVEGAÇÃO -->
-                <nav class="nav flex-column gap-2">
+                <nav class="nav flex-column gap-1">
                     <a href="{{ url_for('dashboard') }}"
                         class="nav-link-custom {% if request.endpoint == 'dashboard' %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i> Dashboard
@@ -191,9 +289,9 @@
             </div>
 
             <!-- BOTÃO SAIR -->
-            <div class="pt-3 border-top border-secondary border-opacity-25">
-                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-logout w-100 d-flex align-items-center justify-content-center gap-2 py-2">
-                    <i class="bi bi-box-arrow-right"></i> Sair
+            <div class="menu-footer">
+                <a href="{{ url_for('logout') }}" class="btn btn-logout w-100 d-flex align-items-center justify-content-center gap-2 py-2">
+                    <i class="bi bi-box-arrow-right"></i> Sair da conta
                 </a>
             </div>
         </div>
@@ -225,6 +323,15 @@
 
     <!-- JS DA APLICAÇÃO -->
     <script>
+        // Fecha o menu suavemente depois de escolher uma página.
+        document.querySelectorAll('#menuOffcanvas .nav-link-custom').forEach(link => {
+            link.addEventListener('click', () => {
+                const menu = document.getElementById('menuOffcanvas');
+                const instance = bootstrap.Offcanvas.getInstance(menu);
+                if (instance) instance.hide();
+            });
+        });
+
         const produtoSelect = document.getElementById("produtoSelect");
         const quantidadeInput = document.getElementById("quantidade");
         const formPedido = document.getElementById("formPedido");
