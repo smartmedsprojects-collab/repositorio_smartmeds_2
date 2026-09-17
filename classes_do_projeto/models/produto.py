@@ -107,7 +107,7 @@ class Produto(CrudBase):
 
 
     @classmethod
-    def aumentar_estoque(cls,id, quantidade):
+    def aumentar_estoque(cls, produto_id, quantidade):
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
@@ -116,7 +116,8 @@ class Produto(CrudBase):
                 SET quantidade = quantidade + %s
                 WHERE id = %s
             """
-            cursor.execute(sql,(quantidade, produto_id))
+        # Agora o parâmetro produto_id bate com a assinatura do método
+            cursor.execute(sql, (quantidade, produto_id))
             conexao.commit()
         except Exception:
             conexao.rollback()

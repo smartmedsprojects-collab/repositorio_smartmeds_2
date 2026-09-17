@@ -4,180 +4,154 @@
 
 <div class="container-fluid py-4">
 
-    <!-- CABEÇALHO COM NAVEGAÇÃO E AÇÕES RÁPIDAS -->
+    <!-- CABEÇALHO DA PÁGINA -->
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
         <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <a href="{{ url_for('produtos') }}" class="btn btn-sm btn-outline-secondary rounded-circle">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
-                <h2 class="titulo-pagina mb-0">{{ produto.nome|default('Parafuso Sextavado M8') }}</h2>
-                <span class="badge bg-secondary ms-2">SKU: {{ produto.sku|default('PRF-8821') }}</span>
-                {% if produto.estoque_atual <= produto.estoque_minimo %}
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Estoque Crítico</span>
-                {% else %}
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Em Dia</span>
-                {% endif %}
-            </div>
-            <p class="text-muted mb-0 small">Categoria: <strong>{{ produto.categoria|default('Ferragens') }}</strong> | Localização: <strong>Corredor B - Prateleira 4</strong></p>
+            <h2 class="titulo-pagina mb-1">Movimentações de Estoque</h2>
+            <p class="text-muted mb-0 small">Histórico de entradas, saídas e movimentações do sistema.</p>
         </div>
-
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAjuste">
-                <i class="bi bi-plus-minus me-1"></i> Ajustar Estoque
-            </button>
-            <a href="#" class="btn btn-primary">
-                <i class="bi bi-pencil me-1"></i> Editar Item
+            <a href="{{ url_for('novo_pedido_entrada') }}" class="btn btn-success">
+                <i class="bi bi-box-arrow-in-down me-1"></i> Nova Entrada
+            </a>
+            <a href="{{ url_for('novo_pedido_saida') }}" class="btn btn-danger">
+                <i class="bi bi-box-arrow-up me-1"></i> Nova Saída
             </a>
         </div>
     </div>
 
-    <div class="row g-4">
-        
-        <!-- COLUNA ESQUERDA: PERFIL DO PRODUTO E INFORMAÇÕES CHAVE -->
-        <div class="col-12 col-lg-4">
-            
-            <!-- CARD DA IMAGEM E DADOS PRINCIPAIS -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body text-center p-4">
-                    <div class="bg-light rounded p-4 mb-3 d-inline-block w-100 position-relative" style="max-height: 220px;">
-                        <i class="bi bi-box-seam display-1 text-secondary opacity-50"></i>
-                    </div>
-                    <h5 class="fw-bold mb-1">R$ {{ "%.2f"|format(produto.preco_venda|default(14.90)|float) }}</h5>
-                    <p class="text-muted small mb-3">Preço Unitário de Venda</p>
-                    
-                    <div class="row text-center border-top pt-3 g-2">
-                        <div class="col-6 border-end">
-                            <div class="text-muted small">Preço de Custo</div>
-                            <div class="fw-semibold">R$ {{ "%.2f"|format(produto.preco_custo|default(8.50)|float) }}</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-muted small">Margem</div>
-                            <div class="fw-semibold text-success">+42,9%</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CARD DE NÍVEIS DE ESTOQUE -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3">
-                    <h6 class="card-title fw-bold mb-0"><i class="bi bi-pie-chart me-2"></i>Níveis de Inventário</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted">Estoque Atual:</span>
-                        <span class="fs-5 fw-bold text-dark">{{ produto.estoque_atual|default(45) }} un</span>
-                    </div>
-                    <div class="progress mb-3" style="height: 10px;">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <div class="d-flex justify-content-between small text-muted">
-                        <span>Mínimo: {{ produto.estoque_minimo|default(15) }} un</span>
-                        <span>Ideal: {{ produto.estoque_maximo|default(100) }} un</span>
-                    </div>
-                </div>
-            </div>
-
+    <!-- CARD PRINCIPAL COM TABS DE NAVEGAÇÃO -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <ul class="nav nav-tabs card-header-tabs" id="movimentacoesTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active fw-semibold" id="todas-tab" data-bs-toggle="tab" data-bs-target="#todas">
+                        <i class="bi bi-list-task me-1"></i> Geral
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-semibold" id="entradas-tab" data-bs-toggle="tab" data-bs-target="#entradas">
+                        <i class="bi bi-arrow-down-left-circle text-success me-1"></i> Pedidos de Entrada
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-semibold" id="saidas-tab" data-bs-toggle="tab" data-bs-target="#saidas">
+                        <i class="bi bi-arrow-up-right-circle text-danger me-1"></i> Pedidos de Saída
+                    </button>
+                </li>
+            </ul>
         </div>
+        <div class="card-body p-4">
+            <div class="tab-content" id="movimentacoesTabContent">
 
-        <!-- COLUNA DIREITA: TIMELINE DE MOVIMENTAÇÕES E LOTES -->
-        <div class="col-12 col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3">
-                    <ul class="nav nav-tabs card-header-tabs" id="itemTab" role="tablist">
-                        <li class="nav-item">
-                            <button class="nav-link active fw-semibold" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline">
-                                <i class="bi bi-clock-history me-1"></i> Linha do Tempo
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link fw-semibold" id="lotes-tab" data-bs-toggle="tab" data-bs-target="#lotes">
-                                <i class="bi bi-layers me-1"></i> Lotes & Validades
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-body p-4">
-                    <div class="tab-content" id="itemTabContent">
-                        
-                        <!-- TAB 1: TIMELINE DE ATIVIDADES -->
-                        <div class="tab-pane fade show active" id="timeline" role="tabpanel">
-                            <div class="timeline">
-                                {% for event in historico|default([
-                                    {'data': '15/09/2026 10:30', 'tipo': 'saida', 'qtd': 5, 'usr': 'Carlos Santos', 'obs': 'Pedido de Venda #1092'},
-                                    {'data': '10/09/2026 14:15', 'tipo': 'entrada', 'qtd': 50, 'usr': 'Ana Lima', 'obs': 'NF-e 8831 - Fornecedor MetalSul'},
-                                    {'data': '01/09/2026 09:00', 'tipo': 'ajuste', 'qtd': -2, 'usr': 'Admin', 'obs': 'Ajuste de inventário (Avaria)'}
-                                ]) %}
-                                <div class="d-flex gap-3 mb-4 position-relative">
-                                    <div class="flex-shrink-0">
-                                        {% if event.tipo == 'entrada' %}
-                                            <div class="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                                <i class="bi bi-plus-lg"></i>
-                                            </div>
-                                        {% elif event.tipo == 'saida' %}
-                                            <div class="rounded-circle bg-danger text-white p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                                <i class="bi bi-dash-lg"></i>
-                                            </div>
-                                        {% else %}
-                                            <div class="rounded-circle bg-warning text-dark p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                                <i class="bi bi-sliders"></i>
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="flex-grow-1 border-bottom pb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="fw-bold text-dark">
-                                                {% if event.tipo == 'entrada' %}+{{ event.qtd }} unidades (Entrada)
-                                                {% elif event.tipo == 'saida' %}-{{ event.qtd }} unidades (Saída)
-                                                {% else %}{{ event.qtd }} unidades (Ajuste)
-                                                {% endif %}
-                                            </span>
-                                            <small class="text-muted">{{ event.data }}</small>
-                                        </div>
-                                        <p class="mb-1 text-secondary small">{{ event.obs }}</p>
-                                        <small class="text-muted"><i class="bi bi-person me-1"></i>{{ event.usr }}</small>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <!-- TAB 2: TABELA DE LOTES -->
-                        <div class="tab-pane fade" id="lotes" role="tabpanel">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Nº do Lote</th>
-                                            <th>Quantidade</th>
-                                            <th>Validade</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><strong>LT-2026-09</strong></td>
-                                            <td>30 un</td>
-                                            <td>20/12/2027</td>
-                                            <td><span class="badge bg-success">Válido</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>LT-2026-04</strong></td>
-                                            <td>15 un</td>
-                                            <td>15/10/2026</td>
-                                            <td><span class="badge bg-warning text-dark">Próximo ao Vencimento</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
+                <!-- TAB 1: TODAS AS MOVIMENTAÇÕES DE PRODUTOS -->
+                <div class="tab-pane fade show active" id="todas" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Produto</th>
+                                    <th>Tipo</th>
+                                    <th>Quantidade</th>
+                                    <th>Data / Hora</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if movimentacoes %}
+                                    {% for m in movimentacoes %}
+                                    <tr>
+                                        <td><strong>#{{ m.id }}</strong></td>
+                                        <td>{{ m.produto }}</td>
+                                        <td>
+                                            {% if (m.tipo_movimentacao or '').upper() == 'ENTRADA' %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">ENTRADA</span>
+                                            {% elif (m.tipo_movimentacao or '').upper() == 'SAIDA' %}
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">SAÍDA</span>
+                                            {% else %}
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle">{{ m.tipo_movimentacao }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><strong>{{ m.quantidade }}</strong> un</td>
+                                        <td>{{ m.data_movimentacao }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">Nenhuma movimentação registrada.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+
+                <!-- TAB 2: HISTÓRICO DE ENTRADAS -->
+                <div class="tab-pane fade" id="entradas" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Documento</th>
+                                    <th>Fornecedor</th>
+                                    <th>Data Entrada</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if movimentacoes_entrada %}
+                                    {% for e in movimentacoes_entrada %}
+                                    <tr>
+                                        <td><strong>{{ e.numero_documento or e.id or 'N/A' }}</strong></td>
+                                        <td>{{ e.fornecedor or 'N/A' }}</td>
+                                        <td>{{ e.data_entrada }}</td>
+                                        <td><span class="badge bg-success">{{ e.status or 'Aberto' }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">Nenhum pedido de entrada cadastrado.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 3: HISTÓRICO DE SAÍDAS -->
+                <div class="tab-pane fade" id="saidas" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tipo</th>
+                                    <th>Pagamento</th>
+                                    <th>Data Pagamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if movimentacoes_saida %}
+                                    {% for s in movimentacoes_saida %}
+                                    <tr>
+                                        <td><strong>#{{ s.id }}</strong></td>
+                                        <td>{{ s.tipo or 'Saída' }}</td>
+                                        <td>{{ s.pagamento or 'N/A' }}</td>
+                                        <td>{{ s.data_pagamento or 'N/A' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">Nenhum pedido de saída cadastrado.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
-
     </div>
 
 </div>

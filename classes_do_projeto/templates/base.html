@@ -276,8 +276,8 @@
                         <i class="bi bi-arrow-left-right"></i> Movimentações
                     </a>
 
-                    <a href="{{ url_for('nova_localizacao') }}"
-                        class="nav-link-custom {% if request.endpoint == 'nova_localizacao' %}active{% endif %}">
+                    <a href="{{ url_for('listar_localizacao') }}"
+                        class="nav-link-custom {% if request.endpoint in ['listar_localizacao', 'nova_localizacao'] %}active{% endif %}">
                         <i class="bi bi-geo-alt"></i> Localizações
                     </a>
 
@@ -304,8 +304,9 @@
         <!-- MENSAGENS FLASH -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
+        {% set categorias_bootstrap = {'sucesso': 'success', 'success': 'success', 'erro': 'danger', 'danger': 'danger', 'info': 'info', 'warning': 'warning'} %}
         {% for category, message in messages %}
-        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        <div class="alert alert-{{ categorias_bootstrap.get(category, 'info') }} alert-dismissible fade show" role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>

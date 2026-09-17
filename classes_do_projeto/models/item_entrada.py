@@ -8,11 +8,12 @@ class ItemEntrada(CrudBase):
 
     fields = ["quantidade", "valor", "pedido_entrada_id", "movimentacao_id"]
 
-    def __init__(self, quantidade, valor, pedido_entrada_id, movimentacao_id):
-        self.quantidade = int(quantidade)
-        self.valor = float(valor)
-        self.pedido_entrada_id = int(pedido_entrada_id)
-        self.movimentacao_id = int(movimentacao_id)
+    def __init__(self, quantidade, valor, pedido_entrada_id, movimentacao_id=None):
+        # Converte valores com segurança prevenindo exceção caso venha None ou ""
+        self.quantidade = int(quantidade) if str(quantidade).isdigit() else 0
+        self.valor = float(valor) if valor else 0.0
+        self.pedido_entrada_id = int(pedido_entrada_id) if str(pedido_entrada_id).isdigit() else None
+        self.movimentacao_id = int(movimentacao_id) if movimentacao_id and str(movimentacao_id).isdigit() else None
 
     def validate(self):
         erros = [
