@@ -58,15 +58,15 @@
                                 Selecione
                             </option>
 
-                            <option value="VENDA">
+                            <option value="VENDA" {% if pedido_saida and pedido_saida.tipo == 'VENDA' %}selected{% endif %}>
                                 VENDA
                             </option>
 
-                            <option value="DOACAO">
+                            <option value="DOACAO" {% if pedido_saida and pedido_saida.tipo == 'DOACAO' %}selected{% endif %}>
                                 DOAÇÃO
                             </option>
 
-                            <option value="DESCARTE">
+                            <option value="DESCARTE" {% if pedido_saida and pedido_saida.tipo == 'DESCARTE' %}selected{% endif %}>
                                 DESCARTE
                             </option>
 
@@ -83,19 +83,19 @@
                                 Selecione
                             </option>
 
-                            <option value="DINHEIRO">
+                            <option value="DINHEIRO" {% if pedido_saida and pedido_saida.pagamento == 'DINHEIRO' %}selected{% endif %}>
                                 DINHEIRO
                             </option>
 
-                            <option value="PIX">
+                            <option value="PIX" {% if pedido_saida and pedido_saida.pagamento == 'PIX' %}selected{% endif %}>
                                 PIX
                             </option>
 
-                            <option value="CARTAO">
+                            <option value="CARTAO" {% if pedido_saida and pedido_saida.pagamento == 'CARTAO' %}selected{% endif %}>
                                 CARTÃO
                             </option>
 
-                            <option value="BOLETO">
+                            <option value="BOLETO" {% if pedido_saida and pedido_saida.pagamento == 'BOLETO' %}selected{% endif %}>
                                 BOLETO
                             </option>
 
@@ -139,7 +139,7 @@
 
                             {% for cliente in clientes %}
 
-                            <option value="{{ cliente.id }}">
+                            <option value="{{ cliente.id }}" {% if pedido_saida and pedido_saida.cliente_id == cliente.id %}selected{% endif %}>
                                 {{ cliente.nome }}
                             </option>
 
@@ -161,7 +161,7 @@
 
                             {% for usuario in usuarios %}
 
-                            <option value="{{ usuario.id }}">
+                            <option value="{{ usuario.id }}" {% if pedido_saida and pedido_saida.usuario_id == usuario.id %}selected{% endif %}>
                                 {{ usuario.nome }}
                             </option>
 

@@ -23,7 +23,7 @@
           <!-- TÍTULO -->
           <div class="mb-4">
             <h2 class="fw-bold text-dark">
-              {% if Produtos %} Editar produto {% else %} Adicionar Produto {%
+              {% if produto and produto.id %} Editar produto {% else %} Adicionar Produto {%
               endif %}
             </h2>
             <p class="text-muted mb-0">Preencha os dados abaixo</p>

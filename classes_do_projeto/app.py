@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 from core.database import Database
 from models.item_saida import ItemSaida
-from models.localizaçao import Localizacao
+from models.localizacao import Localizacao
 from models.pedido_saida import PedidoSaida
 from models.produto import Produto
 from models.movimentacao import Movimentacao
@@ -38,21 +38,24 @@ def dashboard():
     limite_validade = hoje + timedelta(days=DIAS_ALERTA_VALIDADE)
 
     produtos_baixo = [
-        p for p in produtos
-        if int(p.get("quantidade") or 0) <= LIMITE_ESTOQUE_BAIXO
+        p for p in produtos if int(p.get("quantidade") or 0) <= LIMITE_ESTOQUE_BAIXO
     ]
 
     produtos_vencendo = [
-        p for p in produtos
-        if p.get("data_de_validade") and hoje <= p["data_de_validade"] <= limite_validade
+        p
+        for p in produtos
+        if p.get("data_de_validade")
+        and hoje <= p["data_de_validade"] <= limite_validade
     ]
 
     entradas = sum(
-        1 for m in movimentacoes
+        1
+        for m in movimentacoes
         if (m.get("tipo_movimentacao") or "").upper() == "ENTRADA"
     )
     saidas = sum(
-        1 for m in movimentacoes
+        1
+        for m in movimentacoes
         if (m.get("tipo_movimentacao") or "").upper() == "SAIDA"
     )
 
@@ -134,7 +137,7 @@ def get_usuario_form():
         "email": request.form.get("email", "").strip(),
         "senha": request.form.get("senha", "").strip(),
         "identificacao": request.form.get("identificacao", "").strip(),
-        "tipo": request.form.get("tipo", "").strip()
+        "tipo": request.form.get("tipo", "").strip(),
     }
 
 
@@ -167,23 +170,44 @@ def logout():
 # (Permissões e Usuário)=============================================================================
 PERMISSOES = {
     "adm": {
-        "usuarios_ver", "usuarios_criar", "usuarios_editar", "usuarios_excluir",
-        "clientes_ver", "clientes_criar", "clientes_editar", "clientes_excluir",
-        "produtos_ver", "produtos_criar", "produtos_editar", "produtos_excluir",
-        "estoque_ver", "estoque_editar",
-        "pedido_entrada", "pedido_saida",
-        "localizacoes_ver", "localizacoes_criar", "localizacoes_editar", "localizacoes_excluir",
+        "usuarios_ver",
+        "usuarios_criar",
+        "usuarios_editar",
+        "usuarios_excluir",
+        "clientes_ver",
+        "clientes_criar",
+        "clientes_editar",
+        "clientes_excluir",
+        "produtos_ver",
+        "produtos_criar",
+        "produtos_editar",
+        "produtos_excluir",
+        "estoque_ver",
+        "estoque_editar",
+        "pedido_entrada",
+        "pedido_saida",
+        "localizacoes_ver",
+        "localizacoes_criar",
+        "localizacoes_editar",
+        "localizacoes_excluir",
     },
     "estoquista": {
         "clientes_ver",
-        "produtos_ver", "produtos_criar", "produtos_editar",
-        "estoque_ver", "estoque_editar",
-        "pedido_entrada", "pedido_saida",
+        "produtos_ver",
+        "produtos_criar",
+        "produtos_editar",
+        "estoque_ver",
+        "estoque_editar",
+        "pedido_entrada",
+        "pedido_saida",
         "localizacoes_ver",
     },
     "consulta": {
-        "clientes_ver", "produtos_ver", "estoque_ver", "localizacoes_ver",
-    }
+        "clientes_ver",
+        "produtos_ver",
+        "estoque_ver",
+        "localizacoes_ver",
+    },
 }
 
 
@@ -210,10 +234,7 @@ def tem_permissao(permissao):
 
 @app.context_processor
 def inject_permissoes():
-    return {
-        "usuario_logado": obter_usuario_logado(),
-        "tem_permissao": tem_permissao
-    }
+    return {"usuario_logado": obter_usuario_logado(), "tem_permissao": tem_permissao}
 
 
 # (Rotas Usuário)===================================================================================
@@ -281,7 +302,15 @@ def atualizar_usuario(id):
             return redirect(url_for("listar_usuarios"))
 
         usuario = Usuario(**dados)
-        erros = usuario.validate() if hasattr(usuario, "validate") else []
+        erros = []
+        if not usuario.nome:
+            erros.append("O campo Nome é obrigatório.")
+        if not usuario.email:
+            erros.append("O campo E-mail é obrigatório.")
+        if not usuario.tipo:
+            erros.append("O campo Tipo é obrigatório.")
+        if not usuario.identificacao:
+            erros.append("O campo Identificação é obrigatório.")
 
         if erros:
             for erro in erros:
@@ -329,7 +358,7 @@ def excluir_usuario(id):
 @login_obrigatorio
 @permissao_obrigatoria("clientes_criar")
 def novo_cliente():
-    return render_template("Cliente.html", cliente={})
+    return render_template("cliente.html", cliente={})
 
 
 @app.route("/clientes", methods=["GET"])
@@ -355,7 +384,7 @@ def salvar_cliente():
     if erros:
         for erro in erros:
             flash(erro, "erro")
-        return render_template("Cliente.html", cliente=cliente)
+        return render_template("cliente.html", cliente=cliente)
     try:
         cliente.insert()
         flash("Cliente cadastrado com sucesso.", "sucesso")
@@ -363,7 +392,7 @@ def salvar_cliente():
     except Exception as e:
         print("ERRO AO CADASTRAR CLIENTE:", e)
         flash("Erro ao cadastrar cliente.", "erro")
-        return render_template("Cliente.html", cliente=cliente)
+        return render_template("cliente.html", cliente=cliente)
 
 
 @app.route("/cliente/<int:id>/editar", methods=["GET"])
@@ -375,7 +404,7 @@ def buscar_cliente(id):
         if not cliente:
             flash("Cliente não encontrado.", "erro")
             return redirect(url_for("listar_clientes"))
-        return render_template("Cliente.html", cliente=cliente)
+        return render_template("cliente.html", cliente=cliente)
     except Exception as e:
         flash("Erro ao carregar cliente.", "erro")
         return redirect(url_for("listar_clientes"))
@@ -393,7 +422,7 @@ def atualizar_cliente(id):
         for erro in erros:
             flash(erro, "erro")
         dados["id"] = id
-        return render_template("Cliente.html", cliente=dados)
+        return render_template("cliente.html", cliente=dados)
     try:
         cliente_existente = Cliente.find_by_id(id)
         if not cliente_existente:
@@ -408,7 +437,7 @@ def atualizar_cliente(id):
     except Exception as e:
         flash("Erro ao atualizar cliente.", "erro")
         dados["id"] = id
-        return render_template("Cliente.html", cliente=dados)
+        return render_template("cliente.html", cliente=dados)
 
 
 @app.route("/cliente/<int:id>/excluir", methods=["POST"])
@@ -468,9 +497,7 @@ def salvar_produto():
         novo_id = produto.insert()
         qtd_inicial = dados.get("quantidade", 0)
         movimentacao = Movimentacao(
-            produto_id=novo_id,
-            tipo_movimentacao="CADASTRO",
-            quantidade=qtd_inicial
+            produto_id=novo_id, tipo_movimentacao="CADASTRO", quantidade=qtd_inicial
         )
         movimentacao.insert()
         flash("Produto cadastrado com sucesso.", "sucesso")
@@ -503,7 +530,7 @@ def buscar_produto(id):
 def atualizar_produto(id):
     dados = get_produto_form()
     produto = Produto(**dados)
-    
+
     if hasattr(produto, "id"):
         produto.id = id
     elif isinstance(produto, dict):
@@ -566,7 +593,7 @@ def movimentacoes():
         "movimentacoes.html",
         movimentacoes=movimentacoes_list,
         movimentacoes_entrada=movimentacoes_entrada,
-        movimentacoes_saida=movimentacoes_saida
+        movimentacoes_saida=movimentacoes_saida,
     )
 
 
@@ -576,9 +603,7 @@ def movimentacoes():
 @permissao_obrigatoria("pedido_entrada")
 def novo_pedido_entrada():
     usuarios = Usuario.find_all(order_by="nome")
-    return render_template(
-        "pedido_entrada.html", pedido_entrada={}, usuarios=usuarios
-    )
+    return render_template("pedido_entrada.html", pedido_entrada={}, usuarios=usuarios)
 
 
 @app.route("/pedido_entrada", methods=["GET"])
@@ -719,21 +744,15 @@ def salvar_item_entrada():
     movimentacao_id = request.form.get("movimentacao_id")
 
     quantidade = int(qtd_str) if qtd_str.isdigit() else 0
+
     try:
         valor = float(valor_str)
     except ValueError:
         valor = 0.0
 
-    if produto_id and not movimentacao_id:
-        try:
-            mov = Movimentacao(
-                produto_id=int(produto_id),
-                tipo_movimentacao="ENTRADA",
-                quantidade=quantidade
-            )
-            movimentacao_id = mov.insert()
-        except Exception as e:
-            print("Erro ao registrar movimentação de entrada:", e)
+    if not pedido_id or not produto_id:
+        flash("Pedido e produto são obrigatórios.", "erro")
+        return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
 
     item = ItemEntrada(
         quantidade,
@@ -741,6 +760,8 @@ def salvar_item_entrada():
         pedido_id,
         movimentacao_id,
     )
+
+    # A movimentação é criada abaixo, antes do item, somente depois da validação básica.
     erros = item.validate() if hasattr(item, "validate") else []
     if erros:
         for erro in erros:
@@ -748,30 +769,19 @@ def salvar_item_entrada():
         return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
 
     try:
-        item.insert()
-
-        prod_id = None
-        if movimentacao_id:
-            conexao = Database.connect()
-            cursor = conexao.cursor(dictionary=True)
-            cursor.execute(
-                "SELECT produto_id FROM movimentacao WHERE id = %s",
-                (movimentacao_id,),
+        if not movimentacao_id:
+            mov = Movimentacao(
+                produto_id=int(produto_id),
+                tipo_movimentacao="ENTRADA",
+                quantidade=quantidade,
             )
-            mov = cursor.fetchone()
-            cursor.close()
-            conexao.close()
-            if mov:
-                prod_id = mov.get("produto_id")
+            movimentacao_id = mov.insert()
+            item.movimentacao_id = movimentacao_id
 
-        if not prod_id and produto_id:
-            prod_id = int(produto_id)
-
-        if prod_id and hasattr(Produto, "aumentar_estoque"):
-            Produto.aumentar_estoque(prod_id, quantidade)
-
+        item.insert()
         flash("Item adicionado com sucesso.", "sucesso")
     except Exception as e:
+        print("ERRO AO ADICIONAR ITEM DE ENTRADA:", e)
         flash(f"Erro ao adicionar item: {e}", "erro")
 
     return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
@@ -801,7 +811,7 @@ def salvar_localizacao():
     localizacao = Localizacao(
         request.form.get("rua", ""),
         request.form.get("numero", ""),
-        request.form.get("andar", "")
+        request.form.get("andar", ""),
     )
     erros = localizacao.validate() if hasattr(localizacao, "validate") else []
     if erros:
@@ -839,7 +849,11 @@ def salvar_localizacao():
 def novo_pedido_saida():
     clientes = Cliente.find_all(order_by="nome")
     usuarios = Usuario.find_all(order_by="nome")
-    produtos = Produto.find_all_com_localizacao() if hasattr(Produto, "find_all_com_localizacao") else Produto.find_all()
+    produtos = (
+        Produto.find_all_com_localizacao()
+        if hasattr(Produto, "find_all_com_localizacao")
+        else Produto.find_all()
+    )
     return render_template(
         "pedido_saida.html",
         pedido_saida={},
@@ -855,7 +869,11 @@ def novo_pedido_saida():
 @permissao_obrigatoria("pedido_saida")
 def listar_pedido_saida():
     try:
-        pedidos_saida = PedidoSaida.listar_pedidos() if hasattr(PedidoSaida, "listar_pedidos") else PedidoSaida.find_all()
+        pedidos_saida = (
+            PedidoSaida.listar_pedidos()
+            if hasattr(PedidoSaida, "listar_pedidos")
+            else PedidoSaida.find_all()
+        )
         return render_template("pedido_saida_lista.html", pedidos_saida=pedidos_saida)
     except Exception as e:
         flash("Erro ao carregar pedidos de saída.", "erro")
@@ -873,8 +891,14 @@ def buscar_pedido_saida(id):
             return redirect(url_for("listar_pedido_saida"))
         clientes = Cliente.find_all(order_by="nome")
         usuarios = Usuario.find_all(order_by="nome")
-        produtos = Produto.find_all_com_localizacao() if hasattr(Produto, "find_all_com_localizacao") else Produto.find_all()
-        itens = ItemSaida.find_by_pedido(id) if hasattr(ItemSaida, "find_by_pedido") else []
+        produtos = (
+            Produto.find_all_com_localizacao()
+            if hasattr(Produto, "find_all_com_localizacao")
+            else Produto.find_all()
+        )
+        itens = (
+            ItemSaida.find_by_pedido(id) if hasattr(ItemSaida, "find_by_pedido") else []
+        )
         return render_template(
             "pedido_saida.html",
             pedido_saida=pedido_saida,
@@ -964,6 +988,98 @@ def atualizar_pedido_saida(id):
             movimentacoes=[],
             itens=[],
         )
+
+
+@app.route("/api/produto/<int:id>", methods=["GET"])
+@login_obrigatorio
+def api_produto(id):
+    produto = Produto.find_by_id(id)
+    if not produto:
+        return {"erro": "Produto não encontrado."}, 404
+
+    produto["quantidade"] = Produto.quantidade_em_estoque(id)
+    return produto
+
+
+@app.route("/item_saida/salvar", methods=["POST"])
+@login_obrigatorio
+@permissao_obrigatoria("pedido_saida")
+def salvar_item_saida():
+    pedido_id = request.form.get("pedido_saida_id")
+    produto_id = request.form.get("produto_id")
+    qtd_str = request.form.get("quantidade", "0").strip()
+    valor_str = request.form.get("valor", "0").strip().replace(",", ".")
+
+    quantidade = int(qtd_str) if qtd_str.isdigit() else 0
+
+    try:
+        valor = float(valor_str)
+    except ValueError:
+        valor = 0.0
+
+    if not pedido_id or not produto_id:
+        flash("Pedido e produto são obrigatórios.", "erro")
+        return redirect(url_for("buscar_pedido_saida", id=pedido_id))
+
+    estoque = Produto.quantidade_em_estoque(int(produto_id))
+
+    item = ItemSaida(
+        quantidade,
+        valor,
+        pedido_id,
+        None
+    )
+
+    erros = item.validate() if hasattr(item, "validate") else []
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return redirect(url_for("buscar_pedido_saida", id=pedido_id))
+
+    if quantidade > estoque:
+        flash(
+            f"Estoque insuficiente. Estoque atual: {estoque}.",
+            "erro"
+        )
+        return redirect(url_for("buscar_pedido_saida", id=pedido_id))
+
+    try:
+        mov = Movimentacao(
+            produto_id=int(produto_id),
+            tipo_movimentacao="SAIDA",
+            quantidade=quantidade,
+        )
+        movimentacao_id = mov.insert()
+        item.movimentacao_id = movimentacao_id
+        item.insert()
+
+        flash("Item adicionado com sucesso.", "sucesso")
+    except Exception as e:
+        print("ERRO AO ADICIONAR ITEM DE SAÍDA:", e)
+        flash(f"Erro ao adicionar item: {e}", "erro")
+
+    return redirect(url_for("buscar_pedido_saida", id=pedido_id))
+
+
+@app.route("/pedido_saida/<int:id>/excluir", methods=["POST"])
+@login_obrigatorio
+@permissao_obrigatoria("pedido_saida")
+def excluir_pedido_saida(id):
+    try:
+        pedido = PedidoSaida.find_by_id(id)
+        if not pedido:
+            flash("Pedido de saída não encontrado.", "erro")
+            return redirect(url_for("listar_pedido_saida"))
+
+        PedidoSaida.safe_delete(id)
+        flash("Pedido de saída excluído com sucesso.", "sucesso")
+    except ValueError as e:
+        flash(str(e), "erro")
+    except Exception as e:
+        print("ERRO AO EXCLUIR PEDIDO DE SAÍDA:", e)
+        flash("Erro ao excluir pedido de saída.", "erro")
+
+    return redirect(url_for("listar_pedido_saida"))
 
 
 if __name__ == "__main__":

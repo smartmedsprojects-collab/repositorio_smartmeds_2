@@ -3,5 +3,5 @@ DB_CONFIG = {
     "user": "root",
     "password": "123456",
     "database": "smartmeds",
-    "auth_plugin":"mysql_native_password"
+    "auth_plugin": "mysql_native_password",
 }

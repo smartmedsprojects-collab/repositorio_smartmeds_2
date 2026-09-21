@@ -19,7 +19,7 @@
                 <div class="sm-user-cadastro-heading">
 
                     <h2 class="sm-user-cadastro-title">
-                        Novo usuário
+                        {% if usuario and usuario.id %}Editar usuário{% else %}Novo usuário{% endif %}
                     </h2>
 
                     <p class="sm-user-cadastro-subtitle">
@@ -35,7 +35,7 @@
             <form
                 method="POST"
                 class="sm-user-cadastro-form"
-                action="{{ url_for('salvar_usuario') }}"
+                action="{% if usuario and usuario.id %}{{ url_for('atualizar_usuario', id=usuario.id) }}{% else %}{{ url_for('salvar_usuario') }}{% endif %}"
                 enctype="multipart/form-data"
             >
 
@@ -76,6 +76,7 @@
                         name="nome"
                         class="sm-user-cadastro-input"
                         placeholder="Digite o nome completo"
+                        value="{{ usuario.nome if usuario else '' }}"
                         required
                     >
 
@@ -98,6 +99,7 @@
                         name="identificacao"
                         class="sm-user-cadastro-input"
                         placeholder="Digite a identificação"
+                        value="{{ usuario.identificacao if usuario else '' }}"
                         required
                     >
 
@@ -120,6 +122,7 @@
                         name="email"
                         class="sm-user-cadastro-input"
                         placeholder="Digite o e-mail"
+                        value="{{ usuario.email if usuario else '' }}"
                         required
                     >
 
@@ -169,15 +172,15 @@
                             Selecione o tipo
                         </option>
 
-                        <option value="adm">
+                        <option value="adm" {% if usuario and usuario.tipo == 'adm' %}selected{% endif %}>
                             Administrador
                         </option>
 
-                        <option value="estoquista">
+                        <option value="estoquista" {% if usuario and usuario.tipo == 'estoquista' %}selected{% endif %}>
                             Estoquista
                         </option>
 
-                        <option value="consulta">
+                        <option value="consulta" {% if usuario and usuario.tipo == 'consulta' %}selected{% endif %}>
                             Consulta
                         </option>
 
@@ -201,8 +204,8 @@
                         id="sm-user-cadastro-senha"
                         name="senha"
                         class="sm-user-cadastro-input"
-                        placeholder="Digite uma senha"
-                        required
+                        placeholder="{% if usuario and usuario.id %}Digite uma nova senha ou deixe em branco{% else %}Digite uma senha{% endif %}"
+                        {% if not usuario or not usuario.id %}required{% endif %}
                     >
 
                 </div>
@@ -224,7 +227,7 @@
                         name="confirmar_senha"
                         class="sm-user-cadastro-input"
                         placeholder="Confirme a senha"
-                        required
+                        {% if not usuario or not usuario.id %}required{% endif %}
                     >
 
                 </div>
@@ -246,7 +249,7 @@
                         class="sm-user-cadastro-btn-save"
                     >
                         <i class="bi bi-check-lg"></i>
-                        Cadastrar usuário
+                        {% if usuario and usuario.id %}Salvar alterações{% else %}Cadastrar usuário{% endif %}
                     </button>
 
                 </div>

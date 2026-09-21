@@ -6,7 +6,7 @@ usuario = Usuario(
     email="smartmedsproject@gmail.com",
     senha=gerar_hash_senha("123456"),
     tipo="admin",
-    identificacao="0001"
+    identificacao="0001",
 )
 
 usuario.insert()

@@ -53,11 +53,9 @@
                                 Editar
                             </a>
 
-                            <a href="{{ url_for('excluir_pedido_entrada', id=pedido.id_pedido_entrada) }}"
-                                class="btn btn-sm btn-danger"
-                                onclick="return confirm('Tem certeza que deseja excluir este pedido?');">
-                                Excluir
-                            </a>
+                            <form action="{{ url_for('excluir_pedido_entrada', id=pedido.id_pedido_entrada) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir este pedido?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                            </form>
 
                         </td>
                     </tr>
