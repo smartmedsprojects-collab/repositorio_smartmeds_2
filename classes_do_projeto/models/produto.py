@@ -212,13 +212,62 @@ class Produto(CrudBase):
 
     @classmethod
     def safe_delete(cls, produto_id):
-        produto = cls.find_by_id(produto_id)
-        if not produto:
-            raise ValueError("Produto não encontrado.")
+        """
+        Exclui definitivamente o produto e os registros dependentes.
 
-        if cls.has_related_records(produto_id):
-            raise ValueError(
-                "Não é possível excluir o produto porque existem movimentações vinculadas."
+        A ordem é importante por causa das chaves estrangeiras:
+        1. item_entrada / item_saida
+        2. movimentacao
+        3. produto
+
+        Tudo acontece na mesma transação para evitar exclusão parcial.
+        """
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT id FROM produto WHERE id = %s",
+                (produto_id,)
+            )
+            if not cursor.fetchone():
+                raise ValueError("Produto não encontrado.")
+
+            cursor.execute(
+                "SELECT id FROM movimentacao WHERE produto_id = %s",
+                (produto_id,)
+            )
+            movimentacao_ids = [row[0] for row in cursor.fetchall()]
+
+            if movimentacao_ids:
+                placeholders = ", ".join(["%s"] * len(movimentacao_ids))
+
+                cursor.execute(
+                    f"DELETE FROM item_entrada WHERE movimentacao_id IN ({placeholders})",
+                    tuple(movimentacao_ids)
+                )
+
+                cursor.execute(
+                    f"DELETE FROM item_saida WHERE movimentacao_id IN ({placeholders})",
+                    tuple(movimentacao_ids)
+                )
+
+                cursor.execute(
+                    f"DELETE FROM movimentacao WHERE id IN ({placeholders})",
+                    tuple(movimentacao_ids)
+                )
+
+            cursor.execute(
+                "DELETE FROM produto WHERE id = %s",
+                (produto_id,)
             )
 
-        return cls.delete(produto_id)
+            conexao.commit()
+            return cursor.rowcount
+
+        except Exception:
+            conexao.rollback()
+            raise
+        finally:
+            cursor.close()
+            conexao.close()
