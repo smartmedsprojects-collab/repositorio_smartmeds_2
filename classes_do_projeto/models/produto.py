@@ -6,6 +6,7 @@ from core.validator import Validator
 class Produto(CrudBase):
     table = "produto"
 
+<<<<<<< HEAD
     fields = [
         "nome",
         "marca",
@@ -25,6 +26,12 @@ class Produto(CrudBase):
         unidade_medida,
         usuario_id=None,
         quantidade=0
+=======
+    fields = ["nome", "marca", "data_de_validade", "especificacao", "unidade_medida"]
+
+    def __init__(
+        self, nome, marca, data_de_validade, especificacao, unidade_medida, quantidade=0
+>>>>>>> 1ccce1f834d440ff42c2a414893ad8a534ace11a
     ):
         self.nome = nome
         self.marca = marca
@@ -139,28 +146,81 @@ class Produto(CrudBase):
             conexao.close()
 
     @classmethod
-    def aumentar_estoque(cls, produto_id, quantidade):
+<<<<<<< HEAD
+=======
+    def quantidade_em_estoque(cls, produto_id):
         conexao = Database.connect()
         cursor = conexao.cursor()
+        try:
+            sql = """
+                SELECT COALESCE(
+                    SUM(
+                        CASE
+                            WHEN tipo_movimentacao IN ('SAIDA', 'SAÍDA')
+                                THEN -quantidade
+                            ELSE quantidade
+                        END
+                    ), 0
+                )
+                FROM movimentacao
+                WHERE produto_id = %s
+            """
+            cursor.execute(sql, (produto_id,))
+            return int(cursor.fetchone()[0] or 0)
+        finally:
+            cursor.close()
+            conexao.close()
+
+
+    @classmethod
+>>>>>>> 1ccce1f834d440ff42c2a414893ad8a534ace11a
+    def aumentar_estoque(cls, produto_id, quantidade):
+        if quantidade <= 0:
+            raise ValueError("A quantidade deve ser maior que zero.")
+
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+
         try:
             sql = """
                 UPDATE produto
                 SET quantidade = quantidade + %s
                 WHERE id = %s
             """
+
             cursor.execute(sql, (quantidade, produto_id))
             conexao.commit()
+<<<<<<< HEAD
+=======
+
+            return cursor.lastrowid
+
+>>>>>>> 1ccce1f834d440ff42c2a414893ad8a534ace11a
         except Exception:
             conexao.rollback()
             raise
+
         finally:
             cursor.close()
             conexao.close()
 
+
     @classmethod
     def diminuir_estoque(cls, produto_id, quantidade):
+<<<<<<< HEAD
+=======
+        if quantidade <= 0:
+            raise ValueError("A quantidade deve ser maior que zero.")
+
+        estoque = cls.quantidade_em_estoque(produto_id)
+
+        if quantidade > estoque:
+            return None
+
+>>>>>>> 1ccce1f834d440ff42c2a414893ad8a534ace11a
         conexao = Database.connect()
         cursor = conexao.cursor()
+
         try:
             sql = """
                 UPDATE produto
@@ -168,12 +228,20 @@ class Produto(CrudBase):
                 WHERE id = %s
                 AND quantidade >= %s
             """
+<<<<<<< HEAD
             cursor.execute(sql, (quantidade, produto_id, quantidade))
+=======
+
+            cursor.execute(sql, (quantidade, produto_id))
+>>>>>>> 1ccce1f834d440ff42c2a414893ad8a534ace11a
             conexao.commit()
-            return cursor.rowcount
+
+            return cursor.lastrowid
+
         except Exception:
             conexao.rollback()
             raise
+
         finally:
             cursor.close()
             conexao.close()
@@ -216,6 +284,7 @@ class Produto(CrudBase):
 
     @classmethod
     def safe_delete(cls, produto_id):
+<<<<<<< HEAD
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
@@ -250,9 +319,61 @@ class Produto(CrudBase):
                 "produto_excluido": produto_excluido,
                 "movimentacoes_excluidas": movimentacoes_excluidas
             }
+=======
+        """
+        Exclui definitivamente o produto e os registros dependentes.
+
+        A ordem é importante por causa das chaves estrangeiras:
+        1. item_entrada / item_saida
+        2. movimentacao
+        3. produto
+
+        Tudo acontece na mesma transação para evitar exclusão parcial.
+        """
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+
+        try:
+            cursor.execute("SELECT id FROM produto WHERE id = %s", (produto_id,))
+            if not cursor.fetchone():
+                raise ValueError("Produto não encontrado.")
+
+            cursor.execute(
+                "SELECT id FROM movimentacao WHERE produto_id = %s", (produto_id,)
+            )
+            movimentacao_ids = [row[0] for row in cursor.fetchall()]
+
+            if movimentacao_ids:
+                placeholders = ", ".join(["%s"] * len(movimentacao_ids))
+
+                cursor.execute(
+                    f"DELETE FROM item_entrada WHERE movimentacao_id IN ({placeholders})",
+                    tuple(movimentacao_ids),
+                )
+
+                cursor.execute(
+                    f"DELETE FROM item_saida WHERE movimentacao_id IN ({placeholders})",
+                    tuple(movimentacao_ids),
+                )
+
+                cursor.execute(
+                    f"DELETE FROM movimentacao WHERE id IN ({placeholders})",
+                    tuple(movimentacao_ids),
+                )
+
+            cursor.execute("DELETE FROM produto WHERE id = %s", (produto_id,))
+
+            conexao.commit()
+            return cursor.rowcount
+
+>>>>>>> 1ccce1f834d440ff42c2a414893ad8a534ace11a
         except Exception:
             conexao.rollback()
             raise
         finally:
             cursor.close()
+<<<<<<< HEAD
             conexao.close()
+=======
+            conexao.close()
+>>>>>>> 1ccce1f834d440ff42c2a414893ad8a534ace11a
