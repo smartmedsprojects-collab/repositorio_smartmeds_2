@@ -5,19 +5,20 @@ from core.validator import Validator
 class Fornecedor(CrudBase):
     table = "fornecedor"
 
-
     fields = [
         "nome",
         "email",
         "senha",
-        "cnpj"
+        "cnpj",
+        "usuario_id"
     ]
 
-    def __init__(self, nome, email, senha, cnpj):
+    def __init__(self, nome, email, senha, cnpj, usuario_id):
         self.nome = nome.strip()
         self.email = email.strip().lower()
         self.senha = senha.strip()
         self.cnpj = cnpj.strip()
+        self.usuario_id = int(usuario_id) if usuario_id else None
 
     def validate(self):
         erros = [
@@ -29,40 +30,61 @@ class Fornecedor(CrudBase):
             Validator.required(self.senha, "Senha"),
             Validator.min_length(self.senha, "Senha", 6),
             Validator.required(self.cnpj, "CNPJ"),
-            Validator.cnpj(self.cnpj)
+            Validator.cnpj(self.cnpj),
+            Validator.required(self.usuario_id, "Usuário")
         ]
         return [erro for erro in erros if erro]
+
     @classmethod
-    def find_by_nome(cls, nome):
+    def find_all_by_usuario(cls, usuario_id, order_by="nome ASC"):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
-            sql = """
+            sql = f"""
                 SELECT *
                 FROM fornecedor
-                WHERE nome LIKE %s
-                ORDER BY nome
+                WHERE usuario_id = %s
+                ORDER BY {order_by}
             """
-            cursor.execute(sql, (f"%{nome}%",))
+            cursor.execute(sql, (usuario_id,))
             return cursor.fetchall()
         finally:
             cursor.close()
             conexao.close()
+
     @classmethod
-    def find_by_email(cls, email):
+    def find_by_nome(cls, nome, usuario_id):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
             sql = """
                 SELECT *
                 FROM fornecedor
-                WHERE email = %s
+                WHERE nome LIKE %s AND usuario_id = %s
+                ORDER BY nome
             """
-            cursor.execute(sql, (email,))
+            cursor.execute(sql, (f"%{nome}%", usuario_id))
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conexao.close()
+
+    @classmethod
+    def find_by_email(cls, email, usuario_id):
+        conexao = Database.connect()
+        cursor = conexao.cursor(dictionary=True)
+        try:
+            sql = """
+                SELECT *
+                FROM fornecedor
+                WHERE email = %s AND usuario_id = %s
+            """
+            cursor.execute(sql, (email, usuario_id))
             return cursor.fetchone()
         finally:
             cursor.close()
             conexao.close()
+
     @classmethod
     def has_related_records(cls, id):
         conexao = Database.connect()
@@ -83,6 +105,7 @@ class Fornecedor(CrudBase):
         finally:
             cursor.close()
             conexao.close()
+
     @classmethod
     def safe_delete(cls, id):
         fornecedor = cls.find_by_id(id)
