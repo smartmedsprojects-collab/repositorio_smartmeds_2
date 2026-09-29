@@ -2,17 +2,9 @@ from core.crud_base import CrudBase
 from core.database import Database
 from core.validator import Validator
 
-
 class Cliente(CrudBase):
-
     table = "cliente"
-
-    fields = [
-        "nome",
-        "email",
-        "senha",
-        "cnpj"
-    ]
+    fields = ["nome", "email", "senha", "cnpj"]
 
     def __init__(self, nome, email, senha, cnpj):
         self.nome = nome.strip()
@@ -85,13 +77,70 @@ class Cliente(CrudBase):
 
     @classmethod
     def safe_delete(cls, id):
-        cliente = cls.find_by_id(id)
-        if not cliente:
-            raise ValueError("Cliente não encontrado.")
-
-        if cls.has_related_records(id):
-            raise ValueError(
-                "Não é possível excluir o cliente porque existem pedidos de saída vinculados."
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+        try:
+            cliente = cls.find_by_id(id)
+            if not cliente:
+                raise ValueError("Cliente não encontrado.")
+            cursor.execute(
+                """
+                SELECT id
+                FROM pedido_saida
+                WHERE cliente_id = %s
+                """,
+                (id,),
             )
-
-        return cls.delete(id)
+            pedidos = cursor.fetchall()
+            for pedido in pedidos:
+                pedido_id = pedido[0]
+                cursor.execute(
+                    """
+                    SELECT movimentacao_id
+                    FROM item_saida
+                    WHERE pedido_saida_id = %s
+                    """,
+                    (pedido_id,),
+                )
+                movimentacoes = cursor.fetchall()
+                cursor.execute(
+                    """
+                    DELETE FROM item_saida
+                    WHERE pedido_saida_id = %s
+                    """,
+                    (pedido_id,),
+                )
+                for movimentacao in movimentacoes:
+                    movimentacao_id = movimentacao[0]
+                    if movimentacao_id:
+                        cursor.execute(
+                            """
+                            DELETE FROM movimentacao
+                            WHERE id = %s
+                            """,
+                            (movimentacao_id,),
+                        )
+                cursor.execute(
+                    """
+                    DELETE FROM pedido_saida
+                    WHERE id = %s
+                    """,
+                    (pedido_id,),
+                )
+            cursor.execute(
+                """
+                DELETE FROM cliente
+                WHERE id = %s
+                """,
+                (id,),
+            )
+            if cursor.rowcount == 0:
+                raise ValueError("Cliente não encontrado.")
+            conexao.commit()
+            return True
+        except Exception:
+            conexao.rollback()
+            raise
+        finally:
+            cursor.close()
+            conexao.close()

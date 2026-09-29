@@ -7,22 +7,10 @@ class Produto(CrudBase):
 
     table = "produto"
 
-    fields = [
-        "nome",
-        "marca",
-        "data_de_validade",
-        "especificacao",
-        "unidade_medida"
-    ]
+    fields = ["nome", "marca", "data_de_validade", "especificacao", "unidade_medida"]
 
     def __init__(
-        self,
-        nome,
-        marca,
-        data_de_validade,
-        especificacao,
-        unidade_medida,
-        quantidade=0
+        self, nome, marca, data_de_validade, especificacao, unidade_medida, quantidade=0
     ):
         self.nome = nome.strip()
         self.marca = marca.strip()
@@ -148,10 +136,15 @@ class Produto(CrudBase):
             cursor.close()
             conexao.close()
 
+
     @classmethod
     def aumentar_estoque(cls, produto_id, quantidade):
+        if quantidade <= 0:
+            raise ValueError("A quantidade deve ser maior que zero.")
+
         conexao = Database.connect()
         cursor = conexao.cursor()
+
         try:
             sql = """
                 INSERT INTO movimentacao
@@ -159,24 +152,34 @@ class Produto(CrudBase):
                 VALUES
                     ('ENTRADA', NOW(), %s, %s)
             """
+
             cursor.execute(sql, (quantidade, produto_id))
             conexao.commit()
+
             return cursor.lastrowid
+
         except Exception:
             conexao.rollback()
             raise
+
         finally:
             cursor.close()
             conexao.close()
 
+
     @classmethod
     def diminuir_estoque(cls, produto_id, quantidade):
+        if quantidade <= 0:
+            raise ValueError("A quantidade deve ser maior que zero.")
+
         estoque = cls.quantidade_em_estoque(produto_id)
+
         if quantidade > estoque:
-            return 0
+            return None
 
         conexao = Database.connect()
         cursor = conexao.cursor()
+
         try:
             sql = """
                 INSERT INTO movimentacao
@@ -184,12 +187,16 @@ class Produto(CrudBase):
                 VALUES
                     ('SAIDA', NOW(), %s, %s)
             """
+
             cursor.execute(sql, (quantidade, produto_id))
             conexao.commit()
-            return cursor.rowcount
+
+            return cursor.lastrowid
+
         except Exception:
             conexao.rollback()
             raise
+
         finally:
             cursor.close()
             conexao.close()
@@ -226,16 +233,12 @@ class Produto(CrudBase):
         cursor = conexao.cursor()
 
         try:
-            cursor.execute(
-                "SELECT id FROM produto WHERE id = %s",
-                (produto_id,)
-            )
+            cursor.execute("SELECT id FROM produto WHERE id = %s", (produto_id,))
             if not cursor.fetchone():
                 raise ValueError("Produto não encontrado.")
 
             cursor.execute(
-                "SELECT id FROM movimentacao WHERE produto_id = %s",
-                (produto_id,)
+                "SELECT id FROM movimentacao WHERE produto_id = %s", (produto_id,)
             )
             movimentacao_ids = [row[0] for row in cursor.fetchall()]
 
@@ -244,23 +247,20 @@ class Produto(CrudBase):
 
                 cursor.execute(
                     f"DELETE FROM item_entrada WHERE movimentacao_id IN ({placeholders})",
-                    tuple(movimentacao_ids)
+                    tuple(movimentacao_ids),
                 )
 
                 cursor.execute(
                     f"DELETE FROM item_saida WHERE movimentacao_id IN ({placeholders})",
-                    tuple(movimentacao_ids)
+                    tuple(movimentacao_ids),
                 )
 
                 cursor.execute(
                     f"DELETE FROM movimentacao WHERE id IN ({placeholders})",
-                    tuple(movimentacao_ids)
+                    tuple(movimentacao_ids),
                 )
 
-            cursor.execute(
-                "DELETE FROM produto WHERE id = %s",
-                (produto_id,)
-            )
+            cursor.execute("DELETE FROM produto WHERE id = %s", (produto_id,))
 
             conexao.commit()
             return cursor.rowcount
