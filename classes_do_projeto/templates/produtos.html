@@ -1,164 +1,179 @@
-{% extends 'base.html' %} {% block conteudo %}
-<div class="gradient min-vh-100">
-  <div class="container d-flex justify-content-center align-items-center py-5">
-    <div
-      class="card shadow-lg border-0 rounded-4 overflow-hidden"
-      style="max-width: 1000px; width: 100%"
-    >
-      <div class="row g-0">
-        <!-- LOGO -->
-        <div
-          class="col-md-6 d-flex align-items-center justify-content-center bg-light p-4"
-        >
-          <img
-            src="{{ url_for('static', filename='logo.png') }}"
-            alt="Logo"
-            class="img-fluid"
-            style="max-width: 350px"
-          />
+{% extends 'base.html' %} 
+
+{% block conteudo %}
+<div class="bg-light min-vh-100 py-5 d-flex align-items-center">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-8 col-xl-7">
+        
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+          <div class="card-body p-4 p-md-5 bg-white">
+            
+            <!-- TÍTULO -->
+            <div class="mb-4 text-center">
+              <h2 class="fw-bold text-dark mb-1">
+                {% if produto and produto.id %} Editar Produto {% else %} Adicionar Produto {% endif %}
+              </h2>
+              <p class="text-muted small mb-0">Preencha os dados do medicamento/insumo abaixo</p>
+            </div>
+
+            <!-- MENSAGENS FLASH -->
+            {% with messages = get_flashed_messages(with_categories=true) %} 
+              {% if messages %} 
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                  </div>
+                {% endfor %} 
+              {% endif %} 
+            {% endwith %}
+
+            <!-- FORMULÁRIO -->
+            <form method="POST" action="{% if produto and produto.id %}{{ url_for('atualizar_produto', id=produto.id) }}{% else %}{{ url_for('salvar_produto') }}{% endif %}">
+              
+              <div class="row g-3">
+                
+                <!-- NOME -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-secondary small">Nome do Produto</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-box-seam"></i></span>
+                    <input
+                      type="text"
+                      name="nome"
+                      class="form-control bg-light"
+                      placeholder="Ex: Paracetamol"
+                      value="{{ produto.nome if produto else '' }}"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- MARCA / CATEGORIA -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-secondary small">Marca / Categoria</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-tag"></i></span>
+                    <input
+                      type="text"
+                      name="marca"
+                      class="form-control bg-light"
+                      placeholder="Ex: Medley"
+                      value="{{ produto.marca if produto else '' }}"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- UNIDADE DE MEDIDA -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-secondary small">Unidade de Medida</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-rulers"></i></span>
+                    <input
+                      type="text"
+                      name="unidade_medida"
+                      class="form-control bg-light"
+                      placeholder="Ex: Unidade, Caixa, Frasco"
+                      value="{{ produto.unidade_medida if produto and produto.unidade_medida else 'Unidade' }}"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- USUÁRIO RESPONSÁVEL -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-secondary small">Usuário Responsável</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-person-check"></i></span>
+                    <input
+                      type="text"
+                      class="form-control bg-light text-muted"
+                      value="{{ session.get('usuario_nome', session.get('usuario', 'Logado')) }}"
+                      disabled
+                    />
+                    <input
+                      type="hidden"
+                      name="usuario"
+                      value="{{ session.get('usuario_id', session.get('usuario')) }}"
+                    />
+                  </div>
+                </div>
+
+                <!-- DESCRIÇÃO / ESPECIFICAÇÃO -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-secondary small">Descrição / Especificação</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-card-text"></i></span>
+                    <input
+                      type="text"
+                      name="especificacao"
+                      class="form-control bg-light"
+                      placeholder="Ex: 500 gramas"
+                      value="{{ produto.especificacao if produto else '' }}"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- DATA DE VALIDADE -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-secondary small">Data de Validade</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-calendar-event"></i></span>
+                    <input
+                      type="date"
+                      name="data_de_validade"
+                      class="form-control bg-light"
+                      value="{{ produto.data_de_validade if produto else '' }}"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- PRECISA DE TEMPERATURA BAIXA -->
+                <div class="col-12">
+                  <label class="form-label fw-semibold text-secondary small">Precisa de Temperatura Baixa?</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-thermometer-snow"></i></span>
+                    <select
+                      name="precisa_temperatura_baixa"
+                      class="form-select bg-light"
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="1" {% if produto and produto.precisa_temperatura_baixa == 1 %} selected {% endif %}>Sim</option>
+                      <option value="0" {% if produto and produto.precisa_temperatura_baixa == 0 %} selected {% endif %}>Não</option>
+                    </select>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- BOTÕES DE AÇÃO -->
+              <div class="d-flex flex-column flex-sm-row gap-2 mt-4 pt-3 border-top">
+                <button type="submit" class="btn btn-success fw-semibold flex-fill py-2">
+                  <i class="bi bi-check-circle me-1"></i>
+                  {% if produto and produto.id %} Atualizar Produto {% else %} Cadastrar Produto {% endif %}
+                </button>
+                <a href="{{ url_for('listar_produtos') }}" class="btn btn-outline-secondary fw-semibold py-2">
+                  <i class="bi bi-arrow-left me-1"></i> Voltar
+                </a>
+              </div>
+
+            </form>
+
+            <!-- RODAPÉ -->
+            <div class="text-center mt-4 pt-2">
+              <small class="text-muted">
+                &copy; 2026 SmartMeds - Sistema de Estoque
+              </small>
+            </div>
+
+          </div>
         </div>
- 
-        <!-- FORM -->
-        <div class="col-md-6 p-5">
-          <!-- TÍTULO -->
-          <div class="mb-4">
-            <h2 class="fw-bold text-dark">
-              {% if produto and produto.id %} Editar produto {% else %} Adicionar Produto {%
-              endif %}
-            </h2>
-            <p class="text-muted mb-0">Preencha os dados abaixo</p>
-          </div>
- 
-          <!-- MENSAGENS -->
-          {% with messages = get_flashed_messages(with_categories=true) %} {% if
-          messages %} {% for category, message in messages %}
-          <div
-            class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }} alert-dismissible fade show"
-            role="alert"
-          >
-            {{ message }}
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="alert"
-            ></button>
-          </div>
-          {% endfor %} {% endif %} {% endwith %}
- 
-          <!-- FORMULÁRIO -->
-          <form
-            method="POST"
-            action="{% if produto and produto.id %}
-                                    {{ url_for('atualizar_produto', id=produto.id) }}
-                                  {% else %}
-                                    {{ url_for('salvar_produto') }}
-                                  {% endif %}"
-          >
-            <!-- NOME -->
-            <div class="mb-3">
-              <label class="form-label fw-semibold"> Nome </label>
-              <input
-                type="text"
-                name="nome"
-                class="form-control"
-                placeholder="Digite o nome do produto"
-                value="{{ produto.nome if produto else '' }}"
-                required
-              />
-            </div>
- 
-            <!-- Marca -->
-            <div class="input-group-custom">
-              <label class="form-label fw-semibold"> Marca </label>
-              <input
-                type="text"
-                name="marca"
-                class="form-control"
-                placeholder="Digite a marca do produto"
-                value="{{ produto.marca if produto else '' }}"
-                required
-              />
-            </div>
- 
-            <!-- Data de validade -->
-            <div class="input-group-custom">
-              <label class="form-label fw-semibold"> Data de validade </label>
-              <input
-                type="date"
-                name="data_de_validade"
-                class="form-control"
-                placeholder="Digite a data de validade"
-                value="{{ produto.data_de_validade if produto else '' }}"
-                required
-              />
-            </div>
- 
-            <!-- Especificação -->
-            <div class="input-group-custom">
-              <label class="form-label fw-semibold"> Especificação </label>
-              <input
-                type="text"
-                name="especificacao"
-                class="form-control"
-                placeholder="Digite a especificacao do produto"
-                value="{{ produto.especificacao if produto else '' }}"
-                required
-              />
-            </div>
- 
-            <!-- Unidade de medida -->
-            <div class="input-group-custom">
-              <label class="form-label fw-semibold"> Unidade de medida </label>
-              <input
-                type="text"
-                name="unidade_medida"
-                class="form-control"
-                placeholder="Digite a unidade de medida do produto"
-                value="{{ produto.unidade_medida if produto else '' }}"
-                required
-              />
-            </div>
- 
-            <!-- Precisa de temperatura baixa -->
-            <div class="input-group-custom">
-              <label class="form-label fw-semibold"> Precisa de temperatura baixa? </label>
-              <select
-                name="precisa_temperatura_baixa"
-                class="form-control"
-                required
-              >
-                <option value="">Selecione</option>
-                <option value="1" {% if produto and produto.precisa_temperatura_baixa == 1 %} selected {% endif %}>
-                  Sim
-                </option>
-                <option value="0" {% if produto and produto.precisa_temperatura_baixa == 0 %} selected {% endif %}>
-                  Não
-                </option>
-              </select>
-            </div>
- 
-            <!-- BOTÕES -->
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-success">
-                {% if produto %} Atualizar Produto {% else %} Cadastrar Produtos
-                {% endif %}
-              </button>
-              <a
-                href="{{ url_for('listar_produtos') }}"
-                class="btn btn-outline-secondary"
-              >
-                Voltar
-              </a>
-            </div>
-          </form>
- 
-          <!-- RODAPÉ -->
-          <div class="text-center mt-4">
-            <small class="text-muted">
-              © 2026 SmartMeds - Sistema de Estoque
-            </small>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>

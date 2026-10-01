@@ -2,7 +2,6 @@ from core.crud_base import CrudBase
 from core.database import Database
 from core.validator import Validator
 
-
 class PedidoSaida(CrudBase):
 
     table = "pedido_saida"
@@ -39,18 +38,23 @@ class PedidoSaida(CrudBase):
         erros = [
             Validator.required(self.tipo, "Tipo"),
             Validator.required(self.pagamento, "Pagamento"),
-            Validator.positive(self.quantidade, "Quantidade"),
-            Validator.non_negative(self.valor, "Valor"),
-            Validator.required(self.data_pagamento, "Data de pagamento"),
+            Validator.required(self.quantidade, "Quantidade"),
+            Validator.required(self.valor, "Valor"),
+            Validator.required(
+                self.data_pagamento,
+                "Data de pagamento"
+            ),
             Validator.required(self.cliente_id, "Cliente"),
             Validator.required(self.usuario_id, "Usuário"),
         ]
+
         return [erro for erro in erros if erro]
 
     @classmethod
-    def listar_pedidos(cls):
+    def listar_pedidos(cls, usuario_id):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
+
         try:
             sql = """
                 SELECT
@@ -62,18 +66,23 @@ class PedidoSaida(CrudBase):
                     ON ps.cliente_id = c.id
                 LEFT JOIN usuario u
                     ON ps.usuario_id = u.id
+                WHERE ps.usuario_id = %s
                 ORDER BY ps.id DESC
             """
-            cursor.execute(sql)
+
+            cursor.execute(sql, (usuario_id,))
+
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conexao.close()
 
     @classmethod
-    def listar_movimentacoes(cls):
+    def listar_movimentacoes(cls, usuario_id):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
+
         try:
             sql = """
                 SELECT
@@ -90,39 +99,14 @@ class PedidoSaida(CrudBase):
                     ON ps.cliente_id = c.id
                 LEFT JOIN usuario u
                     ON ps.usuario_id = u.id
+                WHERE ps.usuario_id = %s
                 ORDER BY ps.id DESC
             """
-            cursor.execute(sql)
+
+            cursor.execute(sql, (usuario_id,))
+
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conexao.close()
-
-    @classmethod
-    def has_related_records(cls, id):
-        conexao = Database.connect()
-        cursor = conexao.cursor()
-        try:
-            sql = """
-                SELECT COUNT(*)
-                FROM item_saida
-                WHERE pedido_saida_id = %s
-            """
-            cursor.execute(sql, (id,))
-            return cursor.fetchone()[0] > 0
-        finally:
-            cursor.close()
-            conexao.close()
-
-    @classmethod
-    def safe_delete(cls, id):
-        pedido = cls.find_by_id(id)
-        if not pedido:
-            raise ValueError("Pedido de saída não encontrado.")
-
-        if cls.has_related_records(id):
-            raise ValueError(
-                "Não é possível excluir o pedido porque existem itens vinculados."
-            )
-
-        return cls.delete(id)

@@ -1,323 +1,260 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-<div class="gradient">
-
-    <div class="container login-container">
-
-        <div class="login-card">
-
-            <!-- LADO ESQUERDO -->
-            <div class="left-side">
-
-                <div class="left-text">
-                    <h2>SmartMeds</h2>
-
-                    <p>
-                        Controle de pedidos de saída de forma rápida e organizada.
-                    </p>
-                </div>
-
-            </div>
-
-            <!-- LADO DIREITO -->
-            <div class="right-side">
-
-                <div class="top-form">
-
-                    <h3>
-
-                        {% if pedido_saida and pedido_saida.id %}
-                        Editar Pedido de Saída
-                        {% else %}
-                        Novo Pedido de Saída
-                        {% endif %}
-
-                    </h3>
-
-                    <p>
-                        Preencha os dados do pedido
-                    </p>
-
-                </div>
-
-                <form method="POST" action="
-                    {% if pedido_saida and pedido_saida.id %}
-                        {{ url_for('atualizar_pedido_saida', id=pedido_saida.id) }}
-                    {% else %}
-                        {{ url_for('salvar_pedido_saida') }}
-                    {% endif %}
-                ">
-
-                    <div class="input-group-custom">
-                        <label>Tipo</label>
-
-                        <select name="tipo" class="form-control" required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                            <option value="VENDA" {% if pedido_saida and pedido_saida.tipo == 'VENDA' %}selected{% endif %}>
-                                VENDA
-                            </option>
-
-                            <option value="DOACAO" {% if pedido_saida and pedido_saida.tipo == 'DOACAO' %}selected{% endif %}>
-                                DOAÇÃO
-                            </option>
-
-                            <option value="DESCARTE" {% if pedido_saida and pedido_saida.tipo == 'DESCARTE' %}selected{% endif %}>
-                                DESCARTE
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                    <div class="input-group-custom">
-                        <label>Pagamento</label>
-
-                        <select name="pagamento" class="form-control" required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                            <option value="DINHEIRO" {% if pedido_saida and pedido_saida.pagamento == 'DINHEIRO' %}selected{% endif %}>
-                                DINHEIRO
-                            </option>
-
-                            <option value="PIX" {% if pedido_saida and pedido_saida.pagamento == 'PIX' %}selected{% endif %}>
-                                PIX
-                            </option>
-
-                            <option value="CARTAO" {% if pedido_saida and pedido_saida.pagamento == 'CARTAO' %}selected{% endif %}>
-                                CARTÃO
-                            </option>
-
-                            <option value="BOLETO" {% if pedido_saida and pedido_saida.pagamento == 'BOLETO' %}selected{% endif %}>
-                                BOLETO
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                    <div class="input-group-custom">
-                        <label>Quantidade</label>
-
-                        <input type="number" name="quantidade" class="form-control"
-                            value="{{ pedido_saida.quantidade if pedido_saida else '' }}" required>
-
-                    </div>
-
-                    <div class="input-group-custom">
-                        <label>Valor</label>
-
-                        <input type="number" step="0.01" name="valor" class="form-control"
-                            value="{{ pedido_saida.valor if pedido_saida else '' }}" required>
-
-                    </div>
-
-                    <div class="input-group-custom">
-                        <label>Data de Pagamento</label>
-
-                        <input type="date" name="data_pagamento" class="form-control"
-                            value="{{ pedido_saida.data_pagamento if pedido_saida else '' }}" required>
-
-                    </div>
-
-                    <div class="input-group-custom">
-
-                        <label>Cliente</label>
-
-                        <select name="cliente_id" class="form-control" required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                            {% for cliente in clientes %}
-
-                            <option value="{{ cliente.id }}" {% if pedido_saida and pedido_saida.cliente_id == cliente.id %}selected{% endif %}>
-                                {{ cliente.nome }}
-                            </option>
-
-                            {% endfor %}
-
-                        </select>
-
-                    </div>
-
-                    <div class="input-group-custom">
-
-                        <label>Usuário</label>
-
-                        <select name="usuario_id" class="form-control" required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                            {% for usuario in usuarios %}
-
-                            <option value="{{ usuario.id }}" {% if pedido_saida and pedido_saida.usuario_id == usuario.id %}selected{% endif %}>
-                                {{ usuario.nome }}
-                            </option>
-
-                            {% endfor %}
-
-                        </select>
-
-                    </div>
-
-                    <div class="d-grid gap-2">
-
-                        <button type="submit" class="btn btn-success">
-
-                            Salvar Pedido
-
-                        </button>
-
-                    </div>
-
-                </form>
-
-            </div>
-
-        </div>
-
-        <!-- ITENS -->
-
-        {% if pedido_saida and pedido_saida.id %}
-
-        <div class="mt-5">
-
-            <h4 class="mb-3 text-white">
-                Itens do Pedido
-            </h4>
-
-            <div class="card shadow-sm mb-4">
-
-                <div class="card-body">
-
-                    <form method="POST" action="{{ url_for('salvar_item_saida') }}">
-
-                        <input type="hidden" name="pedido_saida_id" value="{{ pedido_saida.id }}">
-
-                        <div class="row">
-
-                            <div class="col-md-5">
-                                <label>Produto</label>
-
-                                <select name="produto_id" class="form-control" required>
-                                    <option value="">Selecione</option>
-
-                                    {% for produto in produtos %}
-                                    <option value="{{ produto.id }}">
-                                        {{ produto.nome }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+            
+            <!-- CARD PRINCIPAL: CADASTRO DO PEDIDO DE SAÍDA -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-5">
+                <div class="row g-0">
+                    
+                    <!-- LADO ESQUERDO: BRANDING / INFORMAÇÕES -->
+                    <div class="col-lg-4 bg-primary bg-gradient text-white p-4 p-md-5 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-4">
+                                <i class="bi bi-capsule-fill fs-2"></i>
+                                <h3 class="fw-bold mb-0">SmartMeds</h3>
                             </div>
-                            <div class="col-md-2">
-
-                                <label>Quantidade</label>
-
-                                <input type="number" name="quantidade" class="form-control" required>
-
-                            </div>
-
-                            <div class="col-md-2">
-
-                                <label>Valor</label>
-
-                                <input type="number" step="0.01" name="valor" class="form-control" required>
-
-                            </div>
-
-                            <div class="col-md-3 d-flex align-items-end">
-
-                                <button type="submit" class="btn btn-danger w-100">
-
-                                    Adicionar Item
-
-                                </button>
-
-                            </div>
-
+                            
+                            <h4 class="fw-semibold mb-3">
+                                {% if pedido_saida and pedido_saida.id %}
+                                    Editar Pedido #{{ pedido_saida.id }}
+                                {% else %}
+                                    Novo Pedido de Saída
+                                {% endif %}
+                            </h4>
+                            
+                            <p class="text-white-50 opacity-75">
+                                Controle de pedidos de saída de forma rápida, inteligente e organizada.
+                            </p>
                         </div>
 
+                        <div class="pt-4 border-top border-white-10">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-white bg-opacity-10 p-2 d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-box-arrow-right fs-4"></i>
+                                </div>
+                                <small class="text-white-50">Registre vendas, doações ou descartes de estoque.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LADO DIREITO: FORMULÁRIO PRINCIPAL -->
+                    <div class="col-lg-8 p-4 p-md-5 bg-white">
+                        
+                        <div class="mb-4">
+                            <h4 class="fw-bold text-dark mb-1">
+                                {% if pedido_saida and pedido_saida.id %}
+                                    Editar Pedido de Saída
+                                {% else %}
+                                    Novo Pedido de Saída
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted small mb-0">Preencha os dados principais do pedido abaixo</p>
+                        </div>
+
+                        <form method="POST" action="{% if pedido_saida and pedido_saida.id %}{{ url_for('atualizar_pedido_saida', id=pedido_saida.id) }}{% else %}{{ url_for('salvar_pedido_saida') }}{% endif %}">
+                            
+                            <div class="row g-3">
+                                
+                                <!-- TIPO DE SAÍDA -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary small">Tipo de Saída</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-tags"></i></span>
+                                        <select name="tipo" class="form-select border-start-0 bg-light" required>
+                                            <option value="">Selecione...</option>
+                                            <option value="VENDA" {% if pedido_saida and pedido_saida.tipo == 'VENDA' %}selected{% endif %}>VENDA</option>
+                                            <option value="DOACAO" {% if pedido_saida and pedido_saida.tipo == 'DOACAO' %}selected{% endif %}>DOAÇÃO</option>
+                                            <option value="DESCARTE" {% if pedido_saida and pedido_saida.tipo == 'DESCARTE' %}selected{% endif %}>DESCARTE</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- FORMA DE PAGAMENTO -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary small">Forma de Pagamento</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-credit-card"></i></span>
+                                        <select name="pagamento" class="form-select border-start-0 bg-light" required>
+                                            <option value="">Selecione...</option>
+                                            <option value="DINHEIRO" {% if pedido_saida and pedido_saida.pagamento == 'DINHEIRO' %}selected{% endif %}>DINHEIRO</option>
+                                            <option value="PIX" {% if pedido_saida and pedido_saida.pagamento == 'PIX' %}selected{% endif %}>PIX</option>
+                                            <option value="CARTAO" {% if pedido_saida and pedido_saida.pagamento == 'CARTAO' %}selected{% endif %}>CARTÃO</option>
+                                            <option value="BOLETO" {% if pedido_saida and pedido_saida.pagamento == 'BOLETO' %}selected{% endif %}>BOLETO</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- CLIENTE -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary small">Cliente</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-building"></i></span>
+                                        <select name="cliente_id" class="form-select border-start-0 bg-light" required>
+                                            <option value="">Selecione...</option>
+                                            {% for cliente in clientes %}
+                                            <option value="{{ cliente.id }}" {% if pedido_saida and pedido_saida.cliente_id == cliente.id %}selected{% endif %}>
+                                                {{ cliente.nome }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- USUÁRIO RESPONSÁVEL -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary small">Usuário Responsável</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person-badge"></i></span>
+                                        <select name="usuario_id" class="form-select border-start-0 bg-light" required>
+                                            <option value="">Selecione...</option>
+                                            {% for usuario in usuarios %}
+                                            <option value="{{ usuario.id }}" {% if pedido_saida and pedido_saida.usuario_id == usuario.id %}selected{% endif %}>
+                                                {{ usuario.nome }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- QUANTIDADE -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary small">Quantidade Total</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-boxes"></i></span>
+                                        <input type="number" name="quantidade" class="form-control border-start-0 bg-light" placeholder="0" value="{{ pedido_saida.quantidade if pedido_saida else '' }}" required>
+                                    </div>
+                                </div>
+
+                                <!-- VALOR TOTAL -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary small">Valor Total (R$)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-currency-dollar"></i></span>
+                                        <input type="number" step="0.01" name="valor" class="form-control border-start-0 bg-light" placeholder="0,00" value="{{ pedido_saida.valor if pedido_saida else '' }}" required>
+                                    </div>
+                                </div>
+
+                                <!-- DATA DE PAGAMENTO -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary small">Data Pagamento</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-calendar-event"></i></span>
+                                        <input type="date" name="data_pagamento" class="form-control border-start-0 bg-light" value="{{ pedido_saida.data_pagamento if pedido_saida else '' }}" required>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- BOTÕES DE AÇÃO -->
+                            <div class="d-flex flex-column flex-sm-row gap-2 pt-4 mt-2">
+                                <button type="submit" class="btn btn-primary fw-semibold flex-fill py-2">
+                                    <i class="bi bi-check-circle me-1"></i> Salvar Pedido
+                                </button>
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary fw-semibold py-2">
+                                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                                </a>
+                            </div>
+
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO DE ITENS DO PEDIDO (SOMENTE SE O PEDIDO JÁ FOI CRIADO) -->
+            {% if pedido_saida and pedido_saida.id %}
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden p-4 bg-white">
+                
+                <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-1"><i class="bi bi-cart-check text-primary me-2"></i>Itens do Pedido</h4>
+                        <p class="text-muted small mb-0">Adicione ou visualize os produtos vinculados a este pedido</p>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">
+                        Pedido #{{ pedido_saida.id }}
+                    </span>
+                </div>
+
+                <!-- FORMULÁRIO DE ADICIONAR ITEM -->
+                <div class="card bg-light border-0 rounded-3 p-3 mb-4">
+                    <form method="POST" action="{{ url_for('salvar_item_saida') }}">
+                        <input type="hidden" name="pedido_saida_id" value="{{ pedido_saida.id }}">
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-12 col-md-5">
+                                <label class="form-label fw-semibold text-secondary small">Produto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-box-seam"></i></span>
+                                    <select name="produto_id" class="form-select border-start-0 bg-white" required>
+                                        <option value="">Selecione o produto...</option>
+                                        {% for produto in produtos %}
+                                        <option value="{{ produto.id }}">{{ produto.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label fw-semibold text-secondary small">Quantidade</label>
+                                <input type="number" name="quantidade" class="form-control bg-white" placeholder="Qtd" required>
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label fw-semibold text-secondary small">Valor (R$)</label>
+                                <input type="number" step="0.01" name="valor" class="form-control bg-white" placeholder="0,00" required>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <button type="submit" class="btn btn-success fw-semibold w-100 py-2">
+                                    <i class="bi bi-plus-circle me-1"></i> Adicionar Item
+                                </button>
+                            </div>
+                        </div>
                     </form>
-
                 </div>
 
-            </div>
-
-            <div class="card shadow-sm">
-
-                <div class="card-body table-responsive">
-
-                    <table class="table table-hover align-middle">
-
-                        <thead class="table-dark">
-
+                <!-- TABELA DE ITENS CADASTRADOS -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary small text-uppercase">
                             <tr>
-                                <th>Produto</th>
-                                <th>Quantidade</th>
-                                <th>Valor</th>
+                                <th class="border-0 rounded-start">Produto</th>
+                                <th class="border-0 text-center">Quantidade</th>
+                                <th class="border-0 text-end rounded-end">Valor Unitário</th>
                             </tr>
-
                         </thead>
-
                         <tbody>
-
                             {% if itens %}
-
-                            {% for item in itens %}
-
-                            <tr>
-
-                                <td>{{ item.produto }}</td>
-
-                                <td>{{ item.quantidade }}</td>
-
-                                <td>
-                                    R$ {{ item.valor }}
-                                </td>
-
-                            </tr>
-
-                            {% endfor %}
-
+                                {% for item in itens %}
+                                <tr>
+                                    <td class="fw-semibold text-dark">
+                                        <i class="bi bi-box me-2 text-muted"></i>{{ item.produto }}
+                                    </td>
+                                    <td class="text-center fw-bold text-dark">{{ item.quantidade }}</td>
+                                    <td class="text-end fw-semibold text-success">
+                                        R$ {{ "%.2f"|format(item.valor|float) if item.valor is numeric else item.valor }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
                             {% else %}
-
-                            <tr>
-
-                                <td colspan="3" class="text-center">
-
-                                    Nenhum item cadastrado.
-
-                                </td>
-
-                            </tr>
-
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox fs-2 text-secondary d-block mb-1"></i>
+                                        Nenhum item adicionado a este pedido até o momento.
+                                    </td>
+                                </tr>
                             {% endif %}
-
                         </tbody>
-
                     </table>
-
                 </div>
 
             </div>
+            {% endif %}
 
         </div>
-
-        {% endif %}
-
     </div>
-
 </div>
-
 {% endblock %}

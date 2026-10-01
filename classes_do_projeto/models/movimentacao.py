@@ -1,55 +1,73 @@
-from datetime import datetime
 from core.crud_base import CrudBase
 from core.database import Database
+from core.validator import Validator
 
 
 class Movimentacao(CrudBase):
-
     table = "movimentacao"
 
     fields = [
-        "tipo_movimentacao",
-        "data_movimentacao",
+        "tipo",
         "quantidade",
+        "data_movimentacao",
+        "observacao",
         "produto_id"
     ]
 
     def __init__(
         self,
-        produto_id,
-        tipo_movimentacao,
+        tipo,
         quantidade,
-        data_movimentacao=None
+        produto_id,
+        data_movimentacao=None,
+        observacao=None
     ):
-        self.produto_id = int(produto_id)
-        self.tipo_movimentacao = tipo_movimentacao
-        self.quantidade = int(quantidade)
-        self.data_movimentacao = data_movimentacao or datetime.now()
+        self.tipo = tipo
+        self.quantidade = int(quantidade) if quantidade else 0
+        self.produto_id = int(produto_id) if produto_id else None
+        self.data_movimentacao = data_movimentacao
+        self.observacao = observacao
+
+    def validate(self):
+        erros = [
+            Validator.required(self.tipo, "Tipo"),
+            Validator.required(self.quantidade, "Quantidade"),
+            Validator.required(self.produto_id, "Produto"),
+        ]
+        return [erro for erro in erros if erro]
 
     @classmethod
-    def find_all_with_product(cls):
-
+    def find_all(cls, usuario_id=None):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
-
         try:
-
-            sql = """
-                SELECT
-                    m.id,
-                    p.nome AS produto,
-                    m.tipo_movimentacao,
-                    m.quantidade,
-                    m.data_movimentacao
-                FROM movimentacao m
-                INNER JOIN produto p
-                    ON m.produto_id = p.id
-                ORDER BY m.data_movimentacao DESC
+            sql = f"""
+                SELECT m.*
+                FROM {cls.table} m
+                ORDER BY m.id DESC
             """
-
             cursor.execute(sql)
             return cursor.fetchall()
+        finally:
+            cursor.close()
+            conexao.close()
 
+    @classmethod
+    def find_all_with_product(cls, usuario_id=None):
+        conexao = Database.connect()
+        cursor = conexao.cursor(dictionary=True)
+        try:
+            sql = """
+                SELECT 
+                    m.*,
+                    p.nome AS produto_nome,
+                    p.marca AS produto_marca
+                FROM movimentacao m
+                INNER JOIN produto p ON p.id = m.produto_id
+                ORDER BY m.id DESC
+            """
+            cursor.execute(sql)
+            return cursor.fetchall()
         finally:
             cursor.close()
             conexao.close()

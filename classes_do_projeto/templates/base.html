@@ -34,13 +34,15 @@
         .topbar-navbar {
             background: var(--blue-gradient);
             box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+            min-height: 68px;
         }
 
         .btn-menu-toggle {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: #fff;
-            border-radius: 10px;
+            border-radius: 12px;
+            padding: 8px 14px !important;
             backdrop-filter: blur(5px);
             transition: all 0.2s ease;
         }
@@ -173,23 +175,6 @@
             transform: rotate(3deg);
         }
 
-        .topbar-navbar {
-            min-height: 68px;
-        }
-
-        .btn-menu-toggle {
-            border-radius: 12px;
-            padding: 9px 14px !important;
-        }
-
-        .btn-menu-toggle i {
-            transition: transform .25s ease;
-        }
-
-        .btn-menu-toggle:hover i {
-            transform: rotate(90deg);
-        }
-
         .offcanvas-backdrop.show {
             opacity: .22;
         }
@@ -222,13 +207,151 @@
 <body>
 
     <!-- BARRA SUPERIOR (HEADER) -->
-    <header class="navbar topbar-navbar p-3 text-white">
+    <header class="navbar topbar-navbar px-3 text-white">
         <div class="container-fluid d-flex justify-content-between align-items-center">
-            <button class="btn btn-menu-toggle d-flex align-items-center gap-2 px-3 py-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas">
-                <i class="bi bi-list fs-5"></i>
-                <span class="fw-medium">Menu</span>
-            </button>
-            <span class="navbar-brand mb-0 h1 fs-5 fw-semibold text-white">Sistema de Gestão</span>
+            
+            <!-- ESQUERDA: BOTÃO MENU E TÍTULO -->
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-menu-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas">
+                    <i class="bi bi-list fs-5"></i>
+                    <span class="fw-medium d-none d-sm-inline">Menu</span>
+                </button>
+                <span class="navbar-brand mb-0 h1 fs-5 fw-semibold text-white me-0">Sistema de Gestão</span>
+            </div>
+
+            <!-- DIREITA: SININHO DE NOTIFICAÇÕES E PERFIL DO USUÁRIO -->
+            <div class="d-flex align-items-center gap-3">
+                
+                {% set total_alertas = (produtos_baixo|length if produtos_baixo is defined and produtos_baixo else 0) + (produtos_vencendo|length if produtos_vencendo is defined and produtos_vencendo else 0) + (alertas_temperatura|length if alertas_temperatura is defined and alertas_temperatura else 0) %}
+                
+                <!-- DROPDOWN DO SININHO DE NOTIFICAÇÕES -->
+                <div class="dropdown">
+                    <button class="btn btn-menu-toggle position-relative p-0 d-flex align-items-center justify-content-center" 
+                            type="button" 
+                            id="dropdownSininhoHeader" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false" 
+                            style="width: 40px; height: 40px;"
+                            title="Notificações">
+                        <i class="bi bi-bell-fill fs-5"></i>
+                        {% if total_alertas is defined and total_alertas > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem;">
+                            {{ total_alertas }}
+                            <span class="visually-hidden">notificações não lidas</span>
+                        </span>
+                        {% endif %}
+                    </button>
+
+                    <!-- MENU DROPDOWN DE NOTIFICAÇÕES -->
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2 mt-2" aria-labelledby="dropdownSininhoHeader" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                        <li class="dropdown-header fw-bold text-dark d-flex justify-content-between align-items-center pb-2 border-bottom">
+                            <span>Central de Notificações</span>
+                            <span class="badge {{ 'bg-danger' if total_alertas > 0 else 'bg-secondary' }} rounded-pill">{{ total_alertas if total_alertas is defined else 0 }}</span>
+                        </li>
+
+                        {% if (alertas_temperatura is defined and alertas_temperatura) or (produtos_baixo is defined and produtos_baixo) or (produtos_vencendo is defined and produtos_vencendo) %}
+                            {% if alertas_temperatura is defined %}
+                            {% for sensor in alertas_temperatura %}
+                            <li>
+                                <a class="dropdown-item p-2 rounded d-flex align-items-center gap-2 my-1" 
+                                   href="#" 
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#modalDetalheAlerta"
+                                   data-icone="bi-thermometer-high" 
+                                   data-cor="danger" 
+                                   data-titulo="{{ sensor.nome }}" 
+                                   data-badge="Temp. Fora"
+                                   data-detalhes='{{ [
+                                       {"label": "Leitura atual", "valor": "%.1f"|format(sensor.temperatura) ~ "°C"},
+                                       {"label": "Faixa ideal", "valor": (sensor.temp_min ~ "°C a " ~ sensor.temp_max ~ "°C")}
+                                   ] | tojson }}'>
+                                    <i class="bi bi-thermometer-high text-danger fs-5"></i>
+                                    <div class="text-truncate">
+                                        <strong class="d-block small text-dark">{{ sensor.nome }}</strong>
+                                        <span class="text-muted small">Alerta de temperatura</span>
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+
+                            {% if produtos_baixo is defined %}
+                            {% for p in produtos_baixo %}
+                            <li>
+                                <a class="dropdown-item p-2 rounded d-flex align-items-center gap-2 my-1" 
+                                   href="#" 
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#modalDetalheAlerta"
+                                   data-icone="bi-exclamation-circle-fill" 
+                                   data-cor="danger" 
+                                   data-titulo="{{ p.nome }}" 
+                                   data-badge="Estoque Baixo"
+                                   data-produto-url="{{ url_for('buscar_produto', id=p.id) if p.id else '' }}"
+                                   data-detalhes='{{ [
+                                       {"label": "Quantidade disponível", "valor": ((p.quantidade or 0) ~ " " ~ (p.unidade_medida or "un"))},
+                                       {"label": "Estoque mínimo", "valor": ((p.estoque_minimo or "-") ~ " " ~ (p.unidade_medida or "un"))}
+                                   ] | tojson }}'>
+                                    <i class="bi bi-exclamation-circle-fill text-danger fs-5"></i>
+                                    <div class="text-truncate">
+                                        <strong class="d-block small text-dark">{{ p.nome }}</strong>
+                                        <span class="text-muted small">Estoque baixo: {{ p.quantidade or 0 }} {{ p.unidade_medida or 'un' }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+
+                            {% if produtos_vencendo is defined %}
+                            {% for p in produtos_vencendo %}
+                            <li>
+                                <a class="dropdown-item p-2 rounded d-flex align-items-center gap-2 my-1" 
+                                   href="#" 
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#modalDetalheAlerta"
+                                   data-icone="bi-clock-fill" 
+                                   data-cor="warning" 
+                                   data-titulo="{{ p.nome }}" 
+                                   data-badge="Validade"
+                                   data-produto-url="{{ url_for('buscar_produto', id=p.id) if p.id else '' }}"
+                                   data-detalhes='{{ [
+                                       {"label": "Data de vencimento", "valor": (p.data_de_validade or "-")},
+                                       {"label": "Quantidade", "valor": ((p.quantidade or 0) ~ " " ~ (p.unidade_medida or "un"))}
+                                   ] | tojson }}'>
+                                    <i class="bi bi-clock-fill text-warning fs-5"></i>
+                                    <div class="text-truncate">
+                                        <strong class="d-block small text-dark">{{ p.nome }}</strong>
+                                        <span class="text-muted small">Vence em {{ p.data_de_validade }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+                        {% else %}
+                            <li class="text-center text-muted py-3 small">
+                                <i class="bi bi-shield-check text-success fs-4 d-block mb-1"></i>
+                                Nenhuma pendência encontrada.
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- PERFIL DO USUÁRIO LOGADO -->
+                <div class="d-flex align-items-center gap-2 ps-2 border-start border-white border-opacity-25">
+                    <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 38px; height: 38px;">
+                        <i class="bi bi-person-fill fs-5"></i>
+                    </div>
+                    <div class="d-none d-md-block text-start text-white">
+                        <span class="fw-semibold d-block lh-1 small">
+                            {{ current_user.nome if current_user is defined and current_user and current_user.nome else (usuario.nome if usuario is defined and usuario and usuario.nome else session.get('usuario_nome', 'Usuário Logado')) }}
+                        </span>
+                        <span class="text-white-50" style="font-size: 0.72rem;">
+                            {{ current_user.cargo if current_user is defined and current_user and current_user.cargo else session.get('usuario_cargo', 'Operador') }}
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
     </header>
 
@@ -318,6 +441,35 @@
         {% block conteudo %}{% endblock %}
 
     </main>
+
+    <!-- MODAL DE DETALHES DA NOTIFICAÇÃO DO HEADER -->
+    <div class="modal fade" id="modalDetalheAlerta" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body pt-0 px-4 pb-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div id="modalAlertaIcone" class="notif-modal-icon">
+                            <i class="bi" id="modalAlertaIconeBi"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark" id="modalAlertaTitulo">-</h5>
+                            <span class="badge rounded-pill" id="modalAlertaBadge">-</span>
+                        </div>
+                    </div>
+                    <div id="modalAlertaDetalhes"></div>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Fechar</button>
+                        <a href="#" id="modalAlertaAjustarLink" class="btn btn-primary btn-sm rounded-pill px-3">
+                            <i class="bi bi-pencil-short me-1"></i> Ajustar produto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- JS DO BOOTSTRAP -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -415,6 +567,65 @@
                 }
             });
         }
+
+        // PREENCHIMENTO DINÂMICO DO MODAL DE ALERTA
+        document.addEventListener("DOMContentLoaded", function () {
+            const modalEl = document.getElementById("modalDetalheAlerta");
+            if (!modalEl) return;
+
+            modalEl.addEventListener("show.bs.modal", function (event) {
+                const item = event.relatedTarget;
+                if (!item) return;
+
+                const cor = item.dataset.cor || "danger";
+                const icone = item.dataset.icone || "bi-info-circle-fill";
+                const titulo = item.dataset.titulo || "-";
+                const badge = item.dataset.badge || "-";
+                const produtoUrl = item.dataset.produtoUrl || "";
+                let detalhes = [];
+                try {
+                    detalhes = JSON.parse(item.dataset.detalhes || "[]");
+                } catch (e) {
+                    detalhes = [];
+                }
+
+                const iconeBox = document.getElementById("modalAlertaIcone");
+                if (iconeBox) iconeBox.className = "notif-modal-icon notif-modal-icon--" + cor;
+                
+                const iconeBi = document.getElementById("modalAlertaIconeBi");
+                if (iconeBi) iconeBi.className = "bi " + icone;
+
+                const tituloEl = document.getElementById("modalAlertaTitulo");
+                if (tituloEl) tituloEl.textContent = titulo;
+
+                const badgeEl = document.getElementById("modalAlertaBadge");
+                if (badgeEl) {
+                    badgeEl.textContent = badge;
+                    badgeEl.className = "badge rounded-pill notif-badge--" + cor;
+                }
+
+                const detalhesBox = document.getElementById("modalAlertaDetalhes");
+                if (detalhesBox) {
+                    detalhesBox.innerHTML = "";
+                    detalhes.forEach(function (d) {
+                        const row = document.createElement("div");
+                        row.className = "d-flex justify-content-between border-bottom py-2 small";
+                        row.innerHTML = "<span class='text-muted'>" + d.label + "</span><span class='fw-semibold text-dark'>" + d.valor + "</span>";
+                        detalhesBox.appendChild(row);
+                    });
+                }
+
+                const ajustarBtn = document.getElementById("modalAlertaAjustarLink");
+                if (ajustarBtn) {
+                    if (produtoUrl) {
+                        ajustarBtn.href = produtoUrl;
+                        ajustarBtn.classList.remove("d-none");
+                    } else {
+                        ajustarBtn.classList.add("d-none");
+                    }
+                }
+            });
+        });
     </script>
 
 </body>
