@@ -2,9 +2,41 @@
 
 {% block conteudo %}
 
+
+
+{% macro alerta_item(icone, cor, titulo, subtitulo, badge_texto, produto_id=None, detalhes=None) %}
+<div class="notification-item notification-item--{{ cor }} p-3 mb-2 d-flex justify-content-between align-items-center gap-2"
+     data-bs-toggle="modal"
+     data-bs-target="#modalDetalheAlerta"
+     data-icone="{{ icone }}"
+     data-cor="{{ cor }}"
+     data-titulo="{{ titulo }}"
+     data-badge="{{ badge_texto }}"
+     data-detalhes='{{ (detalhes or []) | tojson }}'
+     data-produto-url="{{ url_for('buscar_produto', id=produto_id) if produto_id else '' }}">
+    <div class="d-flex align-items-center gap-3">
+        <div class="notif-icon notif-icon--{{ cor }}">
+            <i class="bi {{ icone }}"></i>
+        </div>
+        <div>
+            <strong class="d-block text-dark">{{ titulo }}</strong>
+            <small class="text-muted">{{ subtitulo|safe }}</small>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <span class="badge notif-badge--{{ cor }} rounded-pill">{{ badge_texto }}</span>
+        {% if produto_id %}
+        <a href="{{ url_for('buscar_produto', id=produto_id) }}" class="btn btn-sm btn-white border shadow-2xs rounded-circle p-1" title="Ajustar" onclick="event.stopPropagation();">
+            <i class="bi bi-pencil-short fs-6"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
 <div class="container-fluid py-2">
 
-    <!-- CABEÇALHO DA PÁGINA -->
+    <!-- CABEÇALHO -->
     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
             <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
@@ -12,12 +44,9 @@
             </h4>
             <p class="text-muted small mb-0">Gestão centralizada de estoque, movimentações e cadeia de frio</p>
         </div>
-        
-        <div class="d-flex align-items-center gap-3">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold shadow-sm">
-                <i class="bi bi-arrow-clockwise me-1"></i> Sincronizar
-            </a>
-        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold shadow-sm">
+            <i class="bi bi-arrow-clockwise me-1"></i> Sincronizar
+        </a>
     </div>
 
     <!-- CARDS DE INDICADORES (GRID RESPONSIVO E EQUILIBRADO) -->
@@ -186,9 +215,11 @@
         </div>
     </div>
 
-    <!-- ÚLTIMAS MOVIMENTAÇÕES (OCUPANDO LARGURA COMPLETA) -->
+    <!-- TABELAS E PAINEL DE NOTIFICAÇÕES -->
     <div class="row g-3">
-        <div class="col-12">
+
+        <!-- ÚLTIMAS MOVIMENTAÇÕES -->
+        <div class="col-12 col-lg-7">
             <div class="dash-card card border-0 h-100">
                 <div class="card-header bg-transparent border-0 pt-3 px-4 pb-2 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-primary me-2"></i>Últimas Movimentações</h6>
@@ -230,8 +261,120 @@
                 </div>
             </div>
         </div>
+
+        <!-- CENTRAL DE NOTIFICAÇÕES -->
+        <div class="col-12 col-lg-5">
+            <div class="dash-card card border-0 h-100">
+                <div class="card-header bg-transparent border-0 pt-3 px-4 pb-2 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-bell-fill text-warning fs-5"></i>
+                        <h6 class="fw-bold mb-0 text-dark">Central de Alertas</h6>
+                    </div>
+                    {% set total_alertas = (produtos_baixo|length if produtos_baixo else 0) + (produtos_vencendo|length if produtos_vencendo else 0) + (alertas_temperatura|length if alertas_temperatura else 0) %}
+                    <span class="badge {{ 'bg-danger text-white' if total_alertas > 0 else 'bg-secondary-subtle text-secondary' }} rounded-pill px-2 py-1">
+                        {{ total_alertas }} {{ 'pendência' if total_alertas == 1 else 'pendências' }}
+                    </span>
+                </div>
+                <div class="card-body px-4 pt-2 pb-3 notif-scroll">
+
+                    {% if alertas_temperatura %}
+                    <div class="notif-group-label">Temperatura</div>
+                    {% for sensor in alertas_temperatura %}
+                        {{ alerta_item(
+                            'bi-thermometer-high', 'danger',
+                            sensor.nome,
+                            'Leitura: <strong class="text-danger">' ~ "%.1f"|format(sensor.temperatura) ~ '°C</strong> (Ideal: ' ~ sensor.temp_min ~ '°C - ' ~ sensor.temp_max ~ '°C)',
+                            'Temp. Fora',
+                            None,
+                            [
+                                {'label': 'Leitura atual', 'valor': "%.1f"|format(sensor.temperatura) ~ '°C'},
+                                {'label': 'Faixa ideal', 'valor': (sensor.temp_min ~ '°C a ' ~ sensor.temp_max ~ '°C')},
+                                {'label': 'Última leitura', 'valor': (sensor.ultima_leitura or 'Agora')},
+                                {'label': 'Produtos armazenados', 'valor': ((sensor.produtos_armazenados or 0) ~ ' itens')}
+                            ]
+                        ) }}
+                    {% endfor %}
+                    {% endif %}
+
+                    {% if produtos_baixo %}
+                    <div class="notif-group-label">Estoque</div>
+                    {% for p in produtos_baixo %}
+                        {{ alerta_item(
+                            'bi-exclamation-circle-fill', 'danger',
+                            p.nome,
+                            'Disponível: <strong class="text-dark">' ~ (p.quantidade or 0) ~ ' ' ~ (p.unidade_medida or 'un') ~ '</strong>',
+                            'Estoque Baixo', p.id,
+                            [
+                                {'label': 'Quantidade disponível', 'valor': ((p.quantidade or 0) ~ ' ' ~ (p.unidade_medida or 'un'))},
+                                {'label': 'Estoque mínimo', 'valor': ((p.estoque_minimo or '-') ~ ' ' ~ (p.unidade_medida or 'un'))},
+                                {'label': 'Categoria', 'valor': (p.categoria or '-')},
+                                {'label': 'Fornecedor', 'valor': (p.fornecedor or '-')}
+                            ]
+                        ) }}
+                    {% endfor %}
+                    {% endif %}
+
+                    {% if produtos_vencendo %}
+                    <div class="notif-group-label">Validade</div>
+                    {% for p in produtos_vencendo %}
+                        {{ alerta_item(
+                            'bi-clock-fill', 'warning',
+                            p.nome,
+                            'Vencimento: <strong class="text-dark">' ~ p.data_de_validade ~ '</strong>',
+                            'Validade', p.id,
+                            [
+                                {'label': 'Data de vencimento', 'valor': (p.data_de_validade or '-')},
+                                {'label': 'Quantidade em estoque', 'valor': ((p.quantidade or 0) ~ ' ' ~ (p.unidade_medida or 'un'))},
+                                {'label': 'Lote', 'valor': (p.lote or '-')},
+                                {'label': 'Categoria', 'valor': (p.categoria or '-')}
+                            ]
+                        ) }}
+                    {% endfor %}
+                    {% endif %}
+
+                    {% if not produtos_baixo and not produtos_vencendo and not alertas_temperatura %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-shield-check text-success display-6 mb-2 d-block"></i>
+                        <p class="mb-0 fw-semibold text-dark">Operação Normal</p>
+                        <small class="text-muted">Nenhum desvio de estoque ou temperatura identificado.</small>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
     </div>
 
+</div>
+
+<!-- MODAL DE DETALHES DA NOTIFICAÇÃO -->
+<div class="modal fade" id="modalDetalheAlerta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-0 px-4 pb-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div id="modalAlertaIcone" class="notif-modal-icon">
+                        <i class="bi" id="modalAlertaIconeBi"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1 text-dark" id="modalAlertaTitulo">-</h5>
+                        <span class="badge rounded-pill" id="modalAlertaBadge">-</span>
+                    </div>
+                </div>
+                <div id="modalAlertaDetalhes"></div>
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Fechar</button>
+                    <a href="#" id="modalAlertaAjustarLink" class="btn btn-primary btn-sm rounded-pill px-3">
+                        <i class="bi bi-pencil-short me-1"></i> Ajustar produto
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- CHART JS & RENDERIZAÇÃO -->
@@ -311,6 +454,56 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+});
+
+// POPUP DE DETALHES DA NOTIFICAÇÃO
+document.addEventListener("DOMContentLoaded", function () {
+    const modalEl = document.getElementById("modalDetalheAlerta");
+    if (!modalEl) return;
+
+    modalEl.addEventListener("show.bs.modal", function (event) {
+        const item = event.relatedTarget;
+        if (!item) return;
+
+        const cor = item.dataset.cor || "danger";
+        const icone = item.dataset.icone || "bi-info-circle-fill";
+        const titulo = item.dataset.titulo || "-";
+        const badge = item.dataset.badge || "-";
+        const produtoUrl = item.dataset.produtoUrl || "";
+        let detalhes = [];
+        try {
+            detalhes = JSON.parse(item.dataset.detalhes || "[]");
+        } catch (e) {
+            detalhes = [];
+        }
+
+        const iconeBox = document.getElementById("modalAlertaIcone");
+        iconeBox.className = "notif-modal-icon notif-modal-icon--" + cor;
+        document.getElementById("modalAlertaIconeBi").className = "bi " + icone;
+
+        document.getElementById("modalAlertaTitulo").textContent = titulo;
+
+        const badgeEl = document.getElementById("modalAlertaBadge");
+        badgeEl.textContent = badge;
+        badgeEl.className = "badge rounded-pill notif-badge--" + cor;
+
+        const detalhesBox = document.getElementById("modalAlertaDetalhes");
+        detalhesBox.innerHTML = "";
+        detalhes.forEach(function (d) {
+            const row = document.createElement("div");
+            row.className = "notif-modal-row";
+            row.innerHTML = "<span class='text-muted'>" + d.label + "</span><span class='fw-semibold text-dark'>" + d.valor + "</span>";
+            detalhesBox.appendChild(row);
+        });
+
+        const ajustarBtn = document.getElementById("modalAlertaAjustarLink");
+        if (produtoUrl) {
+            ajustarBtn.href = produtoUrl;
+            ajustarBtn.classList.remove("d-none");
+        } else {
+            ajustarBtn.classList.add("d-none");
+        }
+    });
 });
 </script>
 
