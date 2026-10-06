@@ -5,17 +5,12 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 
-
-// =====================================================
-// CONFIGURAÇÕES
-// =====================================================
-
 app.use(cors());
 app.use(express.json());
 
 
 // =====================================================
-// BANCO DE DADOS
+// CONEXÃO COM O BANCO
 // =====================================================
 
 const db = mysql.createPool({
@@ -29,142 +24,65 @@ const db = mysql.createPool({
 
 
 // =====================================================
-// TESTE DA CONEXÃO
-// =====================================================
-
-async function testarBanco() {
-
-    try {
-
-        const connection =
-            await db.getConnection();
-
-        console.log(
-            'Banco de dados conectado: smartmeds3'
-        );
-
-        connection.release();
-
-    } catch (error) {
-
-        console.error(
-            'ERRO AO CONECTAR AO BANCO:',
-            error.message
-        );
-    }
-}
-
-testarBanco();
-
-
-// =====================================================
 // LOGIN
 // =====================================================
 
 app.post('/api/login', async (req, res) => {
 
-    const {
-        email,
-        senha
-    } = req.body;
-
+    const { email, senha } = req.body;
 
     if (!email || !senha) {
-
         return res.status(400).json({
-
             success: false,
-
-            message:
-                'Email e senha são obrigatórios.'
+            message: 'Email e senha são obrigatórios.'
         });
     }
 
-
     try {
 
-        const [usuarios] =
-            await db.query(
-                `
-                SELECT
-                    id,
-                    nome,
-                    email,
-                    senha,
-                    tipo,
-                    identificacao,
-                    permissao
-                FROM usuario
-                WHERE email = ?
-                `,
-                [email]
-            );
+        const [rows] = await db.query(
+            `
+            SELECT
+                id,
+                nome,
+                email,
+                senha,
+                tipo,
+                identificacao,
+                permissao
+            FROM usuario
+            WHERE email = ?
+            `,
+            [email]
+        );
 
-
-        if (usuarios.length === 0) {
-
+        if (rows.length === 0) {
             return res.status(401).json({
-
                 success: false,
-
-                message:
-                    'Credenciais inválidas.'
+                message: 'Credenciais inválidas.'
             });
         }
 
+        const usuario = rows[0];
 
-        const usuario =
-            usuarios[0];
+        const senhaCorreta = await bcrypt.compare(
+            senha,
+            usuario.senha
+        );
 
-
-        let senhaValida = false;
-
-
-        // Senhas do banco novo estão criptografadas
-        try {
-
-            senhaValida =
-                await bcrypt.compare(
-                    senha,
-                    usuario.senha
-                );
-
-        } catch (error) {
-
-            senhaValida = false;
-        }
-
-
-        // Compatibilidade caso exista senha antiga
-        if (!senhaValida) {
-
-            senhaValida =
-                senha === usuario.senha;
-        }
-
-
-        if (!senhaValida) {
-
+        if (!senhaCorreta) {
             return res.status(401).json({
-
                 success: false,
-
-                message:
-                    'Credenciais inválidas.'
+                message: 'Credenciais inválidas.'
             });
         }
-
 
         delete usuario.senha;
 
-
         return res.json({
-
             success: true,
-
             user: usuario
         });
-
 
     } catch (error) {
 
@@ -173,16 +91,10 @@ app.post('/api/login', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
             success: false,
-
-            message:
-                'Erro ao realizar login.',
-
-            error:
-                error.message
+            message: 'Erro ao realizar login.',
+            error: error.message
         });
     }
 });
@@ -196,63 +108,42 @@ app.get('/api/dashboard', async (req, res) => {
 
     try {
 
-        const [[produtos]] =
+        const [[resultadoProdutos]] =
             await db.query(
                 `
-                SELECT
-                    COUNT(*) AS totalProdutos
+                SELECT COUNT(*) AS totalProdutos
                 FROM produto
                 `
             );
 
-
-        const [[estoqueBaixo]] =
+        const [[resultadoMovimentacoes]] =
             await db.query(
                 `
-                SELECT
-                    COUNT(*) AS total
-                FROM produto
-                WHERE quantidade <= 5
+                SELECT COUNT(*) AS totalMovimentacoes
+                FROM movimentacao
                 `
             );
 
-
-        const [movimentacao] =
+        const [movimentacoes] =
             await db.query(
                 `
-                SELECT
-                    m.id,
-                    m.tipo_movimentacao,
-                    m.data_movimentacao,
-                    m.quantidade,
-                    m.produto_id,
-                    p.nome AS produto_nome
-                FROM movimentacao m
-                LEFT JOIN produto p
-                    ON p.id = m.produto_id
-                ORDER BY
-                    m.id DESC
+                SELECT *
+                FROM movimentacao
+                ORDER BY id DESC
                 LIMIT 5
                 `
             );
 
-
         return res.json({
+            totalProdutos:
+                resultadoProdutos.totalProdutos || 0,
 
-            totalProducts:
-                Number(
-                    produtos.totalProdutos
-                ) || 0,
+            totalMovimentacoes:
+                resultadoMovimentacoes.totalMovimentacoes || 0,
 
-            lowStockCount:
-                Number(
-                    estoqueBaixo.total
-                ) || 0,
-
-            recentActivities:
-                movimentacao
+            movimentacoes:
+                movimentacoes
         });
-
 
     } catch (error) {
 
@@ -261,14 +152,9 @@ app.get('/api/dashboard', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar dashboard.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar dashboard.',
+            error: error.message
         });
     }
 });
@@ -291,9 +177,7 @@ app.get('/api/produtos', async (req, res) => {
                 `
             );
 
-
         return res.json(produtos);
-
 
     } catch (error) {
 
@@ -302,14 +186,9 @@ app.get('/api/produtos', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar produtos.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar produtos.',
+            error: error.message
         });
     }
 });
@@ -321,10 +200,7 @@ app.get('/api/produtos', async (req, res) => {
 
 app.get('/api/produtos/:id', async (req, res) => {
 
-    const {
-        id
-    } = req.params;
-
+    const { id } = req.params;
 
     try {
 
@@ -338,21 +214,14 @@ app.get('/api/produtos/:id', async (req, res) => {
                 [id]
             );
 
-
         if (produtos.length === 0) {
 
             return res.status(404).json({
-
-                message:
-                    'Produto não encontrado.'
+                message: 'Produto não encontrado.'
             });
         }
 
-
-        return res.json(
-            produtos[0]
-        );
-
+        return res.json(produtos[0]);
 
     } catch (error) {
 
@@ -361,14 +230,9 @@ app.get('/api/produtos/:id', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao buscar produto.',
-
-            error:
-                error.message
+            message: 'Erro ao buscar produto.',
+            error: error.message
         });
     }
 });
@@ -396,9 +260,7 @@ app.get('/api/clientes', async (req, res) => {
                 `
             );
 
-
         return res.json(clientes);
-
 
     } catch (error) {
 
@@ -407,14 +269,9 @@ app.get('/api/clientes', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar clientes.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar clientes.',
+            error: error.message
         });
     }
 });
@@ -437,9 +294,7 @@ app.get('/api/localizacoes', async (req, res) => {
                 `
             );
 
-
         return res.json(localizacoes);
-
 
     } catch (error) {
 
@@ -448,21 +303,16 @@ app.get('/api/localizacoes', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar localizações.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar localizações.',
+            error: error.message
         });
     }
 });
 
 
 // =====================================================
-// ENTRADAS
+// ENTRADAS - LISTAGEM
 // =====================================================
 
 app.get('/api/entradas', async (req, res) => {
@@ -478,9 +328,7 @@ app.get('/api/entradas', async (req, res) => {
                 `
             );
 
-
         return res.json(entradas);
-
 
     } catch (error) {
 
@@ -489,14 +337,9 @@ app.get('/api/entradas', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar entradas.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar entradas.',
+            error: error.message
         });
     }
 });
@@ -519,9 +362,7 @@ app.get('/api/itens-entrada', async (req, res) => {
                 `
             );
 
-
         return res.json(itens);
-
 
     } catch (error) {
 
@@ -530,21 +371,16 @@ app.get('/api/itens-entrada', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar itens de entrada.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar itens de entrada.',
+            error: error.message
         });
     }
 });
 
 
 // =====================================================
-// SAÍDAS
+// SAÍDAS - LISTAGEM
 // =====================================================
 
 app.get('/api/saidas', async (req, res) => {
@@ -560,9 +396,7 @@ app.get('/api/saidas', async (req, res) => {
                 `
             );
 
-
         return res.json(saidas);
-
 
     } catch (error) {
 
@@ -571,14 +405,9 @@ app.get('/api/saidas', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar saídas.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar saídas.',
+            error: error.message
         });
     }
 });
@@ -601,9 +430,7 @@ app.get('/api/itens-saida', async (req, res) => {
                 `
             );
 
-
         return res.json(itens);
-
 
     } catch (error) {
 
@@ -612,42 +439,32 @@ app.get('/api/itens-saida', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar itens de saída.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar itens de saída.',
+            error: error.message
         });
     }
 });
 
 
 // =====================================================
-// MOVIMENTAÇÕES - DADOS BRUTOS
+// MOVIMENTAÇÕES
 // =====================================================
 
-app.get('/api/movimentacao', async (req, res) => {
+app.get('/api/movimentacoes', async (req, res) => {
 
     try {
 
-        const [movimentacao] =
+        const [movimentacoes] =
             await db.query(
                 `
-                SELECT
-                    *
+                SELECT *
                 FROM movimentacao
                 ORDER BY id DESC
                 `
             );
 
-
-        return res.json(
-            movimentacao
-        );
-
+        return res.json(movimentacoes);
 
     } catch (error) {
 
@@ -656,33 +473,23 @@ app.get('/api/movimentacao', async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
-            message:
-                'Erro ao carregar movimentações.',
-
-            error:
-                error.message
+            message: 'Erro ao carregar movimentações.',
+            error: error.message
         });
     }
 });
 
 
 // =====================================================
-// HISTÓRICO DO APLICATIVO
+// HISTÓRICO PARA O APLICATIVO
 // =====================================================
 
-app.get('/api/movimentacao', async (req, res) => {
+app.get('/api/history', async (req, res) => {
 
     try {
 
-        console.log(
-            'GET /api/movimentacao'
-        );
-
-
-        const [movimentacao] =
+        const [movimentacoes] =
             await db.query(
                 `
                 SELECT
@@ -691,138 +498,94 @@ app.get('/api/movimentacao', async (req, res) => {
                     m.data_movimentacao,
                     m.quantidade,
                     m.produto_id,
-                    p.nome AS produto_nome,
-                    p.marca AS produto_marca
+                    p.nome AS produto_nome
                 FROM movimentacao AS m
-
                 LEFT JOIN produto AS p
                     ON p.id = m.produto_id
-
-                ORDER BY
-                    m.data_movimentacao DESC,
-                    m.id DESC
+                ORDER BY m.id DESC
                 `
             );
 
 
         const historico =
-            movimentacao.map(
-                (item) => {
+            movimentacoes.map((item) => {
 
-                    const tipoBanco =
-                        String(
-                            item.tipo_movimentacao || ''
-                        )
-                        .trim()
-                        .toUpperCase();
+                const tipoBanco =
+                    String(
+                        item.tipo_movimentacao || ''
+                    ).toUpperCase();
 
 
-                    let tipo =
-                        'Entrada';
+                const tipo =
+                    tipoBanco === 'SAIDA' ||
+                    tipoBanco === 'SAÍDA'
+                        ? 'Saída'
+                        : 'Entrada';
 
 
-                    if (
-                        tipoBanco === 'SAIDA' ||
-                        tipoBanco === 'SAÍDA'
-                    ) {
-
-                        tipo =
-                            'Saída';
-                    }
+                let dataFormatada = '';
+                let horaFormatada = '';
 
 
-                    let date =
-                        '';
+                if (item.data_movimentacao) {
 
-                    let hour =
-                        '';
+                    const data =
+                        new Date(
+                            item.data_movimentacao
+                        );
 
 
-                    if (
-                        item.data_movimentacao
-                    ) {
+                    if (!Number.isNaN(data.getTime())) {
 
-                        const data =
-                            new Date(
-                                item.data_movimentacao
+                        dataFormatada =
+                            data.toLocaleDateString(
+                                'pt-BR'
                             );
 
 
-                        if (
-                            !Number.isNaN(
-                                data.getTime()
-                            )
-                        ) {
-
-                            date =
-                                data.toLocaleDateString(
-                                    'pt-BR'
-                                );
-
-
-                            hour =
-                                data.toLocaleTimeString(
-                                    'pt-BR',
-                                    {
-                                        hour:
-                                            '2-digit',
-
-                                        minute:
-                                            '2-digit'
-                                    }
-                                );
-                        }
+                        horaFormatada =
+                            data.toLocaleTimeString(
+                                'pt-BR',
+                                {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                }
+                            );
                     }
-
-
-                    return {
-
-                        id:
-                            item.id,
-
-                        product:
-                            item.produto_nome ||
-                            `Produto #${item.produto_id}`,
-
-                        brand:
-                            item.produto_marca ||
-                            '',
-
-                        type:
-                            tipo,
-
-                        quantity:
-                            Number(
-                                item.quantidade
-                            ) || 0,
-
-                        date:
-                            date,
-
-                        hour:
-                            hour
-                    };
                 }
-            );
 
 
-        console.log(
-            `Histórico encontrado: ${historico.length} movimentações`
-        );
+                return {
+
+                    id: item.id,
+
+                    product:
+                        item.produto_nome ||
+                        `Produto #${item.produto_id}`,
+
+                    type:
+                        tipo,
+
+                    quantity:
+                        Number(item.quantidade) || 0,
+
+                    date:
+                        dataFormatada,
+
+                    hour:
+                        horaFormatada
+                };
+            });
 
 
-        return res.json(
-            historico
-        );
-
+        return res.json(historico);
 
     } catch (error) {
 
         console.error(
-            'ERRO NO /api/movimentacao:',
+            'Erro ao carregar histórico:',
             error
         );
-
 
         return res.status(500).json({
 
@@ -851,15 +614,10 @@ app.post('/api/entradas', async (req, res) => {
     } = req.body;
 
 
-    if (
-        !produto_id ||
-        !quantidade
-    ) {
+    if (!produto_id || !quantidade) {
 
         return res.status(400).json({
-
             success: false,
-
             message:
                 'produto_id e quantidade são obrigatórios.'
         });
@@ -871,16 +629,12 @@ app.post('/api/entradas', async (req, res) => {
 
 
     if (
-        !Number.isInteger(
-            quantidadeEntrada
-        ) ||
+        !Number.isInteger(quantidadeEntrada) ||
         quantidadeEntrada <= 0
     ) {
 
         return res.status(400).json({
-
             success: false,
-
             message:
                 'A quantidade deve ser um número inteiro maior que zero.'
         });
@@ -898,7 +652,6 @@ app.post('/api/entradas', async (req, res) => {
 
         connection =
             await db.getConnection();
-
 
         await connection.beginTransaction();
 
@@ -919,16 +672,12 @@ app.post('/api/entradas', async (req, res) => {
             );
 
 
-        if (
-            produtos.length === 0
-        ) {
+        if (produtos.length === 0) {
 
             await connection.rollback();
 
             return res.status(404).json({
-
                 success: false,
-
                 message:
                     'Produto não encontrado.'
             });
@@ -940,9 +689,7 @@ app.post('/api/entradas', async (req, res) => {
 
 
         const estoqueAtual =
-            Number(
-                produto.quantidade
-            ) || 0;
+            Number(produto.quantidade) || 0;
 
 
         const novoEstoque =
@@ -964,10 +711,8 @@ app.post('/api/entradas', async (req, res) => {
         );
 
 
-        // Registrar movimentação
-        const [
-            movimentacaoResult
-        ] =
+        // Criar movimentação
+        const [movimentacaoResult] =
             await connection.query(
                 `
                 INSERT INTO movimentacao
@@ -975,7 +720,6 @@ app.post('/api/entradas', async (req, res) => {
                     tipo_movimentacao,
                     data_movimentacao,
                     quantidade,
-                    quantidade_min,
                     produto_id
                 )
                 VALUES
@@ -983,7 +727,6 @@ app.post('/api/entradas', async (req, res) => {
                     'ENTRADA',
                     NOW(),
                     ?,
-                    NULL,
                     ?
                 )
                 `,
@@ -999,9 +742,7 @@ app.post('/api/entradas', async (req, res) => {
 
 
         // Criar pedido de entrada
-        const [
-            pedidoResult
-        ] =
+        const [pedidoResult] =
             await connection.query(
                 `
                 INSERT INTO pedido_entrada
@@ -1063,16 +804,9 @@ app.post('/api/entradas', async (req, res) => {
 
 
         console.log(
-            'ENTRADA REGISTRADA:',
-            {
-                produto_id,
-                quantidade:
-                    quantidadeEntrada,
-                estoqueAnterior:
-                    estoqueAtual,
-                estoqueAtual:
-                    novoEstoque
-            }
+            `Entrada registrada: produto ${produto_id} | ` +
+            `+${quantidadeEntrada} | ` +
+            `estoque: ${novoEstoque}`
         );
 
 
@@ -1112,16 +846,13 @@ app.post('/api/entradas', async (req, res) => {
     } catch (error) {
 
         if (connection) {
-
             await connection.rollback();
         }
 
-
         console.error(
-            'ERRO AO REGISTRAR ENTRADA:',
+            'Erro ao registrar entrada:',
             error
         );
-
 
         return res.status(500).json({
 
@@ -1134,11 +865,9 @@ app.post('/api/entradas', async (req, res) => {
                 error.message
         });
 
-
     } finally {
 
         if (connection) {
-
             connection.release();
         }
     }
@@ -1154,23 +883,14 @@ app.post('/api/saidas', async (req, res) => {
     const {
         produto_id,
         quantidade,
-        usuario_id,
-        cliente_id,
-        tipo,
-        pagamento,
-        valor
+        usuario_id
     } = req.body;
 
 
-    if (
-        !produto_id ||
-        !quantidade
-    ) {
+    if (!produto_id || !quantidade) {
 
         return res.status(400).json({
-
             success: false,
-
             message:
                 'produto_id e quantidade são obrigatórios.'
         });
@@ -1182,16 +902,12 @@ app.post('/api/saidas', async (req, res) => {
 
 
     if (
-        !Number.isInteger(
-            quantidadeSaida
-        ) ||
+        !Number.isInteger(quantidadeSaida) ||
         quantidadeSaida <= 0
     ) {
 
         return res.status(400).json({
-
             success: false,
-
             message:
                 'A quantidade deve ser um número inteiro maior que zero.'
         });
@@ -1202,28 +918,6 @@ app.post('/api/saidas', async (req, res) => {
         Number(usuario_id) || 15;
 
 
-    const clienteId =
-        cliente_id
-            ? Number(cliente_id)
-            : null;
-
-
-    const tipoSaida =
-        tipo || 'VENDA';
-
-
-    const pagamentoSaida =
-        pagamento || null;
-
-
-    const valorSaida =
-        valor !== undefined &&
-        valor !== null &&
-        valor !== ''
-            ? Number(valor)
-            : null;
-
-
     let connection;
 
 
@@ -1231,7 +925,6 @@ app.post('/api/saidas', async (req, res) => {
 
         connection =
             await db.getConnection();
-
 
         await connection.beginTransaction();
 
@@ -1252,16 +945,12 @@ app.post('/api/saidas', async (req, res) => {
             );
 
 
-        if (
-            produtos.length === 0
-        ) {
+        if (produtos.length === 0) {
 
             await connection.rollback();
 
             return res.status(404).json({
-
                 success: false,
-
                 message:
                     'Produto não encontrado.'
             });
@@ -1273,9 +962,7 @@ app.post('/api/saidas', async (req, res) => {
 
 
         const estoqueAtual =
-            Number(
-                produto.quantidade
-            ) || 0;
+            Number(produto.quantidade) || 0;
 
 
         // Verificar estoque
@@ -1287,11 +974,10 @@ app.post('/api/saidas', async (req, res) => {
             await connection.rollback();
 
             return res.status(400).json({
-
                 success: false,
-
                 message:
-                    `Estoque insuficiente. Estoque atual: ${estoqueAtual}.`
+                    `Estoque insuficiente. ` +
+                    `Estoque atual: ${estoqueAtual}.`
             });
         }
 
@@ -1315,10 +1001,8 @@ app.post('/api/saidas', async (req, res) => {
         );
 
 
-        // Registrar movimentação
-        const [
-            movimentacaoResult
-        ] =
+        // Criar movimentação
+        const [movimentacaoResult] =
             await connection.query(
                 `
                 INSERT INTO movimentacao
@@ -1326,7 +1010,6 @@ app.post('/api/saidas', async (req, res) => {
                     tipo_movimentacao,
                     data_movimentacao,
                     quantidade,
-                    quantidade_min,
                     produto_id
                 )
                 VALUES
@@ -1334,7 +1017,6 @@ app.post('/api/saidas', async (req, res) => {
                     'SAIDA',
                     NOW(),
                     ?,
-                    NULL,
                     ?
                 )
                 `,
@@ -1350,9 +1032,7 @@ app.post('/api/saidas', async (req, res) => {
 
 
         // Criar pedido de saída
-        const [
-            pedidoResult
-        ] =
+        const [pedidoResult] =
             await connection.query(
                 `
                 INSERT INTO pedido_saida
@@ -1367,21 +1047,17 @@ app.post('/api/saidas', async (req, res) => {
                 )
                 VALUES
                 (
+                    'SAIDA',
+                    NULL,
                     ?,
-                    ?,
-                    ?,
-                    ?,
-                    CURDATE(),
-                    ?,
+                    NULL,
+                    NULL,
+                    NULL,
                     ?
                 )
                 `,
                 [
-                    tipoSaida,
-                    pagamentoSaida,
                     quantidadeSaida,
-                    valorSaida,
-                    clienteId,
                     usuarioId
                 ]
             );
@@ -1391,7 +1067,7 @@ app.post('/api/saidas', async (req, res) => {
             pedidoResult.insertId;
 
 
-        // Criar item da saída
+        // Criar item de saída
         await connection.query(
             `
             INSERT INTO item_saida
@@ -1404,34 +1080,27 @@ app.post('/api/saidas', async (req, res) => {
             VALUES
             (
                 ?,
-                ?,
+                NULL,
                 ?,
                 ?
             )
             `,
             [
                 quantidadeSaida,
-                valorSaida,
                 pedidoSaidaId,
                 movimentacaoId
             ]
         );
 
 
+        // Confirmar tudo
         await connection.commit();
 
 
         console.log(
-            'SAÍDA REGISTRADA:',
-            {
-                produto_id,
-                quantidade:
-                    quantidadeSaida,
-                estoqueAnterior:
-                    estoqueAtual,
-                estoqueAtual:
-                    novoEstoque
-            }
+            `Saída registrada: produto ${produto_id} | ` +
+            `-${quantidadeSaida} | ` +
+            `estoque: ${novoEstoque}`
         );
 
 
@@ -1471,16 +1140,13 @@ app.post('/api/saidas', async (req, res) => {
     } catch (error) {
 
         if (connection) {
-
             await connection.rollback();
         }
 
-
         console.error(
-            'ERRO AO REGISTRAR SAÍDA:',
+            'Erro ao registrar saída:',
             error
         );
-
 
         return res.status(500).json({
 
@@ -1493,11 +1159,9 @@ app.post('/api/saidas', async (req, res) => {
                 error.message
         });
 
-
     } finally {
 
         if (connection) {
-
             connection.release();
         }
     }
@@ -1510,41 +1174,10 @@ app.post('/api/saidas', async (req, res) => {
 
 const PORT = 3000;
 
+app.listen(PORT, () => {
 
-app.listen(
-    PORT,
-    '0.0.0.0',
-    () => {
+    console.log(
+        `Servidor SmartMeds rodando em http://localhost:${PORT}`
+    );
 
-        console.log('');
-        console.log(
-            '========================================'
-        );
-
-        console.log(
-            '   SMARTMEDS - SERVIDOR'
-        );
-
-        console.log(
-            '========================================'
-        );
-
-        console.log(
-            `Banco: smartmeds3`
-        );
-
-        console.log(
-            `Porta: ${PORT}`
-        );
-
-        console.log(
-            `API: http://localhost:${PORT}/api`
-        );
-
-        console.log(
-            '========================================'
-        );
-
-        console.log('');
-    }
-);
+});
