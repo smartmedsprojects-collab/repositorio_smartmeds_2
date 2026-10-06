@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<style>
+    :root {
+        --sm-primary: #0f5476;
+        --sm-primary-light: #57cfe4;
+        --sm-secondary: #0284c7;
+        --sm-bg-light: #f8fafc;
+        --sm-card-border: #e2e8f0;
+    }
+
+    /* Estilo do Cupom Fiscal Digital / Térmico SmartMeds */
+    .cupom-fiscal-container {
+        position: relative;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px -10px rgba(15, 118, 110, 0.12);
+        overflow: hidden;
+    }
+
+    .cupom-header {
+        background: linear-gradient(135deg, #0f4976 0%, #62c3db 100%);
+        color: #ffffff;
+        padding: 1.25rem;
+        text-align: center;
+    }
+
+    .cupom-body {
+        font-family: 'Fira Code', 'Courier New', monospace;
+        background-color: #fafafa;
+        padding: 1.25rem;
+        color: #334155;
+    }
+
+    .cupom-linha-divisora {
+        border-top: 2px dashed #cbd5e1;
+        margin: 12px 0;
+    }
+
+    .cupom-item-row {
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    /* Efeito visual de recorte de papel térmico na parte inferior */
+    .cupom-serrilhado {
+        height: 12px;
+        background: radial-gradient(circle, transparent 60%, #ffffff 65%);
+        background-size: 16px 20px;
+        background-position: 0 -10px;
+    }
+
+    /* Simulação de Código de Barras CSS */
+    .barcode-simulated {
+        height: 38px;
+        background: repeating-linear-gradient(
+            90deg,
+            #1e293b,
+            #1e293b 2px,
+            #ffffff 2px,
+            #ffffff 4px,
+            #1e293b 4px,
+            #1e293b 7px,
+            #ffffff 7px,
+            #ffffff 9px
+        );
+        margin: 0 auto;
+        width: 80%;
+        border-radius: 2px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--sm-primary-light);
+        box-shadow: 0 0 0 0.25rem rgba(51, 160, 184, 0.2);
+    }
+
+    .btn-smartmeds {
+        background-color: var(--sm-primary);
+        border-color: var(--sm-primary);
+        color: white;
+    }
+
+    .btn-smartmeds:hover {
+        background-color: #0d6b94;
+        border-color: #60b0ec;
+        color: white;
+    }
+
+    .badge-smartmeds {
+        background-color: rgba(152, 152, 152, 0.15);
+        color: var(--sm-primary);
+        border: 1px solid rgba(109, 222, 250, 0.3);
+    }
+</style>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-11">
+            
+            <!-- CARD 1: DADOS GERAIS DO PEDIDO (CABECALHO) -->
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="row g-0">
+                    
+                    <!-- BRANDING LATERAL SMARTMEDS -->
+                    <div class="col-lg-3 text-white p-4 d-flex flex-column justify-content-between" style="background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <div class="bg-white text-teal rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                                    <i class="bi bi-capsule-fill text-teal fs-4" style="color: #0f766e;"></i>
+                                </div>
+                                <div>
+                                    <h4 class="fw-bold mb-0 text-white">SmartMeds</h4>
+                                    <small class="text-white-50" style="font-size: 0.75rem; letter-spacing: 1px;">PHARMA SYSTEM</small>
+                                </div>
+                            </div>
+
+                            <span class="badge bg-white text-teal fw-bold px-3 py-2 mb-3 shadow-sm" style="color: #0f766e; font-size: 0.75rem; letter-spacing: 0.5px;">
+                                <i class="bi bi-pc-display me-1"></i> FRENTE DE CAIXA
+                            </span>
+
+                            <h5 class="fw-bold text-white mb-1">
+                                {% if pedido_saida and pedido_saida.id %}
+                                    Pedido #{{ "%05d"|format(pedido_saida.id) }}
+                                {% else %}
+                                    Novo Pedido
+                                {% endif %}
+                            </h5>
+                            <small class="text-white-50">Registro e Emissão de Saída</small>
+                        </div>
+
+                        <div class="pt-3 border-top border-white-10 mt-3">
+                            <small class="text-white-50 d-flex align-items-center gap-1">
+                                <i class="bi bi-info-circle"></i> Complete os dados para liberar a inclusão de itens.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- FORMULÁRIO DO CABEÇALHO DO PEDIDO -->
+                    <div class="col-lg-9 p-4 bg-white">
+                        <form method="POST" action="{% if pedido_saida and pedido_saida.id %}{{ url_for('atualizar_pedido_saida', id=pedido_saida.id) }}{% else %}{{ url_for('salvar_pedido_saida') }}{% endif %}">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary small">Tipo de Saída</label>
+                                    <select name="tipo" class="form-select bg-light border-1" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="VENDA" {% if pedido_saida and pedido_saida.tipo == 'VENDA' %}selected{% endif %}>VENDA</option>
+                                        <option value="DOACAO" {% if pedido_saida and pedido_saida.tipo == 'DOACAO' %}selected{% endif %}>DOAÇÃO</option>
+                                        <option value="DESCARTE" {% if pedido_saida and pedido_saida.tipo == 'DESCARTE' %}selected{% endif %}>DESCARTE</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary small">Forma Pagamento</label>
+                                    <select name="pagamento" class="form-select bg-light border-1" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="DINHEIRO" {% if pedido_saida and pedido_saida.pagamento == 'DINHEIRO' %}selected{% endif %}>DINHEIRO</option>
+                                        <option value="PIX" {% if pedido_saida and pedido_saida.pagamento == 'PIX' %}selected{% endif %}>PIX</option>
+                                        <option value="CARTAO" {% if pedido_saida and pedido_saida.pagamento == 'CARTAO' %}selected{% endif %}>CARTÃO</option>
+                                        <option value="BOLETO" {% if pedido_saida and pedido_saida.pagamento == 'BOLETO' %}selected{% endif %}>BOLETO</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary small">Cliente / Destinatário</label>
+                                    <select name="cliente_id" class="form-select bg-light border-1" required>
+                                        <option value="">Selecione...</option>
+                                        {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}" {% if pedido_saida and pedido_saida.cliente_id == cliente.id %}selected{% endif %}>
+                                            {{ cliente.nome }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary small">Operador / Farmacêutico</label>
+                                    <select name="usuario_id" class="form-select bg-light border-1" required>
+                                        <option value="">Selecione...</option>
+                                        {% for usuario in usuarios %}
+                                        <option value="{{ usuario.id }}" {% if pedido_saida and pedido_saida.usuario_id == usuario.id %}selected{% endif %}>
+                                            {{ usuario.nome }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary small">Qtd Estimada</label>
+                                    <input type="number" name="quantidade" class="form-control bg-light border-1" value="{{ pedido_saida.quantidade if pedido_saida else '' }}" required placeholder="Ex: 1">
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary small">Valor Estimado (R$)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light text-muted border-1">R$</span>
+                                        <input type="number" step="0.01" name="valor" class="form-control bg-light border-1" value="{{ pedido_saida.valor if pedido_saida else '' }}" required placeholder="0,00">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary small">Data Pagamento</label>
+                                    <input type="date" name="data_pagamento" class="form-control bg-light border-1" value="{{ pedido_saida.data_pagamento if pedido_saida else '' }}" required>
+                                </div>
+                            </div>
+
+                            <!-- BOTÕES DE AÇÃO DO CABEÇALHO -->
+                            <div class="d-flex flex-wrap gap-2 pt-4">
+                                <button type="submit" class="btn btn-smartmeds fw-semibold px-4 py-2 rounded-3 shadow-sm">
+                                    <i class="bi bi-check2-circle me-1"></i> {% if pedido_saida and pedido_saida.id %}Atualizar Cabeçalho{% else %}Iniciar Venda / Pedido{% endif %}
+                                </button>
+                                <a href="{{ url_for('listar_pedido_saida') }}" class="btn btn-outline-secondary fw-semibold px-3 py-2 rounded-3">
+                                    <i class="bi bi-list-task me-1"></i> Lista de Pedidos
+                                </a>
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-light fw-semibold px-3 py-2 rounded-3 text-secondary border">
+                                    <i class="bi bi-grid-fill me-1"></i> Dashboard
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 2: PAINEL DE ADICIONAR ITEM + CUPOM FISCAL AO VIVO -->
+            {% if pedido_saida and pedido_saida.id %}
+            <div id="itens" class="row g-4">
+                
+                <!-- COLUNA DA ESQUERDA: ENTRADA DE MEDICAMENTOS / PRODUTOS -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-plus-circle-fill fs-5 text-teal" style="color: var(--sm-primary);"></i>
+                                    <h5 class="fw-bold text-dark m-0">Adicionar Item ao Pedido</h5>
+                                </div>
+                                <span class="badge badge-smartmeds fw-semibold px-3 py-1 rounded-pill">
+                                    <i class="bi bi-record-fill text-success me-1"></i> CAIXA ATIVO
+                                </span>
+                            </div>
+
+                            <!-- FORMULÁRIO DE INSERÇÃO DE ITENS -->
+                            <form method="POST" action="{{ url_for('salvar_item_saida') }}" class="mb-4">
+                                <input type="hidden" name="pedido_saida_id" value="{{ pedido_saida.id }}">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold text-secondary small">Buscar Medicamento / Produto</label>
+                                    <select name="produto_id" class="form-select form-select-lg bg-light border-1 fs-6" required>
+                                        <option value="">Pesquisar ou Selecionar Produto...</option>
+                                        {% for produto in produtos %}
+                                        <option value="{{ produto.id }}">{{ produto.nome }} (Estoque disponível: {{ produto.quantidade }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold text-secondary small">Quantidade</label>
+                                        <input type="number" name="quantidade" class="form-control form-control-lg bg-light border-1 fs-6" placeholder="1" min="1" value="1" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold text-secondary small">Preço Unitário (R$)</label>
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text bg-light text-muted border-1 fs-6">R$</span>
+                                            <input type="number" step="0.01" name="valor" class="form-control bg-light border-1 fs-6" placeholder="0,00" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-smartmeds btn-lg fw-bold w-100 py-2 rounded-3 shadow-sm">
+                                    <i class="bi bi-cart-plus-fill me-2"></i> ADICIONAR ITEM
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- LISTA DOS ITENS INSERIDOS -->
+                        <div class="mt-3">
+                            <h6 class="fw-bold text-uppercase text-muted small mb-2" style="letter-spacing: 0.5px;">Itens Lançados</h6>
+                            <div class="table-responsive rounded-3 border" style="max-height: 220px; overflow-y: auto;">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="bg-light sticky-top">
+                                        <tr class="text-secondary small">
+                                            <th class="ps-3 py-2">Descrição</th>
+                                            <th class="text-center py-2">Qtd</th>
+                                            <th class="text-end py-2">Unitário</th>
+                                            <th class="text-end pe-3 py-2">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="border-top-0">
+                                        {% if itens %}
+                                            {% for item in itens %}
+                                            {% set qtd = item.quantidade|int %}
+                                            {% set val = item.valor|float %}
+                                            <tr>
+                                                <td class="ps-3 fw-semibold text-dark">{{ item.produto }}</td>
+                                                <td class="text-center"><span class="badge bg-light text-dark border">{{ qtd }}</span></td>
+                                                <td class="text-end text-muted small">R$ {{ "%.2f"|format(val) }}</td>
+                                                <td class="text-end pe-3 fw-bold text-teal" style="color: var(--sm-primary);">R$ {{ "%.2f"|format(qtd * val) }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-4 small">
+                                                    <i class="bi bi-inbox d-block fs-4 text-black-50 mb-1"></i>
+                                                    Nenhum item adicionado a esta venda até o momento.
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUNA DA DIREITA: CUPOM FISCAL / COMPROVANTE ESTILO SMARTMEDS -->
+                <div class="col-lg-5">
+                    <div class="cupom-fiscal-container h-100 d-flex flex-column justify-content-between">
+                        
+                        <div>
+                            <!-- CABEÇALHO DO CUPOM FISCAL -->
+                            <div class="cupom-header">
+                                <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                                    <i class="bi bi-heart-pulse-fill text-warning fs-5"></i>
+                                    <h5 class="fw-bold mb-0 text-white" style="letter-spacing: 1px;">SMARTMEDS PHARMA</h5>
+                                </div>
+                                <div class="small opacity-75">Rua da Saúde, 1000 - Centro</div>
+                                <div class="small opacity-75">CNPJ: 00.123.456/0001-89</div>
+                            </div>
+
+                            <!-- CORPO DO CUPOM TÉRMICO -->
+                            <div class="cupom-body">
+                                <div class="text-center mb-2">
+                                    <strong class="d-block text-uppercase fw-bold text-dark">Cupom de Conferência</strong>
+                                    <span class="small text-muted">PEDIDO Nº {{ "%06d"|format(pedido_saida.id) }}</span>
+                                </div>
+
+                                <div class="cupom-linha-divisora"></div>
+
+                                <!-- CABEÇALHO DA TABELA TÉRMICA -->
+                                <div class="row fw-bold small text-muted mb-2">
+                                    <div class="col-6">ITEM</div>
+                                    <div class="col-3 text-end">VALOR</div>
+                                    <div class="col-3 text-end">TOTAL</div>
+                                </div>
+
+                                {% set ns = namespace(total=0, total_itens=0) %}
+
+                                <div style="max-height: 240px; overflow-y: auto;">
+                                    {% if itens %}
+                                        {% for item in itens %}
+                                            {% set qtd = item.quantidade|int %}
+                                            {% set val = item.valor|float %}
+                                            {% set subtotal = qtd * val %}
+                                            {% set ns.total = ns.total + subtotal %}
+                                            {% set ns.total_itens = ns.total_itens + qtd %}
+
+                                            <div class="cupom-item-row mb-2 pb-1 border-bottom border-light">
+                                                <div class="fw-bold text-dark">{{ "%02d"|format(loop.index) }} {{ item.produto|upper }}</div>
+                                                <div class="row text-muted small">
+                                                    <div class="col-6">{{ qtd }}x R$ {{ "%.2f"|format(val) }}</div>
+                                                    <div class="col-6 text-end fw-semibold text-dark">R$ {{ "%.2f"|format(subtotal) }}</div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-center text-muted py-4 small">
+                                            [ AGUARDANDO ITENS... ]
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="cupom-linha-divisora"></div>
+
+                                <!-- RESUMO DE VALORES -->
+                                <div class="d-flex justify-content-between align-items-center small mb-1">
+                                    <span class="text-muted">Qtd. Total de Itens:</span>
+                                    <span class="fw-bold text-dark">{{ ns.total_itens }}</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center small mb-2">
+                                    <span class="text-muted">Forma de Pagamento:</span>
+                                    <span class="badge bg-secondary-subtle text-secondary fw-bold">{{ pedido_saida.pagamento if pedido_saida.pagamento else 'PENDENTE' }}</span>
+                                </div>
+
+                                <!-- TOTAL EM DESTAQUE -->
+                                <div class="p-3 bg-dark text-white rounded-3 text-center my-3 shadow-sm" style="background: #0f172a !important;">
+                                    <div class="small text-uppercase text-white-50 fw-semibold" style="letter-spacing: 1px;">Total a Pagar</div>
+                                    <div class="fs-2 fw-bold text-emerald" style="color: #34d399;">R$ {{ "%.2f"|format(ns.total) }}</div>
+                                </div>
+
+                                <!-- CÓDIGO DE BARRAS SIMULADO -->
+                                <div class="text-center pt-1">
+                                    <div class="barcode-simulated mb-1"></div>
+                                    <small class="text-muted" style="font-size: 0.65rem;">{{ "%06d"|format(pedido_saida.id) }}890123456789</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RECORTE VISUAL DE PAPEL -->
+                        <div class="cupom-serrilhado"></div>
+
+                        <!-- AÇÕES E BOTÕES -->
+                        <div class="p-3 bg-light border-top">
+                            <div class="d-grid gap-2">
+                                {% if itens %}
+                                <a href="{{ url_for('gerar_nota_fiscal_saida', id=pedido_saida.id) }}" target="_blank" class="btn btn-outline-dark fw-bold rounded-3">
+                                    <i class="bi bi-printer me-2"></i> IMPRIMIR NOTA FISCAL
+                                </a>
+                                {% endif %}
+
+                                <a href="{{ url_for('listar_pedido_saida') }}" class="btn btn-success fw-bold py-2 rounded-3 shadow-sm">
+                                    <i class="bi bi-check-circle-fill me-2"></i> FINALIZAR ATENDIMENTO
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT PARA PREENCHER O VALOR AUTOMATICAMENTE AO SELECCIONAR O PRODUTO -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const selectProduto = document.querySelector('select[name="produto_id"]');
+    const inputValor = document.querySelector('input[name="valor"]');
+
+    if (selectProduto && inputValor) {
+        selectProduto.addEventListener('change', function () {
+            const produtoId = this.value;
+            if (produtoId) {
+                fetch(`/api/produto/${produtoId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.preco) {
+                            inputValor.value = parseFloat(data.preco).toFixed(2);
+                        } else if (data && data.valor) {
+                            inputValor.value = parseFloat(data.valor).toFixed(2);
+                        }
+                    })
+                    .catch(err => console.log('Erro ao buscar valor do produto:', err));
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10 col-xl-9">
+            
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="row g-0">
+                    
+                    <!-- LADO ESQUERDO: APRESENTAÇÃO / BRANDING -->
+                    <div class="col-lg-5 bg-primary bg-gradient text-white p-4 p-md-5 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-4">
+                                <i class="bi bi-capsule-fill fs-2"></i>
+                                <h3 class="fw-bold mb-0">SmartMeds</h3>
+                            </div>
+                            
+                            <h4 class="fw-semibold mb-3">
+                                {% if cliente and cliente.id %}
+                                    Atualize o cadastro
+                                {% else %}
+                                    Seja bem-vindo!
+                                {% endif %}
+                            </h4>
+                            
+                            <p class="text-white-50 opacity-75">
+                                Gerencie seu estoque de medicamentos de forma moderna, rápida e inteligente.
+                            </p>
+                        </div>
+
+                        <div class="pt-4 border-top border-white-10">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-white bg-opacity-10 p-2 d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-shield-check fs-4"></i>
+                                </div>
+                                <small class="text-white-50">Ambiente seguro e integrado à cadeia de suprimentos.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LADO DIREITO: FORMULÁRIO -->
+                    <div class="col-lg-7 p-4 p-md-5 bg-white">
+                        
+                        <div class="mb-4">
+                            <h4 class="fw-bold text-dark mb-1">
+                                {% if cliente and cliente.id %}Editar Cliente{% else %}Cadastrar Cliente{% endif %}
+                            </h4>
+                            <p class="text-muted small mb-0">Preencha os campos abaixo para prosseguir</p>
+                        </div>
+
+                        <form method="POST" action="{% if cliente and cliente.id %}{{ url_for('atualizar_cliente', id=cliente.id) }}{% else %}{{ url_for('salvar_cliente') }}{% endif %}">
+                            
+                            <!-- NOME COMPLETO -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary small">Nome completo</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                    <input type="text" name="nome" class="form-control border-start-0 bg-light" placeholder="Digite seu nome..." value="{{ cliente.nome if cliente else '' }}" required>
+                                </div>
+                            </div>
+
+                            <!-- EMAIL -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary small">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" name="email" class="form-control border-start-0 bg-light" placeholder="exemplo@dominio.com" value="{{ cliente.email if cliente else '' }}" required>
+                                </div>
+                            </div>
+
+                            <!-- CNPJ COM MÁSCARA E LIMITE -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary small">CNPJ</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-building"></i></span>
+                                    <input type="text" 
+                                           name="cnpj" 
+                                           id="cnpj" 
+                                           class="form-control border-start-0 bg-light" 
+                                           placeholder="00.000.000/0000-00" 
+                                           value="{{ cliente.cnpj if cliente else '' }}" 
+                                           maxlength="18"
+                                           inputmode="numeric"
+                                           required>
+                                </div>
+                            </div>
+
+                            <!-- SENHA E CONFIRMAÇÃO -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary small">Senha</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                                        <input type="password" name="senha" class="form-control border-start-0 bg-light" placeholder="Sua senha..." required>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary small">Confirmar Senha</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock-fill"></i></span>
+                                        <input type="password" name="confirmar_senha" class="form-control border-start-0 bg-light" placeholder="Confirme a senha..." required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- BOTÕES DE AÇÃO -->
+                            <div class="d-flex flex-column flex-sm-row gap-2 pt-2">
+                                <button type="submit" class="btn btn-primary fw-semibold flex-fill py-2">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    {% if cliente and cliente.id %}Atualizar Cliente{% else %}Cadastrar Cliente{% endif %}
+                                </button>
+                                <a href="{{ url_for('listar_clientes') }}" class="btn btn-outline-secondary fw-semibold py-2">
+                                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                                </a>
+                            </div>
+
+                        </form>
+
+                        <!-- FOOTER -->
+                        <div class="mt-4 pt-3 border-top text-center text-muted small opacity-75">
+                            &copy; 2026 Senai &bull; Sistema SmartMeds
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT DE MÁSCARA DO CNPJ E LIMPEZA NO SUBMIT -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const cnpjInput = document.getElementById("cnpj");
+    const form = cnpjInput ? cnpjInput.closest("form") : null;
+
+    if (!cnpjInput) return;
+
+    function formatarCNPJ(valor) {
+        // Remove tudo que não for dígito numérico
+        let v = valor.replace(/\D/g, "");
+
+        // Limita a estritamente 14 dígitos numéricos
+        v = v.slice(0, 14);
+
+        // Aplica a formatação visual: 00.000.000/0000-00
+        v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+        v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+        v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+        v = v.replace(/(\d{4})(\d)/, "$1-$2");
+
+        return v;
+    }
+
+    // Formata o valor inicial caso venha preenchido do banco de dados
+    if (cnpjInput.value) {
+        cnpjInput.value = formatarCNPJ(cnpjInput.value);
+    }
+
+    // Formata em tempo real conforme o usuário digita
+    cnpjInput.addEventListener("input", function (e) {
+        e.target.value = formatarCNPJ(e.target.value);
+    });
+
+    // ANTES DE SALVAR: Remove a máscara e envia apenas os 14 números puros
+    if (form) {
+        form.addEventListener("submit", function () {
+            cnpjInput.value = cnpjInput.value.replace(/\D/g, "");
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+            
+            <!-- CARD PRINCIPAL COM SOMBRA E BORDAS ARREDONDADAS -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                
+                <!-- CABEÇALHO DO CARD COM GRADIENTE -->
+                <div class="card-header bg-primary bg-gradient text-white p-4 border-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-white bg-opacity-20 p-3 rounded-3 text-white">
+                                <i class="bi bi-geo-alt-fill fs-3"></i>
+                            </div>
+                            <div>
+                                <h4 class="fw-bold mb-0">Nova Localização</h4>
+                                <p class="mb-0 text-white-50 small">Associe um produto a um local físico no estoque</p>
+                            </div>
+                        </div>
+                        <a href="javascript:history.back()" class="btn btn-sm btn-outline-light rounded-circle p-2" title="Voltar">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- CORPO DO FORMULÁRIO -->
+                <div class="card-body p-4 p-md-5 bg-white">
+                    <form method="POST" action="{{ url_for('salvar_localizacao') }}">
+
+                        <div class="row g-3 mb-4">
+                            <!-- SELEÇÃO DE PRODUTO -->
+                            <div class="col-md-7">
+                                <label class="form-label text-uppercase fs-7 fw-bold text-muted mb-2">
+                                    <i class="bi bi-box-seam me-1"></i> Produto do Estoque
+                                </label>
+                                <div class="form-floating">
+                                    <select name="produto_id" class="form-select border-2" id="selectProduto" required>
+                                        <option value="" selected disabled>Escolha um produto...</option>
+                                        {% for produto in produtos %}
+                                        <option value="{{ produto.id }}">
+                                            #{{ produto.id }} — {{ produto.nome }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="selectProduto">Selecione o item desejado</label>
+                                </div>
+                            </div>
+
+                            <!-- USUÁRIO CONECTADO / RESPONSÁVEL -->
+                            <div class="col-md-5">
+                                <label class="form-label text-uppercase fs-7 fw-bold text-muted mb-2">
+                                    <i class="bi bi-person-badge me-1"></i> Responsável
+                                </label>
+                                <div class="form-floating">
+                                    <input 
+                                        type="text" 
+                                        class="form-control border-2 bg-light" 
+                                        id="inputUsuario" 
+                                        value="{% if current_user is defined and current_user.is_authenticated %}{{ current_user.nome }}{% elif usuario is defined and usuario %}{{ usuario.nome }}{% else %}Usuário Conectado{% endif %}" 
+                                        readonly
+                                    >
+                                    <label for="inputUsuario">Usuário Logado</label>
+                                </div>
+                                <!-- Input oculto que envia o ID do usuário para a rota do Flask -->
+                                <input 
+                                    type="hidden" 
+                                    name="usuario_id" 
+                                    value="{% if current_user is defined and current_user.is_authenticated %}{{ current_user.id }}{% elif usuario is defined and usuario %}{{ usuario.id }}{% else %}{% endif %}"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- ENDEREÇAMENTO NO ESTOQUE -->
+                        <div class="mb-3">
+                            <label class="form-label text-uppercase fs-7 fw-bold text-muted mb-2">
+                                <i class="bi bi-pin-map me-1"></i> Endereço Físico
+                            </label>
+
+                            <div class="row g-3">
+                                <!-- RUA -->
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input 
+                                            type="text" 
+                                            name="rua" 
+                                            class="form-control border-2" 
+                                            id="inputRua" 
+                                            placeholder="Rua / Corredor" 
+                                            required
+                                        >
+                                        <label for="inputRua">Rua / Corredor</label>
+                                    </div>
+                                </div>
+
+                                <!-- NÚMERO -->
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input 
+                                            type="text" 
+                                            name="numero" 
+                                            class="form-control border-2" 
+                                            id="inputNumero" 
+                                            placeholder="Número" 
+                                            required
+                                        >
+                                        <label for="inputNumero">Número</label>
+                                    </div>
+                                </div>
+
+                                <!-- ANDAR -->
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input 
+                                            type="text" 
+                                            name="andar" 
+                                            class="form-control border-2" 
+                                            id="inputAndar" 
+                                            placeholder="Andar" 
+                                            required
+                                        >
+                                        <label for="inputAndar">Andar</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BOTÕES DE AÇÃO -->
+                        <div class="d-flex align-items-center justify-content-between pt-4 border-top mt-4">
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary px-4 py-2 rounded-3 fw-semibold">
+                                <i class="bi bi-arrow-left me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary bg-gradient px-4 py-2 rounded-3 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm">
+                                <i class="bi bi-check-circle-fill"></i> Salvar Localização
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT PARA PUXAR LOCALIZAÇÃO AUTOMATICAMENTE AO SELECIONAR O PRODUTO -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const selectProduto = document.getElementById('selectProduto');
+    const inputRua = document.getElementById('inputRua');
+    const inputNumero = document.getElementById('inputNumero');
+    const inputAndar = document.getElementById('inputAndar');
+
+    if (selectProduto) {
+        selectProduto.addEventListener('change', function () {
+            const produtoId = this.value;
+
+            if (produtoId) {
+                fetch(`/api/localizacao/produto/${produtoId}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Localização não encontrada');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data) {
+                            inputRua.value = data.rua || '';
+                            inputNumero.value = data.numero || '';
+                            inputAndar.value = data.andar || '';
+                        }
+                    })
+                    .catch(err => {
+                        inputRua.value = '';
+                        inputNumero.value = '';
+                        inputAndar.value = '';
+                    });
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

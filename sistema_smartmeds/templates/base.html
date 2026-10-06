@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Estoque</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Ícones Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS do Projeto -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        :root {
+            --blue-primary: #82a5ef;
+            --blue-gradient: linear-gradient(135deg, #8aa5ef 0%, #3b82f6 100%);
+            --navy-dark: #0f172a;
+            --bg-light: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: #334155;
+        }
+
+        /* Topbar Header */
+        .topbar-navbar {
+            background: var(--blue-gradient);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+            min-height: 68px;
+        }
+
+        .btn-menu-toggle {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 12px;
+            padding: 8px 14px !important;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+        }
+
+        .btn-menu-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        /* Menu lateral - visual mais leve e natural */
+        .offcanvas-custom {
+            width: 285px !important;
+            background: rgba(255, 255, 255, 0.97) !important;
+            color: #334155 !important;
+            border-right: 1px solid #e2e8f0;
+            box-shadow: 12px 0 35px rgba(15, 23, 42, 0.10);
+            backdrop-filter: blur(14px);
+        }
+
+        .menu-header {
+            padding: 18px 18px 14px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .menu-title {
+            color: #1e293b;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .menu-subtitle {
+            color: #94a3b8;
+            font-size: 0.76rem;
+            margin-top: 2px;
+        }
+
+        .menu-section {
+            color: #94a3b8;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 4px 10px 7px;
+        }
+
+        .nav-link-custom {
+            position: relative;
+            color: #64748b !important;
+            border-radius: 12px;
+            padding: 11px 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background-color .2s ease, color .2s ease, transform .2s ease;
+        }
+
+        .nav-link-custom::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 3px;
+            height: 0;
+            border-radius: 0 5px 5px 0;
+            background: #3b82f6;
+            transform: translateY(-50%);
+            transition: height .2s ease;
+        }
+
+        .nav-link-custom:hover {
+            color: #2563eb !important;
+            background: #f1f5ff;
+            transform: translateX(3px);
+        }
+
+        .nav-link-custom.active {
+            background: #eef4ff !important;
+            color: #2563eb !important;
+            box-shadow: none;
+        }
+
+        .nav-link-custom.active::before {
+            height: 22px;
+        }
+
+        .nav-link-custom i {
+            width: 22px;
+            text-align: center;
+            font-size: 1.08rem;
+            transition: transform .2s ease;
+        }
+
+        .nav-link-custom:hover i,
+        .nav-link-custom.active i {
+            transform: scale(1.08);
+        }
+
+        .menu-footer {
+            padding-top: 14px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .btn-logout {
+            border-radius: 11px;
+            color: #64748b;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all .2s ease;
+            font-weight: 500;
+        }
+
+        .btn-logout:hover {
+            color: #dc2626;
+            background: #fff5f5;
+            border-color: #fecaca;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(220, 38, 38, 0.10);
+        }
+
+        .menu-close {
+            border-radius: 9px;
+            transition: background-color .2s ease, transform .2s ease;
+        }
+
+        .menu-close:hover {
+            background: #f1f5f9;
+            transform: rotate(3deg);
+        }
+
+        .offcanvas-backdrop.show {
+            opacity: .22;
+        }
+
+        /* Animação do Conteúdo */
+        main.content-area {
+            animation: fadeInUp 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Suavização de Alertas */
+        .alert {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BARRA SUPERIOR (HEADER) -->
+    <header class="navbar topbar-navbar px-3 text-white">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            
+            <!-- ESQUERDA: BOTÃO MENU E TÍTULO -->
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-menu-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas">
+                    <i class="bi bi-list fs-5"></i>
+                    <span class="fw-medium d-none d-sm-inline">Menu</span>
+                </button>
+                <span class="navbar-brand mb-0 h1 fs-5 fw-semibold text-white me-0">Sistema de Gestão</span>
+            </div>
+
+            <!-- DIREITA: SININHO DE NOTIFICAÇÕES E PERFIL DO USUÁRIO -->
+            <div class="d-flex align-items-center gap-3">
+                
+                {% set total_alertas = (produtos_baixo|length if produtos_baixo is defined and produtos_baixo else 0) + (produtos_vencendo|length if produtos_vencendo is defined and produtos_vencendo else 0) + (alertas_temperatura|length if alertas_temperatura is defined and alertas_temperatura else 0) %}
+                
+                <!-- DROPDOWN DO SININHO DE NOTIFICAÇÕES -->
+                <div class="dropdown">
+                    <button class="btn btn-menu-toggle position-relative p-0 d-flex align-items-center justify-content-center" 
+                            type="button" 
+                            id="dropdownSininhoHeader" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false" 
+                            style="width: 40px; height: 40px;"
+                            title="Notificações">
+                        <i class="bi bi-bell-fill fs-5"></i>
+                        {% if total_alertas is defined and total_alertas > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem;">
+                            {{ total_alertas }}
+                            <span class="visually-hidden">notificações não lidas</span>
+                        </span>
+                        {% endif %}
+                    </button>
+
+                    <!-- MENU DROPDOWN DE NOTIFICAÇÕES -->
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2 mt-2" aria-labelledby="dropdownSininhoHeader" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                        <li class="dropdown-header fw-bold text-dark d-flex justify-content-between align-items-center pb-2 border-bottom">
+                            <span>Central de Notificações</span>
+                            <span class="badge {{ 'bg-danger' if total_alertas > 0 else 'bg-secondary' }} rounded-pill">{{ total_alertas if total_alertas is defined else 0 }}</span>
+                        </li>
+
+                        {% if (alertas_temperatura is defined and alertas_temperatura) or (produtos_baixo is defined and produtos_baixo) or (produtos_vencendo is defined and produtos_vencendo) %}
+                            {% if alertas_temperatura is defined %}
+                            {% for sensor in alertas_temperatura %}
+                            <li>
+                                <a class="dropdown-item p-2 rounded d-flex align-items-center gap-2 my-1" 
+                                   href="#" 
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#modalDetalheAlerta"
+                                   data-icone="bi-thermometer-high" 
+                                   data-cor="danger" 
+                                   data-titulo="{{ sensor.nome }}" 
+                                   data-badge="Temp. Fora"
+                                   data-detalhes='{{ [
+                                       {"label": "Leitura atual", "valor": "%.1f"|format(sensor.temperatura) ~ "°C"},
+                                       {"label": "Faixa ideal", "valor": (sensor.temp_min ~ "°C a " ~ sensor.temp_max ~ "°C")}
+                                   ] | tojson }}'>
+                                    <i class="bi bi-thermometer-high text-danger fs-5"></i>
+                                    <div class="text-truncate">
+                                        <strong class="d-block small text-dark">{{ sensor.nome }}</strong>
+                                        <span class="text-muted small">Alerta de temperatura</span>
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+
+                            {% if produtos_baixo is defined %}
+                            {% for p in produtos_baixo %}
+                            <li>
+                                <a class="dropdown-item p-2 rounded d-flex align-items-center gap-2 my-1" 
+                                   href="#" 
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#modalDetalheAlerta"
+                                   data-icone="bi-exclamation-circle-fill" 
+                                   data-cor="danger" 
+                                   data-titulo="{{ p.nome }}" 
+                                   data-badge="Estoque Baixo"
+                                   data-produto-url="{{ url_for('buscar_produto', id=p.id) if p.id else '' }}"
+                                   data-detalhes='{{ [
+                                       {"label": "Quantidade disponível", "valor": ((p.quantidade or 0) ~ " " ~ (p.unidade_medida or "un"))},
+                                       {"label": "Estoque mínimo", "valor": ((p.estoque_minimo or "-") ~ " " ~ (p.unidade_medida or "un"))}
+                                   ] | tojson }}'>
+                                    <i class="bi bi-exclamation-circle-fill text-danger fs-5"></i>
+                                    <div class="text-truncate">
+                                        <strong class="d-block small text-dark">{{ p.nome }}</strong>
+                                        <span class="text-muted small">Estoque baixo: {{ p.quantidade or 0 }} {{ p.unidade_medida or 'un' }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+
+                            {% if produtos_vencendo is defined %}
+                            {% for p in produtos_vencendo %}
+                            <li>
+                                <a class="dropdown-item p-2 rounded d-flex align-items-center gap-2 my-1" 
+                                   href="#" 
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#modalDetalheAlerta"
+                                   data-icone="bi-clock-fill" 
+                                   data-cor="warning" 
+                                   data-titulo="{{ p.nome }}" 
+                                   data-badge="Validade"
+                                   data-produto-url="{{ url_for('buscar_produto', id=p.id) if p.id else '' }}"
+                                   data-detalhes='{{ [
+                                       {"label": "Data de vencimento", "valor": (p.data_de_validade or "-")},
+                                       {"label": "Quantidade", "valor": ((p.quantidade or 0) ~ " " ~ (p.unidade_medida or "un"))}
+                                   ] | tojson }}'>
+                                    <i class="bi bi-clock-fill text-warning fs-5"></i>
+                                    <div class="text-truncate">
+                                        <strong class="d-block small text-dark">{{ p.nome }}</strong>
+                                        <span class="text-muted small">Vence em {{ p.data_de_validade }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+                        {% else %}
+                            <li class="text-center text-muted py-3 small">
+                                <i class="bi bi-shield-check text-success fs-4 d-block mb-1"></i>
+                                Nenhuma pendência encontrada.
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- PERFIL DO USUÁRIO LOGADO -->
+                <div class="d-flex align-items-center gap-2 ps-2 border-start border-white border-opacity-25">
+                    <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 38px; height: 38px;">
+                        <i class="bi bi-person-fill fs-5"></i>
+                    </div>
+                    <div class="d-none d-md-block text-start text-white">
+                        <span class="fw-semibold d-block lh-1 small">
+                            {{ current_user.nome if current_user is defined and current_user and current_user.nome else (usuario.nome if usuario is defined and usuario and usuario.nome else session.get('usuario_nome', 'Usuário Logado')) }}
+                        </span>
+                        <span class="text-white-50" style="font-size: 0.72rem;">
+                            {{ current_user.cargo if current_user is defined and current_user and current_user.cargo else session.get('usuario_cargo', 'Operador') }}
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </header>
+
+    <!-- GAVETA RETRÁTIL (OFFCANVAS) -->
+    <div class="offcanvas offcanvas-start offcanvas-custom text-white" tabindex="-1" id="menuOffcanvas">
+        
+        <div class="menu-header d-flex align-items-center justify-content-between">
+            <div>
+                <div class="menu-title">Sistema de Gestão</div>
+                <div class="menu-subtitle">Acesso rápido</div>
+            </div>
+            <button type="button" class="btn btn-sm menu-close border-0" data-bs-dismiss="offcanvas" aria-label="Fechar">
+                <i class="bi bi-x-lg text-secondary"></i>
+            </button>
+        </div>
+
+        <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
+            <div>
+                <!-- LOGO -->
+                <div class="logo mb-3 text-center">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 105px;">
+                </div>
+
+                <div class="menu-section">Navegação</div>
+
+                <!-- MENU DE NAVEGAÇÃO -->
+                <nav class="nav flex-column gap-1">
+                    <a href="{{ url_for('dashboard') }}"
+                        class="nav-link-custom {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+
+                    <a href="{{ url_for('listar_clientes') }}"
+                        class="nav-link-custom {% if request.endpoint == 'listar_clientes' %}active{% endif %}">
+                        <i class="bi bi-people"></i> Clientes
+                    </a>
+
+                    <a href="{{ url_for('listar_produtos') }}"
+                        class="nav-link-custom {% if request.endpoint == 'listar_produtos' %}active{% endif %}">
+                        <i class="bi bi-box-seam"></i> Produtos
+                    </a>
+
+                    <a href="{{ url_for('movimentacoes') }}"
+                        class="nav-link-custom {% if request.endpoint == 'movimentacoes' %}active{% endif %}">
+                        <i class="bi bi-arrow-left-right"></i> Movimentações
+                    </a>
+
+                    <a href="{{ url_for('listar_localizacao') }}"
+                        class="nav-link-custom {% if request.endpoint in ['listar_localizacao', 'nova_localizacao'] %}active{% endif %}">
+                        <i class="bi bi-geo-alt"></i> Localizações
+                    </a>
+
+                    <a href="{{ url_for('listar_usuarios') }}"
+                        class="nav-link-custom {% if request.endpoint == 'listar_usuarios' %}active{% endif %}">
+                        <i class="bi bi-person-gear"></i> Usuários
+                    </a>
+                </nav>
+            </div>
+
+            <!-- BOTÃO SAIR -->
+            <div class="menu-footer">
+                <a href="{{ url_for('logout') }}" class="btn btn-logout w-100 d-flex align-items-center justify-content-center gap-2 py-2">
+                    <i class="bi bi-box-arrow-right"></i> Sair da conta
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="container-fluid p-4 content-area">
+
+        <!-- MENSAGENS FLASH -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% set categorias_bootstrap = {'sucesso': 'success', 'success': 'success', 'erro': 'danger', 'danger': 'danger', 'info': 'info', 'warning': 'warning'} %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ categorias_bootstrap.get(category, 'info') }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- CONTEÚDO DINÂMICO -->
+        {% block conteudo %}{% endblock %}
+
+    </main>
+
+    <!-- MODAL DE DETALHES DA NOTIFICAÇÃO DO HEADER -->
+    <div class="modal fade" id="modalDetalheAlerta" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body pt-0 px-4 pb-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div id="modalAlertaIcone" class="notif-modal-icon">
+                            <i class="bi" id="modalAlertaIconeBi"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark" id="modalAlertaTitulo">-</h5>
+                            <span class="badge rounded-pill" id="modalAlertaBadge">-</span>
+                        </div>
+                    </div>
+                    <div id="modalAlertaDetalhes"></div>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Fechar</button>
+                        <a href="#" id="modalAlertaAjustarLink" class="btn btn-primary btn-sm rounded-pill px-3">
+                            <i class="bi bi-pencil-short me-1"></i> Ajustar produto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS DO BOOTSTRAP -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JS DA APLICAÇÃO -->
+    <script>
+        // Fecha o menu suavemente depois de escolher uma página.
+        document.querySelectorAll('#menuOffcanvas .nav-link-custom').forEach(link => {
+            link.addEventListener('click', () => {
+                const menu = document.getElementById('menuOffcanvas');
+                const instance = bootstrap.Offcanvas.getInstance(menu);
+                if (instance) instance.hide();
+            });
+        });
+
+        const produtoSelect = document.getElementById("produtoSelect");
+        const quantidadeInput = document.getElementById("quantidade");
+        const formPedido = document.getElementById("formPedido");
+
+        let estoqueAtual = 0;
+
+        if (produtoSelect) {
+            produtoSelect.addEventListener("change", async function () {
+                const id = this.value;
+                if (!id) return;
+
+                try {
+                    const res = await fetch(`/api/produto/${id}`);
+                    const data = await res.json();
+
+                    estoqueAtual = data.quantidade;
+
+                    const infoContainer = document.getElementById("infoProduto");
+                    if (infoContainer) {
+                        infoContainer.innerHTML = `
+                            <div class="alert alert-info">
+                                Estoque atual: <strong>${data.quantidade}</strong>
+                            </div>
+                        `;
+                    }
+                } catch (e) {
+                    console.error("Erro ao carregar produto:", e);
+                }
+            });
+        }
+
+        if (quantidadeInput) {
+            quantidadeInput.addEventListener("input", function () {
+                const tipo = document.getElementById("tipo")?.value;
+                const qtd = parseInt(this.value, 10);
+
+                if (tipo === "SAIDA" && qtd > estoqueAtual) {
+                    this.classList.add("is-invalid");
+                } else {
+                    this.classList.remove("is-invalid");
+                }
+            });
+        }
+
+        if (formPedido) {
+            formPedido.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                const btn = document.getElementById("btnSalvar");
+                if (btn) {
+                    btn.innerText = "Salvando...";
+                    btn.disabled = true;
+                }
+
+                const formData = new FormData(this);
+
+                try {
+                    const res = await fetch("/pedido/salvar", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await res.json();
+
+                    if (data.erro) {
+                        alert(data.erro);
+                        if (btn) {
+                            btn.innerText = "Salvar";
+                            btn.disabled = false;
+                        }
+                    } else {
+                        location.reload();
+                    }
+                } catch (e) {
+                    alert("Erro ao salvar pedido");
+                    if (btn) {
+                        btn.innerText = "Salvar";
+                        btn.disabled = false;
+                    }
+                }
+            });
+        }
+
+        // PREENCHIMENTO DINÂMICO DO MODAL DE ALERTA
+        document.addEventListener("DOMContentLoaded", function () {
+            const modalEl = document.getElementById("modalDetalheAlerta");
+            if (!modalEl) return;
+
+            modalEl.addEventListener("show.bs.modal", function (event) {
+                const item = event.relatedTarget;
+                if (!item) return;
+
+                const cor = item.dataset.cor || "danger";
+                const icone = item.dataset.icone || "bi-info-circle-fill";
+                const titulo = item.dataset.titulo || "-";
+                const badge = item.dataset.badge || "-";
+                const produtoUrl = item.dataset.produtoUrl || "";
+                let detalhes = [];
+                try {
+                    detalhes = JSON.parse(item.dataset.detalhes || "[]");
+                } catch (e) {
+                    detalhes = [];
+                }
+
+                const iconeBox = document.getElementById("modalAlertaIcone");
+                if (iconeBox) iconeBox.className = "notif-modal-icon notif-modal-icon--" + cor;
+                
+                const iconeBi = document.getElementById("modalAlertaIconeBi");
+                if (iconeBi) iconeBi.className = "bi " + icone;
+
+                const tituloEl = document.getElementById("modalAlertaTitulo");
+                if (tituloEl) tituloEl.textContent = titulo;
+
+                const badgeEl = document.getElementById("modalAlertaBadge");
+                if (badgeEl) {
+                    badgeEl.textContent = badge;
+                    badgeEl.className = "badge rounded-pill notif-badge--" + cor;
+                }
+
+                const detalhesBox = document.getElementById("modalAlertaDetalhes");
+                if (detalhesBox) {
+                    detalhesBox.innerHTML = "";
+                    detalhes.forEach(function (d) {
+                        const row = document.createElement("div");
+                        row.className = "d-flex justify-content-between border-bottom py-2 small";
+                        row.innerHTML = "<span class='text-muted'>" + d.label + "</span><span class='fw-semibold text-dark'>" + d.valor + "</span>";
+                        detalhesBox.appendChild(row);
+                    });
+                }
+
+                const ajustarBtn = document.getElementById("modalAlertaAjustarLink");
+                if (ajustarBtn) {
+                    if (produtoUrl) {
+                        ajustarBtn.href = produtoUrl;
+                        ajustarBtn.classList.remove("d-none");
+                    } else {
+                        ajustarBtn.classList.add("d-none");
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>

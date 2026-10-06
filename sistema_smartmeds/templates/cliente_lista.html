@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- Cabeçalho -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+
+        <div>
+            <h3 class="fw-bold mb-1">
+                <i class="bi bi-people-fill text-primary me-2"></i>
+                Clientes
+            </h3>
+            <p class="text-muted mb-0">
+                Gerencie os clientes cadastrados no sistema.
+            </p>
+        </div>
+
+        {% if tem_permissao("clientes_criar") %}
+        <a href="{{ url_for('novo_cliente') }}" class="btn btn-primary mt-3 mt-md-0 px-4">
+            <i class="bi bi-plus-lg me-1"></i>
+            Novo Cliente
+        </a>
+        {% endif %}
+
+    </div>
+
+    <!-- Mensagens -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'sucesso' else 'danger' }} alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-{{ 'check-circle-fill' if category == 'sucesso' else 'exclamation-triangle-fill' }} me-2"></i>
+                    {{ message }}
+
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Card principal -->
+    <div class="card border-0 shadow-sm">
+
+        <!-- Cabeçalho do card -->
+        <div class="card-header bg-white border-0 py-3">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+                    <h5 class="mb-1 fw-semibold">
+                        Clientes cadastrados
+                    </h5>
+
+                    <small class="text-muted">
+                        Confira os dados dos clientes registrados.
+                    </small>
+                </div>
+
+                {% if clientes %}
+                <span class="badge bg-primary-subtle text-primary px-3 py-2">
+                    {{ clientes|length }} cliente{% if clientes|length != 1 %}s{% endif %}
+                </span>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            {% if clientes %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Cliente</th>
+                            <th>Email</th>
+                            <th>CNPJ</th>
+
+                            {% if tem_permissao("clientes_editar") or tem_permissao("clientes_excluir") %}
+                            <th class="text-end pe-4">Ações</th>
+                            {% endif %}
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for cliente in clientes %}
+
+                        <tr>
+
+                            <!-- ID -->
+                            <td class="ps-4">
+                                <span class="badge bg-light text-dark border">
+                                    #{{ cliente.id }}
+                                </span>
+                            </td>
+
+                            <!-- Nome -->
+                            <td>
+                                <div class="d-flex align-items-center">
+
+                                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3"
+                                         style="width: 40px; height: 40px;">
+
+                                        <i class="bi bi-person-fill"></i>
+
+                                    </div>
+
+                                    <div>
+                                        <div class="fw-semibold">
+                                            {{ cliente.nome }}
+                                        </div>
+
+                                        <small class="text-muted">
+                                            Cliente cadastrado
+                                        </small>
+                                    </div>
+
+                                </div>
+                            </td>
+
+                            <!-- Email -->
+                            <td>
+                                <span class="text-muted">
+                                    <i class="bi bi-envelope me-1"></i>
+                                    {{ cliente.email }}
+                                </span>
+                            </td>
+
+                            <!-- CNPJ -->
+                            <td>
+                                <span class="font-monospace">
+                                    {{ cliente.cnpj }}
+                                </span>
+                            </td>
+
+                            <!-- Ações -->
+                            {% if tem_permissao("clientes_editar") or tem_permissao("clientes_excluir") %}
+
+                            <td class="text-end pe-4">
+
+                                {% if tem_permissao("clientes_editar") %}
+
+                                <a href="{{ url_for('buscar_cliente', id=cliente.id) }}"
+                                   class="btn btn-sm btn-outline-primary me-1"
+                                   title="Editar cliente">
+
+                                    <i class="bi bi-pencil"></i>
+                                    <span class="d-none d-lg-inline ms-1">Editar</span>
+
+                                </a>
+
+                                {% endif %}
+
+                                {% if tem_permissao("clientes_excluir") %}
+
+                                <form action="{{ url_for('excluir_cliente', id=cliente.id) }}"
+                                      method="POST"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Deseja realmente excluir este cliente?');">
+
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Excluir cliente">
+
+                                        <i class="bi bi-trash"></i>
+                                        <span class="d-none d-lg-inline ms-1">Excluir</span>
+
+                                    </button>
+
+                                </form>
+
+                                {% endif %}
+
+                            </td>
+
+                            {% endif %}
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <!-- Estado vazio -->
+            <div class="text-center py-5">
+
+                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                     style="width: 75px; height: 75px;">
+
+                    <i class="bi bi-people fs-2 text-muted"></i>
+
+                </div>
+
+                <h5 class="fw-semibold">
+                    Nenhum cliente cadastrado
+                </h5>
+
+                <p class="text-muted mb-3">
+                    Ainda não existem clientes registrados no sistema.
+                </p>
+
+                {% if tem_permissao("clientes_criar") %}
+
+                <a href="{{ url_for('novo_cliente') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>
+                    Cadastrar primeiro cliente
+                </a>
+
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

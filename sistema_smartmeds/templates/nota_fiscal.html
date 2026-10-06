@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<style>
+    .invoice-box {
+        max-width: 800px;
+        margin: auto;
+    }
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white !important; }
+        .invoice-card { 
+            box-shadow: none !important; 
+            border: none !important; 
+            padding: 0 !important; 
+        }
+    }
+</style>
+
+<div class="container py-4">
+
+    <!-- BOTÕES DE AÇÃO (OCULTOS NA IMPRESSÃO) -->
+    <div class="d-flex justify-content-center gap-2 mb-4 no-print">
+        <button onclick="window.print()" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-printer me-1"></i> Imprimir / Salvar PDF
+        </button>
+        <button onclick="window.close()" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="bi bi-x-lg me-1"></i> Fechar
+        </button>
+    </div>
+
+    <!-- CARTÃO DA NOTA FISCAL -->
+    <div class="card border-0 shadow-sm rounded-4 invoice-card p-4 p-md-5 invoice-box bg-white">
+
+        <!-- CABEÇALHO -->
+        <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary-subtle text-primary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <i class="bi bi-receipt fs-3"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold text-primary m-0">SmartMeds</h3>
+                    <small class="text-muted">Sistema de Gestão Farmacêutica</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-primary-subtle text-primary fs-6 px-3 py-2 rounded-pill fw-semibold">
+                    Comprovante Nº {{ pedido.id if pedido.id else pedido['id'] }}
+                </span>
+            </div>
+        </div>
+
+        <!-- CARDS DE INFORMAÇÃO: CLIENTE E EMISSÃO -->
+        <div class="row g-3 mb-4">
+            <!-- DADOS DO CLIENTE -->
+            <div class="col-md-6">
+                <div class="p-3 bg-light rounded-3 h-100">
+                    <span class="text-uppercase text-muted fw-bold d-block mb-2 fs-7" style="letter-spacing: 0.5px;">
+                        Cliente
+                    </span>
+                    <h6 class="fw-bold text-dark mb-1">
+                        {{ cliente.nome if cliente and cliente.nome else 'Cliente Não Identificado' }}
+                    </h6>
+                    {% if cliente and cliente.cnpj %}
+                        <div class="text-muted small"><strong>CNPJ/CPF:</strong> {{ cliente.cnpj }}</div>
+                    {% endif %}
+                    {% if cliente and cliente.email %}
+                        <div class="text-muted small"><strong>Email:</strong> {{ cliente.email }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- DADOS DA EMISSÃO -->
+            <div class="col-md-6">
+                <div class="p-3 bg-light rounded-3 h-100">
+                    <span class="text-uppercase text-muted fw-bold d-block mb-2 fs-7" style="letter-spacing: 0.5px;">
+                        Emissão
+                    </span>
+                    <div class="text-muted small mb-1">
+                        <strong>Data:</strong> {{ data_emissao.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    <div class="text-muted small mb-1">
+                        <strong>Tipo de Saída:</strong> {{ pedido.tipo if pedido.tipo else pedido['tipo'] }}
+                    </div>
+                    <div class="text-muted small">
+                        <strong>Pagamento:</strong> {{ pedido.pagamento if pedido.pagamento else pedido['pagamento'] }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABELA DE ITENS -->
+        <div class="table-responsive mb-4">
+            <table class="table table-borderless align-middle mb-0">
+                <thead class="border-bottom text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+                    <tr>
+                        <th class="ps-0 py-2">Produto</th>
+                        <th class="text-center py-2">Qtd</th>
+                        <th class="text-end py-2">Valor Unit.</th>
+                        <th class="text-end pe-0 py-2">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody class="border-bottom">
+                    {% if itens %}
+                        {% for item in itens %}
+                            {% set qtd = item.quantidade if item.quantidade is defined else item['quantidade'] %}
+                            {% set val = item.valor if item.valor is defined else item['valor'] %}
+                            <tr>
+                                <td class="ps-0 py-3 fw-medium text-dark">
+                                    {{ item.produto if item.produto is defined else item['produto'] }}
+                                </td>
+                                <td class="text-center py-3">{{ qtd }}</td>
+                                <td class="text-end py-3 text-muted">R$ {{ "%.2f"|format(val|float) }}</td>
+                                <td class="text-end pe-0 py-3 fw-semibold text-dark">
+                                    R$ {{ "%.2f"|format((val|float) * (qtd|int)) }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">Nenhum item discriminado.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TOTAL DO PEDIDO -->
+        <div class="d-flex justify-content-between align-items-center bg-success-subtle text-success-emphasis p-3 rounded-3 mb-4">
+            <span class="fw-semibold">Valor Total</span>
+            <span class="fs-4 fw-bold">R$ {{ "%.2f"|format(total_pedido|float) }}</span>
+        </div>
+
+        <!-- RODAPÉ -->
+        <div class="text-center text-muted small pt-2">
+            <p class="mb-0 fw-medium">Obrigado pela preferência!</p>
+            <span class="text-muted opacity-75 fs-7">Documento gerado automaticamente pelo sistema SmartMeds.</span>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
