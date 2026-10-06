@@ -1120,21 +1120,17 @@ def atualizar_pedido_saida(id):
             itens=[],
         )
 
-
 @app.route("/api/produto/<int:id>", methods=["GET"])
 @login_obrigatorio
 def api_produto(id):
     produto = Produto.find_by_id(id)
     if not produto:
         return {"erro": "Produto não encontrado."}, 404
-
     if isinstance(produto, dict):
         produto["quantidade"] = int(produto.get("quantidade") or 0)
     else:
         produto.quantidade = int(getattr(produto, "quantidade", 0))
-
     return produto
-
 
 @app.route("/item_saida/salvar", methods=["POST"])
 @login_obrigatorio
@@ -1145,35 +1141,26 @@ def salvar_item_saida():
     produto_id = request.form.get("produto_id")
     qtd_str = request.form.get("quantidade", "0").strip()
     valor_str = request.form.get("valor", "0").strip().replace(",", ".")
-
     quantidade = int(qtd_str) if qtd_str.isdigit() else 0
-
     try:
         valor = float(valor_str)
     except ValueError:
         valor = 0.0
-
     if not pedido_id or not produto_id:
         flash("Pedido e produto são obrigatórios.", "erro")
         return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
-
     if quantidade <= 0:
         flash("A quantidade deve ser maior que zero.", "erro")
         return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
-
     pedido = PedidoSaida.find_by_id(pedido_id, usuario_id=user_id)
     produto = Produto.find_by_id(produto_id)
-
     if not pedido or not produto:
         flash("Acesso negado ou registro não encontrado.", "erro")
         return redirect(url_for("listar_pedido_saida"))
-
     estoque = int(produto.get("quantidade", 0) if isinstance(produto, dict) else getattr(produto, "quantidade", 0))
-
     if quantidade > estoque:
         flash(f"Estoque insuficiente. Estoque atual: {estoque}.", "erro")
         return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
-
     try:
         mov = Movimentacao(
             produto_id=int(produto_id),
@@ -1182,17 +1169,13 @@ def salvar_item_saida():
             data_movimentacao=datetime.now(),
         )
         movimentacao_id = mov.insert()
-
         item = ItemSaida(quantidade, valor, pedido_id, movimentacao_id)
-
         erros = item.validate() if hasattr(item, "validate") else []
         if erros:
             for erro in erros:
                 flash(erro, "erro")
             return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
-
         item.insert()
-
         conexao = Database.connect()
         cursor = conexao.cursor()
         cursor.execute(
@@ -1206,15 +1189,11 @@ def salvar_item_saida():
         conexao.commit()
         cursor.close()
         conexao.close()
-
         flash("Item adicionado e estoque atualizado com sucesso.", "sucesso")
-
     except Exception as e:
         print("ERRO AO ADICIONAR ITEM DE SAÍDA:", e)
         flash(f"Erro ao adicionar item: {e}", "erro")
-
     return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
-
 
 @app.route("/pedido_saida/<int:id>/excluir", methods=["POST"])
 @login_obrigatorio
@@ -1226,21 +1205,17 @@ def excluir_pedido_saida(id):
         if not pedido:
             flash("Pedido de saída não encontrado ou acesso negado.", "erro")
             return redirect(url_for("listar_pedido_saida"))
-
         if hasattr(PedidoSaida, "safe_delete"):
             PedidoSaida.safe_delete(id, usuario_id=user_id)
         else:
             PedidoSaida.delete(id, usuario_id=user_id)
-
         flash("Pedido de saída excluído com sucesso.", "sucesso")
     except ValueError as e:
         flash(str(e), "erro")
     except Exception as e:
         print("ERRO AO EXCLUIR PEDIDO DE SAÍDA:", e)
         flash("Erro ao excluir pedido de saída.", "erro")
-
     return redirect(url_for("listar_pedido_saida"))
-
 
 @app.route("/pedido_saida/<int:id>/nota_fiscal")
 @login_obrigatorio
@@ -1252,20 +1227,16 @@ def gerar_nota_fiscal_saida(id):
         if not pedido:
             flash("Pedido de saída não encontrado ou acesso negado.", "erro")
             return redirect(url_for("listar_pedido_saida"))
-
         cliente = None
         cliente_id = pedido.get("cliente_id") if isinstance(pedido, dict) else getattr(pedido, "cliente_id", None)
         if cliente_id:
             cliente = Cliente.find_by_id(cliente_id, usuario_id=user_id)
-
         itens = ItemSaida.find_by_pedido(id) if hasattr(ItemSaida, "find_by_pedido") else []
-
         total_pedido = sum(
             (float(it.get("valor", 0)) if isinstance(it, dict) else float(getattr(it, "valor", 0))) *
             (int(it.get("quantidade", 0)) if isinstance(it, dict) else int(getattr(it, "quantidade", 0)))
             for it in itens
         ) if itens else (pedido.get("valor", 0) if isinstance(pedido, dict) else getattr(pedido, "valor", 0))
-
         return render_template(
             "nota_fiscal.html",
             pedido=pedido,
@@ -1278,7 +1249,6 @@ def gerar_nota_fiscal_saida(id):
         print("ERRO AO GERAR NOTA FISCAL:", e)
         flash("Erro ao gerar Nota Fiscal.", "erro")
         return redirect(url_for("buscar_pedido_saida", id=id))
-
 
 if __name__ == "__main__":
     app.run(debug=True)
