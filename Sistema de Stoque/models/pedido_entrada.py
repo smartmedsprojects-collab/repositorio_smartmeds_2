@@ -4,10 +4,8 @@ from core.validator import Validator
 
 
 class PedidoEntrada(CrudBase):
-
     table = "pedido_entrada"
     pk = "id_pedido_entrada"
-
     fields = [
         "numero_documento",
         "fornecedor",
@@ -18,13 +16,7 @@ class PedidoEntrada(CrudBase):
     ]
 
     def __init__(
-        self,
-        numero_documento,
-        fornecedor,
-        data_entrada,
-        id_usuario,
-        observacao,
-        status
+        self, numero_documento, fornecedor, data_entrada, id_usuario, observacao, status
     ):
         self.numero_documento = numero_documento.strip()
         self.fornecedor = fornecedor.strip()
@@ -89,10 +81,8 @@ class PedidoEntrada(CrudBase):
         pedido = cls.find_by_id(id)
         if not pedido:
             raise ValueError("Pedido de entrada não encontrado.")
-
         if cls.has_related_records(id):
             raise ValueError(
                 "Não é possível excluir o pedido porque existem itens vinculados."
             )
-
         return cls.delete(id)

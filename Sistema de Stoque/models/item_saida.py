@@ -4,15 +4,8 @@ from core.validator import Validator
 
 
 class ItemSaida(CrudBase):
-
     table = "item_saida"
-
-    fields = [
-        "quantidade",
-        "valor",
-        "pedido_saida_id",
-        "movimentacao_id"
-    ]
+    fields = ["quantidade", "valor", "pedido_saida_id", "movimentacao_id"]
 
     def __init__(self, quantidade, valor, pedido_saida_id, movimentacao_id=None):
         self.quantidade = int(quantidade)

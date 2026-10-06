@@ -4,25 +4,10 @@ from core.security import verificar_senha, gerar_hash_senha
 
 
 class Usuario(CrudBase):
-
     table = "usuario"
+    fields = ["nome", "email", "senha", "tipo", "identificacao"]
 
-    fields = [
-        "nome",
-        "email",
-        "senha",
-        "tipo",
-        "identificacao"
-    ]
-
-    def __init__(
-        self,
-        nome,
-        email,
-        senha,
-        tipo,
-        identificacao
-    ):
+    def __init__(self, nome, email, senha, tipo, identificacao):
         self.nome = nome.strip()
         self.email = email.strip().lower()
         self.senha = senha.strip()
@@ -31,7 +16,6 @@ class Usuario(CrudBase):
 
     def validate(self):
         erros = []
-
         if not self.nome:
             erros.append("O campo Nome é obrigatório.")
         if not self.email:
@@ -42,7 +26,6 @@ class Usuario(CrudBase):
             erros.append("O campo Tipo é obrigatório.")
         if not self.identificacao:
             erros.append("O campo Identificação é obrigatório.")
-
         return erros
 
     def insert(self):
@@ -56,13 +39,11 @@ class Usuario(CrudBase):
             usuario_atual = self.find_by_id(id)
             if not usuario_atual:
                 raise ValueError("Usuário não encontrado.")
-
             senha = self.senha
             if not senha:
                 senha = usuario_atual["senha"]
             else:
                 senha = gerar_hash_senha(senha)
-
             sql = """
                 UPDATE usuario
                 SET nome = %s,
@@ -72,7 +53,6 @@ class Usuario(CrudBase):
                     identificacao = %s
                 WHERE id = %s
             """
-
             cursor.execute(
                 sql,
                 (
@@ -82,9 +62,8 @@ class Usuario(CrudBase):
                     self.tipo,
                     self.identificacao,
                     id,
-                )
+                ),
             )
-
             conexao.commit()
             return cursor.rowcount
         except Exception:
@@ -95,12 +74,7 @@ class Usuario(CrudBase):
             conexao.close()
 
     @classmethod
-    def validar_no_banco(
-        cls,
-        email,
-        senha=None,
-        identificacao=None
-    ):
+    def validar_no_banco(cls, email, senha=None, identificacao=None):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
@@ -111,34 +85,30 @@ class Usuario(CrudBase):
             """
             cursor.execute(sql, (email,))
             usuario = cursor.fetchone()
-
             if not usuario:
                 return {
                     "valido": False,
                     "mensagem": "E-mail ou usuário não encontrado.",
-                    "usuario": None
+                    "usuario": None,
                 }
-
             if senha is not None:
                 if not verificar_senha(senha, usuario["senha"]):
                     return {
                         "valido": False,
                         "mensagem": "Senha incorreta.",
-                        "usuario": None
+                        "usuario": None,
                     }
-
             if identificacao is not None:
                 if str(identificacao).strip() != str(usuario["identificacao"]).strip():
                     return {
                         "valido": False,
                         "mensagem": "Identificação não corresponde ao usuário.",
-                        "usuario": None
+                        "usuario": None,
                     }
-
             return {
                 "valido": True,
                 "mensagem": "Dados validados com sucesso.",
-                "usuario": usuario
+                "usuario": usuario,
             }
         finally:
             cursor.close()
@@ -146,12 +116,7 @@ class Usuario(CrudBase):
 
     @classmethod
     def autenticar(cls, email, senha):
-        resultado = cls.validar_no_banco(
-            email=email,
-            senha=senha
-        )
-
+        resultado = cls.validar_no_banco(email=email, senha=senha)
         if resultado["valido"]:
             return resultado["usuario"]
-
         return None

@@ -3,14 +3,8 @@ from core.validator import Validator
 
 
 class Localizacao(CrudBase):
-
     table = "localizacao"
-
-    fields = [
-        "rua",
-        "numero",
-        "andar"
-    ]
+    fields = ["rua", "numero", "andar"]
 
     def __init__(self, rua, numero, andar):
         self.rua = rua.strip()

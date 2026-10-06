@@ -4,22 +4,11 @@ from core.database import Database
 
 
 class Movimentacao(CrudBase):
-
     table = "movimentacao"
-
-    fields = [
-        "tipo_movimentacao",
-        "data_movimentacao",
-        "quantidade",
-        "produto_id"
-    ]
+    fields = ["tipo_movimentacao", "data_movimentacao", "quantidade", "produto_id"]
 
     def __init__(
-        self,
-        produto_id,
-        tipo_movimentacao,
-        quantidade,
-        data_movimentacao=None
+        self, produto_id, tipo_movimentacao, quantidade, data_movimentacao=None
     ):
         self.produto_id = int(produto_id)
         self.tipo_movimentacao = tipo_movimentacao
@@ -30,7 +19,6 @@ class Movimentacao(CrudBase):
     def find_all_with_product(cls):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
-
         try:
             sql = """
                 SELECT
@@ -45,7 +33,6 @@ class Movimentacao(CrudBase):
                     ON m.produto_id = p.id
                 ORDER BY m.data_movimentacao DESC
             """
-
             cursor.execute(sql)
             return cursor.fetchall()
 

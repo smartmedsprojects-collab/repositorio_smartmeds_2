@@ -4,15 +4,8 @@ from core.validator import Validator
 
 
 class Cliente(CrudBase):
-
     table = "cliente"
-
-    fields = [
-        "nome",
-        "email",
-        "senha",
-        "cnpj"
-    ]
+    fields = ["nome", "email", "senha", "cnpj"]
 
     def __init__(self, nome, email, senha, cnpj):
         self.nome = nome.strip()
@@ -85,13 +78,58 @@ class Cliente(CrudBase):
 
     @classmethod
     def safe_delete(cls, id):
-        cliente = cls.find_by_id(id)
-        if not cliente:
-            raise ValueError("Cliente não encontrado.")
-
-        if cls.has_related_records(id):
-            raise ValueError(
-                "Não é possível excluir o cliente porque existem pedidos de saída vinculados."
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT id
+                FROM cliente
+                WHERE id = %s
+                """,
+                (id,),
             )
-
-        return cls.delete(id)
+            cliente = cursor.fetchone()
+            if not cliente:
+                raise ValueError("Cliente não encontrado.")
+            cursor.execute(
+                """
+                SELECT id
+                FROM pedido_saida
+                WHERE cliente_id = %s
+                """,
+                (id,),
+            )
+            pedidos = cursor.fetchall()
+            pedido_ids = [pedido[0] for pedido in pedidos]
+            if pedido_ids:
+                placeholders = ",".join(["%s"] * len(pedido_ids))
+                cursor.execute(
+                    f"""
+                    DELETE FROM item_saida
+                    WHERE pedido_saida_id IN ({placeholders})
+                    """,
+                    tuple(pedido_ids),
+                )
+            cursor.execute(
+                """
+                DELETE FROM pedido_saida
+                WHERE cliente_id = %s
+                """,
+                (id,),
+            )
+            cursor.execute(
+                """
+                DELETE FROM cliente
+                WHERE id = %s
+                """,
+                (id,),
+            )
+            conexao.commit()
+            return True
+        except Exception:
+            conexao.rollback()
+            raise
+        finally:
+            cursor.close()
+            conexao.close()
