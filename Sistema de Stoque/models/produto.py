@@ -212,13 +212,92 @@ class Produto(CrudBase):
 
     @classmethod
     def safe_delete(cls, produto_id):
-        produto = cls.find_by_id(produto_id)
-        if not produto:
-            raise ValueError("Produto não encontrado.")
-
-        if cls.has_related_records(produto_id):
-            raise ValueError(
-                "Não é possível excluir o produto porque existem movimentações vinculadas."
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+        try:
+            # =========================================================
+            # 1. Verificar se o produto existe
+            # =========================================================
+            cursor.execute(
+                """
+                SELECT id
+                FROM produto
+                WHERE id = %s
+                """,
+                (produto_id,)
             )
-
-        return cls.delete(produto_id)
+            produto = cursor.fetchone()
+            if not produto:
+                raise ValueError("Produto não encontrado.")
+            # =========================================================
+            # 2. Buscar todas as movimentações do produto
+            # =========================================================
+            cursor.execute(
+                """
+                SELECT id
+                FROM movimentacao
+                WHERE produto_id = %s
+                """,
+                (produto_id,)
+            )
+            movimentacoes = cursor.fetchall()
+            # Extrai os IDs
+            movimentacao_ids = [
+                movimentacao[0]
+                for movimentacao in movimentacoes
+            ]
+            # =========================================================
+            # 3. Excluir itens de entrada
+            # =========================================================
+            if movimentacao_ids:
+                placeholders = ",".join(
+                    ["%s"] * len(movimentacao_ids)
+                )
+                cursor.execute(
+                    f"""
+                    DELETE FROM item_entrada
+                    WHERE movimentacao_id IN ({placeholders})
+                    """,
+                    tuple(movimentacao_ids)
+                )
+                # =====================================================
+                # 4. Excluir itens de saída
+                # =====================================================
+                cursor.execute(
+                    f"""
+                    DELETE FROM item_saida
+                    WHERE movimentacao_id IN ({placeholders})
+                    """,
+                    tuple(movimentacao_ids)
+                )
+            # =========================================================
+            # 5. Excluir movimentações do produto
+            # =========================================================
+            cursor.execute(
+                """
+                DELETE FROM movimentacao
+                WHERE produto_id = %s
+                """,
+                (produto_id,)
+            )
+            # =========================================================
+            # 6. Excluir o produto
+            # =========================================================
+            cursor.execute(
+                """
+                DELETE FROM produto
+                WHERE id = %s
+                """,
+                (produto_id,)
+            )
+            # =========================================================
+            # 7. Confirmar tudo
+            # =========================================================
+            conexao.commit()
+            return True
+        except Exception:
+            conexao.rollback()
+            raise
+        finally:
+            cursor.close()
+            conexao.close()

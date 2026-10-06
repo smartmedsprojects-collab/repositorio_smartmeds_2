@@ -28,15 +28,14 @@ class Movimentacao(CrudBase):
 
     @classmethod
     def find_all_with_product(cls):
-
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
 
         try:
-
             sql = """
                 SELECT
                     m.id,
+                    m.produto_id,
                     p.nome AS produto,
                     m.tipo_movimentacao,
                     m.quantidade,
