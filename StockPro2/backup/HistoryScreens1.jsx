@@ -40,16 +40,16 @@ export default function HistoryScreen() {
           <Text style={styles.subtitle}>Movimentações do estoque</Text>
         </View>
         <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
+          <Ionicons name="calendar-outline" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={22} color="#8FA0B3" />
+        <Ionicons name="search" size={22} color="#94A3B8" />
         <TextInput
           style={styles.searchInput}
           placeholder="Pesquisar movimentações..."
-          placeholderTextColor="#8FA0B3"
+          placeholderTextColor="#94A3B8"
           value={search}
           onChangeText={setSearch}
         />
@@ -57,13 +57,13 @@ export default function HistoryScreen() {
 
       <View style={styles.statsContainer}>
         <View style={styles.statsCardGreen}>
-          <Ionicons name="arrow-down-circle" size={24} color="#1A9E72" />
+          <Ionicons name="arrow-down-circle" size={24} color="#22C55E" />
           <Text style={styles.statsNumber}>{entriesCount}</Text>
           <Text style={styles.statsLabel}>Entradas</Text>
         </View>
 
         <View style={styles.statsCardRed}>
-          <Ionicons name="arrow-up-circle" size={24} color="#D94040" />
+          <Ionicons name="arrow-up-circle" size={24} color="#EF4444" />
           <Text style={styles.statsNumber}>{exitsCount}</Text>
           <Text style={styles.statsLabel}>Saídas</Text>
         </View>
@@ -79,13 +79,13 @@ export default function HistoryScreen() {
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: item.type === 'Entrada' ? '#E6F7F2' : '#FDECEA' },
+                { backgroundColor: item.type === 'Entrada' ? '#052E16' : '#450A0A' },
               ]}
             >
               <Ionicons
                 name={item.type === 'Entrada' ? 'arrow-down-circle' : 'arrow-up-circle'}
                 size={30}
-                color={item.type === 'Entrada' ? '#1A9E72' : '#D94040'}
+                color={item.type === 'Entrada' ? '#22C55E' : '#EF4444'}
               />
             </View>
 
@@ -95,7 +95,7 @@ export default function HistoryScreen() {
                 <Text
                   style={[
                     styles.type,
-                    { color: item.type === 'Entrada' ? '#0E6649' : '#8B1A1A' },
+                    { color: item.type === 'Entrada' ? '#86EFAC' : '#FCA5A5' },
                   ]}
                 >
                   {item.type}
@@ -116,157 +116,26 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F4F7FA',
-    paddingHorizontal: 20,
-  },
-
-  header: {
-    marginTop: 55,
-    marginBottom: 25,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  title: {
-    color: '#1A2332',
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-
-  subtitle: {
-    color: '#5A6B7D',
-    marginTop: 5,
-    fontSize: 15,
-  },
-
-  filterButton: {
-    width: 52,
-    height: 52,
-    backgroundColor: '#0F4C7A',
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  searchContainer: {
-    backgroundColor: '#EDF1F5',
-    height: 62,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    marginBottom: 25,
-    borderWidth: 1,
-    borderColor: '#D8E3ED',
-  },
-
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    color: '#1A2332',
-    fontSize: 16,
-  },
-
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 25,
-  },
-
-  statsCardGreen: {
-    width: '48%',
-    backgroundColor: '#E6F7F2',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#C9EDE1',
-  },
-
-  statsCardRed: {
-    width: '48%',
-    backgroundColor: '#FDECEA',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#F4C9C6',
-  },
-
-  statsNumber: {
-    color: '#1A2332',
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 12,
-  },
-
-  statsLabel: {
-    color: '#5A6B7D',
-    marginTop: 6,
-  },
-
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 18,
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#D8E3ED',
-  },
-
-  iconContainer: {
-    width: 65,
-    height: 65,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-
-  info: {
-    flex: 1,
-  },
-
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  product: {
-    color: '#1A2332',
-    fontSize: 18,
-    fontWeight: 'bold',
-    flex: 1,
-    marginRight: 10,
-  },
-
-  type: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-
-  detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-
-  quantity: {
-    color: '#5A6B7D',
-    fontSize: 14,
-  },
-
-  date: {
-    color: '#8FA0B3',
-    fontSize: 13,
-  },
-
-  hour: {
-    color: '#8FA0B3',
-    marginTop: 8,
-    fontSize: 13,
-  },
+  container: { flex: 1, backgroundColor: '#020617', paddingHorizontal: 20 },
+  header: { marginTop: 55, marginBottom: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
+  subtitle: { color: '#94A3B8', marginTop: 5, fontSize: 15 },
+  filterButton: { width: 52, height: 52, backgroundColor: '#1E293B', borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  searchContainer: { backgroundColor: '#1E293B', height: 62, borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, marginBottom: 25 },
+  searchInput: { flex: 1, marginLeft: 10, color: '#fff', fontSize: 16 },
+  statsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
+  statsCardGreen: { width: '48%', backgroundColor: '#052E16', borderRadius: 24, padding: 20 },
+  statsCardRed: { width: '48%', backgroundColor: '#450A0A', borderRadius: 24, padding: 20 },
+  statsNumber: { color: '#fff', fontSize: 28, fontWeight: 'bold', marginTop: 12 },
+  statsLabel: { color: '#CBD5E1', marginTop: 6 },
+  card: { backgroundColor: '#1E293B', borderRadius: 24, padding: 18, marginBottom: 18, flexDirection: 'row' },
+  iconContainer: { width: 65, height: 65, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  info: { flex: 1 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  product: { color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1, marginRight: 10 },
+  type: { fontSize: 14, fontWeight: 'bold' },
+  detailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  quantity: { color: '#CBD5E1', fontSize: 14 },
+  date: { color: '#94A3B8', fontSize: 13 },
+  hour: { color: '#64748B', marginTop: 8, fontSize: 13 },
 });

@@ -82,7 +82,7 @@ export default function SettingsScreen({ navigation }) {
         </View>
 
         <TouchableOpacity style={styles.editButton}>
-          <Ionicons name="create-outline" size={22} color="#FFFFFF" />
+          <Ionicons name="create-outline" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -92,7 +92,7 @@ export default function SettingsScreen({ navigation }) {
       <View style={styles.optionCard}>
         <View style={styles.optionLeft}>
           <View style={styles.iconBlue}>
-            <Ionicons name="moon-outline" size={22} color="#1A6FA8" />
+            <Ionicons name="moon-outline" size={22} color="#3B82F6" />
           </View>
           <View>
             <Text style={styles.optionTitle}>Modo Escuro</Text>
@@ -106,7 +106,7 @@ export default function SettingsScreen({ navigation }) {
       <View style={styles.optionCard}>
         <View style={styles.optionLeft}>
           <View style={styles.iconGreen}>
-            <Ionicons name="notifications-outline" size={22} color="#1A9E72" />
+            <Ionicons name="notifications-outline" size={22} color="#22C55E" />
           </View>
           <View>
             <Text style={styles.optionTitle}>Notificações</Text>
@@ -123,32 +123,32 @@ export default function SettingsScreen({ navigation }) {
       <TouchableOpacity style={styles.menuCard}>
         <View style={styles.menuLeft}>
           <View style={styles.iconPurple}>
-            <Ionicons name="lock-closed-outline" size={22} color="#1A6FA8" />
+            <Ionicons name="lock-closed-outline" size={22} color="#A855F7" />
           </View>
           <View>
             <Text style={styles.menuTitle}>Alterar Senha</Text>
             <Text style={styles.menuSubtitle}>Atualizar credenciais</Text>
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={22} color="#8FA0B3" />
+        <Ionicons name="chevron-forward" size={22} color="#94A3B8" />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.menuCard}>
         <View style={styles.menuLeft}>
           <View style={styles.iconOrange}>
-            <Ionicons name="shield-checkmark-outline" size={22} color="#D97706" />
+            <Ionicons name="shield-checkmark-outline" size={22} color="#F97316" />
           </View>
           <View>
             <Text style={styles.menuTitle}>Privacidade</Text>
             <Text style={styles.menuSubtitle}>Configurações de acesso</Text>
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={22} color="#8FA0B3" />
+        <Ionicons name="chevron-forward" size={22} color="#94A3B8" />
       </TouchableOpacity>
 
       {/* LOGOUT */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+        <Ionicons name="log-out-outline" size={24} color="#fff" />
         <Text style={styles.logoutText}>Sair da Conta</Text>
       </TouchableOpacity>
 
@@ -158,197 +158,30 @@ export default function SettingsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F4F7FA',
-    paddingHorizontal: 20,
-  },
-
-  header: {
-    marginTop: 55,
-    marginBottom: 30,
-  },
-
-  title: {
-    color: '#1A2332',
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-
-  subtitle: {
-    color: '#5A6B7D',
-    marginTop: 5,
-    fontSize: 15,
-  },
-
-  profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D8E3ED',
-  },
-
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 22,
-  },
-
-  profileInfo: {
-    flex: 1,
-    marginLeft: 18,
-  },
-
-  userName: {
-    color: '#1A2332',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-
-  userRole: {
-    color: '#1A6FA8',
-    marginTop: 5,
-    fontWeight: '600',
-  },
-
-  userEmail: {
-    color: '#5A6B7D',
-    marginTop: 6,
-    fontSize: 14,
-  },
-
-  editButton: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#1A6FA8',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  sectionTitle: {
-    color: '#1A2332',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginTop: 35,
-    marginBottom: 18,
-  },
-
-  optionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D8E3ED',
-  },
-
-  optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  optionTitle: {
-    color: '#1A2332',
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-
-  optionSubtitle: {
-    color: '#5A6B7D',
-    marginTop: 4,
-    fontSize: 13,
-  },
-
-  menuCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D8E3ED',
-  },
-
-  menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  menuTitle: {
-    color: '#1A2332',
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-
-  menuSubtitle: {
-    color: '#5A6B7D',
-    marginTop: 4,
-    fontSize: 13,
-  },
-
-  iconBlue: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#E8F3FB',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-
-  iconGreen: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#E6F7F2',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-
-  iconPurple: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#E8F3FB',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-
-  iconOrange: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#FEF3E2',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-
-  logoutButton: {
-    backgroundColor: '#D94040',
-    height: 65,
-    borderRadius: 18,
-    marginTop: 35,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-  },
-
-  logoutText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, backgroundColor: '#020617', paddingHorizontal: 20 },
+  header: { marginTop: 55, marginBottom: 30 },
+  title: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
+  subtitle: { color: '#94A3B8', marginTop: 5, fontSize: 15 },
+  profileCard: { backgroundColor: '#1E293B', borderRadius: 28, padding: 22, flexDirection: 'row', alignItems: 'center' },
+  avatar: { width: 80, height: 80, borderRadius: 22 },
+  profileInfo: { flex: 1, marginLeft: 18 },
+  userName: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+  userRole: { color: '#3B82F6', marginTop: 5, fontWeight: '600' },
+  userEmail: { color: '#94A3B8', marginTop: 6, fontSize: 14 },
+  editButton: { width: 48, height: 48, backgroundColor: '#2563EB', borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  sectionTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginTop: 35, marginBottom: 18 },
+  optionCard: { backgroundColor: '#1E293B', borderRadius: 22, padding: 18, marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  optionLeft: { flexDirection: 'row', alignItems: 'center' },
+  optionTitle: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  optionSubtitle: { color: '#94A3B8', marginTop: 4, fontSize: 13 },
+  menuCard: { backgroundColor: '#1E293B', borderRadius: 22, padding: 18, marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  menuLeft: { flexDirection: 'row', alignItems: 'center' },
+  menuTitle: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  menuSubtitle: { color: '#94A3B8', marginTop: 4, fontSize: 13 },
+  iconBlue: { width: 50, height: 50, backgroundColor: '#172554', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  iconGreen: { width: 50, height: 50, backgroundColor: '#052E16', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  iconPurple: { width: 50, height: 50, backgroundColor: '#3B0764', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  iconOrange: { width: 50, height: 50, backgroundColor: '#431407', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  logoutButton: { backgroundColor: '#DC2626', height: 65, borderRadius: 22, marginTop: 35, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  logoutText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
