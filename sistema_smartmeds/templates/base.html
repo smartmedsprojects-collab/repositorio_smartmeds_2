@@ -399,6 +399,11 @@
                         <i class="bi bi-arrow-left-right"></i> Movimentações
                     </a>
 
+                    <a href="{{ url_for('pagina_sensores') }}"
+                        class="nav-link-custom {% if request.endpoint == 'pagina_sensores' %}active{% endif %}">
+                        <i class="bi bi-cpu"></i> Sensor DHT11
+                    </a>
+
                     <a href="{{ url_for('listar_localizacao') }}"
                         class="nav-link-custom {% if request.endpoint in ['listar_localizacao', 'nova_localizacao'] %}active{% endif %}">
                         <i class="bi bi-geo-alt"></i> Localizações

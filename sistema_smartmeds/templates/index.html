@@ -106,8 +106,9 @@
                 <h6 class="fw-bold mb-0 text-dark">Monitoramento da Cadeia de Frio</h6>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="status-dot status-dot-active"></span>
-                <span class="small text-muted fw-semibold" style="font-size: 0.78rem;">Sensores Ativos</span>
+                <span class="status-dot {{ 'status-dot-active' if iot_conectado else 'bg-danger' }}"></span>
+                <span class="small text-muted fw-semibold" style="font-size: 0.78rem;">{{ 'Sensores conectados' if iot_conectado else 'MQTT desconectado' }}</span>
+                <a href="{{ url_for('pagina_sensores') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Ver monitor</a>
             </div>
         </div>
         <div class="card-body px-4 pb-4 pt-1">

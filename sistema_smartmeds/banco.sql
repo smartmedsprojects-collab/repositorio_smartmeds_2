@@ -81,6 +81,26 @@ COLLATE = utf8mb4_0900_ai_ci;
 
 SHOW WARNINGS;
 
+CREATE TABLE IF NOT EXISTS sensor_leitura (
+id INT NOT NULL AUTO_INCREMENT,
+device_id VARCHAR(50) NOT NULL,
+sensor VARCHAR(30) NOT NULL DEFAULT 'DHT11',
+temperatura FLOAT NULL,
+umidade FLOAT NULL,
+-- As colunas abaixo permanecem apenas para compatibilidade com bancos antigos.
+-- O SmartMeds atual não grava nem consulta HC-SR04 ou MFRC522.
+distancia FLOAT NULL,
+rfid_uid VARCHAR(50) NULL,
+produto VARCHAR(100) NULL,
+movimento VARCHAR(30) NULL,
+timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (id),
+INDEX idx_sensor_timestamp (sensor, timestamp),
+INDEX idx_device_timestamp (device_id, timestamp)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+SHOW WARNINGS;
+
 CREATE TABLE IF NOT EXISTS usuario (
 id INT NOT NULL AUTO_INCREMENT,
 nome VARCHAR(100) NOT NULL,

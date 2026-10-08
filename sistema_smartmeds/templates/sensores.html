@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="container-fluid py-2">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-thermometer-half text-danger"></i> Monitoramento DHT11
+            </h4>
+            <p class="text-muted small mb-0">Temperatura e umidade do ambiente monitoradas em tempo real pelo SmartMeds.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span id="status-dot" class="rounded-circle {{ 'bg-success' if conectado else 'bg-danger' }}" style="width:10px;height:10px;"></span>
+            <span id="status-text" class="small fw-semibold">{{ 'MQTT conectado' if conectado else 'MQTT desconectado' }}</span>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-4">
+        <div class="col">
+            <div class="dash-card card border-0 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Temperatura</span>
+                    <i class="bi bi-thermometer-half text-danger fs-5"></i>
+                </div>
+                <h2 id="temperatura" class="fw-bold mb-0 text-danger">{{ resumo.temperatura if resumo.temperatura is not none else '--' }} °C</h2>
+            </div>
+        </div>
+        <div class="col">
+            <div class="dash-card card border-0 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Umidade</span>
+                    <i class="bi bi-droplet-half text-primary fs-5"></i>
+                </div>
+                <h2 id="umidade" class="fw-bold mb-0 text-primary">{{ resumo.umidade if resumo.umidade is not none else '--' }} %</h2>
+            </div>
+        </div>
+        <div class="col">
+            <div class="dash-card card border-0 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Dispositivo</span>
+                    <i class="bi bi-cpu-fill text-secondary fs-5"></i>
+                </div>
+                <h5 id="device" class="fw-bold mb-0 text-dark">{{ resumo.device_id or 'Aguardando...' }}</h5>
+            </div>
+        </div>
+        <div class="col">
+            <div class="dash-card card border-0 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Última leitura</span>
+                    <i class="bi bi-clock-history text-secondary fs-5"></i>
+                </div>
+                <h6 id="ultima-leitura" class="fw-bold mb-0 text-dark">{{ resumo.ultima_leitura or '--' }}</h6>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-7">
+            <div class="dash-card card border-0 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h6 class="fw-bold mb-1">Temperatura</h6>
+                        <span class="small text-muted">Faixa configurada: {{ temperatura_min }}°C – {{ temperatura_max }}°C</span>
+                    </div>
+                    <span id="badge-temperatura" class="badge rounded-pill bg-success-subtle text-success">NORMAL</span>
+                </div>
+                <div style="height:320px;"><canvas id="graficoTemperatura"></canvas></div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-5">
+            <div class="dash-card card border-0 p-4 h-100">
+                <h6 class="fw-bold mb-1">Umidade</h6>
+                <p class="small text-muted mb-3">Histórico das últimas leituras do DHT11.</p>
+                <div style="height:320px;"><canvas id="graficoUmidade"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dash-card card border-0 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h6 class="fw-bold mb-1">Últimas leituras</h6>
+                <span class="small text-muted">Somente dados do sensor DHT11.</span>
+            </div>
+            <span class="small text-muted">Atualização automática a cada 30s</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr><th>Horário</th><th>Dispositivo</th><th>Temperatura</th><th>Umidade</th><th>Status</th></tr>
+                </thead>
+                <tbody id="tabelaDht">
+                    <tr><td colspan="5" class="text-center text-muted py-4">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const INTERVALO = 30000;
+let graficos = {};
+
+function hora(valor) {
+    return valor ? new Date(valor.replace(' ', 'T')).toLocaleTimeString('pt-BR') : '--';
+}
+
+function statusTemperatura(valor) {
+    const temperatura = Number(valor);
+    return Number.isFinite(temperatura) && temperatura >= {{ temperatura_min }} && temperatura <= {{ temperatura_max }};
+}
+
+function grafico(id, label, labels, valores, unidade) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    if (graficos[id]) graficos[id].destroy();
+    graficos[id] = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ label, data: valores, tension: 0.35, fill: true, borderWidth: 2 }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { title: { display: true, text: unidade } } }
+        }
+    });
+}
+
+async function atualizar() {
+    const [resumoResposta, leiturasResposta, statusResposta] = await Promise.all([
+        fetch('/api/resumo'),
+        fetch('/api/sensores'),
+        fetch('/api/status-iot')
+    ]);
+
+    if (![resumoResposta, leiturasResposta, statusResposta].every(r => r.ok)) {
+        throw new Error('Falha ao consultar o DHT11.');
+    }
+
+    const resumo = await resumoResposta.json();
+    const leituras = await leiturasResposta.json();
+    const status = await statusResposta.json();
+
+    document.getElementById('temperatura').textContent = `${resumo.temperatura ?? '--'} °C`;
+    document.getElementById('umidade').textContent = `${resumo.umidade ?? '--'} %`;
+    document.getElementById('device').textContent = resumo.device_id || 'Aguardando...';
+    document.getElementById('ultima-leitura').textContent = resumo.ultima_leitura || '--';
+
+    const normal = statusTemperatura(resumo.temperatura);
+    const badge = document.getElementById('badge-temperatura');
+    badge.textContent = resumo.temperatura == null ? 'SEM LEITURA' : (normal ? 'NORMAL' : 'ALERTA');
+    badge.className = `badge rounded-pill ${resumo.temperatura == null ? 'bg-secondary-subtle text-secondary' : (normal ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger')}`;
+
+    document.getElementById('status-dot').className = `rounded-circle ${status.mqtt ? 'bg-success' : 'bg-danger'}`;
+    document.getElementById('status-text').textContent = status.mqtt ? 'MQTT conectado' : 'MQTT desconectado';
+
+    const historico = leituras.slice().reverse();
+    grafico('graficoTemperatura', 'Temperatura', historico.map(x => hora(x.timestamp)), historico.map(x => Number(x.temperatura)), '°C');
+    grafico('graficoUmidade', 'Umidade', historico.map(x => hora(x.timestamp)), historico.map(x => Number(x.umidade)), '%');
+
+    const tabela = document.getElementById('tabelaDht');
+    tabela.innerHTML = leituras.length ? leituras.slice(0, 20).map(item => {
+        const normalLinha = statusTemperatura(item.temperatura);
+        return `
+            <tr>
+                <td>${hora(item.timestamp)}</td>
+                <td>${item.device_id || '--'}</td>
+                <td>${item.temperatura ?? '--'} °C</td>
+                <td>${item.umidade ?? '--'} %</td>
+                <td><span class="badge ${normalLinha ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} rounded-pill">${normalLinha ? 'NORMAL' : 'ALERTA'}</span></td>
+            </tr>`;
+    }).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">Nenhuma leitura do DHT11 registrada.</td></tr>';
+}
+
+atualizar().catch(console.error);
+setInterval(() => atualizar().catch(console.error), INTERVALO);
+</script>
+{% endblock %}

@@ -1,0 +1,8 @@
+[
+  {
+    "device_id": "esp32-01",
+    "sensor": "DHT11",
+    "temperatura": 24.5,
+    "umidade": 58.2
+  }
+]
