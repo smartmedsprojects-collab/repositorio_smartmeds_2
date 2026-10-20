@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, jsonify, render_template, request, redirect, session, url_for, flash
 from core.database import Database
 from models.item_saida import ItemSaida
 from models.localizacao import Localizacao
@@ -12,10 +12,41 @@ from models.usuario import Usuario
 from core.permissoes import permissao_obrigatoria
 from models.item_entrada import ItemEntrada
 from core.security import login_obrigatorio
+from config import MQTT_BROKER, MQTT_TOPIC, SENSOR_TEMP_MIN, SENSOR_TEMP_MAX
+from iot.sensor_leitura import SensorLeitura
+from iot.mqtt_manager import mqtt_manager
+import atexit
+import threading
 import traceback
 
 app = Flask(__name__)
 app.secret_key = "chave_secreta"
+
+_iot_lock = threading.Lock()
+_iot_tentado = False
+
+
+def iniciar_integracao_iot():
+    global _iot_tentado
+    if _iot_tentado:
+        return
+    with _iot_lock:
+        if _iot_tentado:
+            return
+        try:
+            SensorLeitura.criar_tabela()
+            mqtt_manager.start()
+            _iot_tentado = True
+        except Exception as erro:
+            print(f"Aviso: integração IoT indisponível: {erro}")
+
+
+@app.before_request
+def preparar_iot():
+    iniciar_integracao_iot()
+
+
+atexit.register(mqtt_manager.stop)
 
 
 @app.route("/")
@@ -42,32 +73,46 @@ def dashboard():
 
     hoje = date.today()
     limite_validade = hoje + timedelta(days=DIAS_ALERTA_VALIDADE)
-
     produtos_baixo = [
         p for p in produtos if int(p.get("quantidade") or 0) <= LIMITE_ESTOQUE_BAIXO
     ]
-
     produtos_vencendo = [
-        p
-        for p in produtos
+        p for p in produtos
         if p.get("data_de_validade")
         and hoje <= p["data_de_validade"] <= limite_validade
     ]
 
     entradas = sum(
-        1
-        for m in movimentacoes
-        if (m.get("tipo") or "").upper() == "ENTRADA"
+        1 for m in movimentacoes
+        if (m.get("tipo") or m.get("tipo_movimentacao") or "").upper() == "ENTRADA"
     )
     saidas = sum(
-        1
-        for m in movimentacoes
-        if (m.get("tipo") or "").upper() == "SAIDA"
+        1 for m in movimentacoes
+        if (m.get("tipo") or m.get("tipo_movimentacao") or "").upper() in {"SAIDA", "SAÍDA"}
     )
 
     produtos_ordenados = sorted(
         produtos, key=lambda p: int(p.get("quantidade") or 0), reverse=True
     )[:8]
+
+    try:
+        sensores = SensorLeitura.dispositivos_temperatura()
+    except Exception as erro:
+        print(f"Erro ao carregar sensores no dashboard: {erro}")
+        sensores = []
+
+    for sensor in sensores:
+        temperatura = sensor.get("temperatura")
+        sensor["temp_min"] = SENSOR_TEMP_MIN
+        sensor["temp_max"] = SENSOR_TEMP_MAX
+        sensor["status"] = (
+            "critico"
+            if temperatura is not None and (temperatura < SENSOR_TEMP_MIN or temperatura > SENSOR_TEMP_MAX)
+            else "normal"
+        )
+        sensor["produtos_armazenados"] = 0
+
+    alertas_temperatura = [s for s in sensores if s["status"] == "critico"]
 
     return render_template(
         "index.html",
@@ -81,6 +126,9 @@ def dashboard():
         movimentacoes_recentes=movimentacoes[:6],
         labels_estoque=[p["nome"] for p in produtos_ordenados],
         quantidades_estoque=[int(p.get("quantidade") or 0) for p in produtos_ordenados],
+        sensores_temperatura=sensores,
+        alertas_temperatura=alertas_temperatura,
+        iot_conectado=mqtt_manager.conectado,
     )
 
 
@@ -1249,6 +1297,66 @@ def gerar_nota_fiscal_saida(id):
         print("ERRO AO GERAR NOTA FISCAL:", e)
         flash("Erro ao gerar Nota Fiscal.", "erro")
         return redirect(url_for("buscar_pedido_saida", id=id))
+
+
+# (Sensor IoT - DHT11)================================================================================
+@app.route("/sensores")
+@login_obrigatorio
+def pagina_sensores():
+    return render_template(
+        "sensores.html",
+        resumo=SensorLeitura.resumo(),
+        conectado=mqtt_manager.conectado,
+        temperatura_min=SENSOR_TEMP_MIN,
+        temperatura_max=SENSOR_TEMP_MAX,
+    )
+
+
+@app.route("/api/resumo")
+@login_obrigatorio
+def api_resumo_sensor():
+    resumo = SensorLeitura.resumo()
+    resumo["mqtt_conectado"] = mqtt_manager.conectado
+    return jsonify(resumo)
+
+
+@app.route("/api/leituras")
+@login_obrigatorio
+def api_leituras_sensor():
+    try:
+        limite = int(request.args.get("limite", 100))
+    except (TypeError, ValueError):
+        limite = 100
+
+    resultado = SensorLeitura.listar(
+        device_id=request.args.get("device_id"),
+        sensor="DHT11",
+        limite=limite,
+    )
+    return jsonify({"sensor": "DHT11", "quantidade": len(resultado), "leituras": resultado})
+
+
+@app.route("/api/sensores")
+@login_obrigatorio
+def api_dht11():
+    return jsonify(SensorLeitura.listar(sensor="DHT11", limite=100))
+
+
+@app.route("/api/sensores/dht11")
+@login_obrigatorio
+def api_dht11_detalhado():
+    return jsonify({"sensor": "DHT11", "leituras": SensorLeitura.listar(sensor="DHT11")})
+
+
+@app.route("/api/status-iot")
+@login_obrigatorio
+def api_status_iot():
+    return jsonify({
+        "mqtt": mqtt_manager.conectado,
+        "sensor": "DHT11",
+        "broker": MQTT_BROKER,
+        "topic": MQTT_TOPIC,
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)

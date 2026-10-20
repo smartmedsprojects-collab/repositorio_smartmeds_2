@@ -140,77 +140,6 @@ export default function ProductsScreen() {
 
 
   // ==============================
-  // REGISTRAR SAÍDA
-  // ==============================
-
-  const registrarSaida = async (item) => {
-
-    const quantidade =
-      quantidades[item.id] || 1;
-
-    const estoqueAtual =
-      Number(item.quantidade) || 0;
-
-
-    // Evita tentar retirar mais que o estoque
-    if (quantidade > estoqueAtual) {
-
-      Alert.alert(
-        'Estoque insuficiente',
-        `O estoque atual é de ${estoqueAtual} unidade(s).`
-      );
-
-      return;
-
-    }
-
-
-    try {
-
-      const response = await api.post(
-        '/saidas',
-        {
-          produto_id: item.id,
-          quantidade: quantidade,
-        }
-      );
-
-      console.log(
-        'Saída registrada:',
-        response.data
-      );
-
-      Alert.alert(
-        'Saída registrada',
-        `${quantidade} unidade(s) retirada(s) do estoque.`
-      );
-
-      await loadProducts();
-
-      setQuantidades((prev) => ({
-        ...prev,
-        [item.id]: 1,
-      }));
-
-    } catch (error) {
-
-      console.log(
-        'Erro na saída:',
-        error.response?.data || error.message
-      );
-
-      Alert.alert(
-        'Erro',
-        error.response?.data?.message ||
-          'Não foi possível registrar a saída.'
-      );
-
-    }
-
-  };
-
-
-  // ==============================
   // FILTRO
   // ==============================
 
@@ -400,9 +329,7 @@ export default function ProductsScreen() {
             />
 
             <Text style={styles.secondaryText}>
-
               Código #{item.id}
-
             </Text>
 
           </View>
@@ -430,7 +357,7 @@ export default function ProductsScreen() {
 
 
         {/* ============================== */}
-        {/* CONTROLE DE ENTRADA / SAÍDA */}
+        {/* CONTROLE DE ENTRADA */}
         {/* ============================== */}
 
         <View style={styles.movementContainer}>
@@ -459,9 +386,7 @@ export default function ProductsScreen() {
 
 
             <Text style={styles.quantityText}>
-
               {quantidades[item.id] || 1}
-
             </Text>
 
 
@@ -503,28 +428,6 @@ export default function ProductsScreen() {
 
             <Text style={styles.entryButtonText}>
               Entrada
-            </Text>
-
-          </TouchableOpacity>
-
-
-          {/* SAÍDA */}
-
-          <TouchableOpacity
-            style={styles.exitButton}
-            onPress={() =>
-              registrarSaida(item)
-            }
-          >
-
-            <Ionicons
-              name="arrow-up"
-              size={17}
-              color="#ffffff"
-            />
-
-            <Text style={styles.exitButtonText}>
-              Saída
             </Text>
 
           </TouchableOpacity>
@@ -1110,7 +1013,7 @@ const styles = StyleSheet.create({
 
 
   // ==============================
-  // ENTRADA / SAÍDA
+  // CONTROLE DE ENTRADA
   // ==============================
 
   movementContainer: {
@@ -1201,38 +1104,6 @@ const styles = StyleSheet.create({
 
 
   entryButtonText: {
-
-    color: '#ffffff',
-
-    fontSize: 13,
-
-    fontWeight: '700',
-
-  },
-
-
-  exitButton: {
-
-    flex: 1,
-
-    height: 42,
-
-    borderRadius: 12,
-
-    backgroundColor: '#d64545',
-
-    flexDirection: 'row',
-
-    alignItems: 'center',
-
-    justifyContent: 'center',
-
-    gap: 6,
-
-  },
-
-
-  exitButtonText: {
 
     color: '#ffffff',
 

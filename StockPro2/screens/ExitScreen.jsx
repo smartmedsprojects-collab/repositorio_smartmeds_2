@@ -1,202 +1,1208 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+
 import api from '../src/services/api';
 
-export default function ExitScreen({ navigation }) {
-  const [product, setProduct] = useState(null);
-  const [quantity, setQuantity] = useState('');
 
-  useEffect(() => {
-    api.get('/products/1').then(res => setProduct(res.data)).catch(console.log);
-  }, []);
+export default function ProductsScreen() {
 
-  const handleConfirmExit = async () => {
-    const qtyNum = Number(quantity);
-    if (!quantity || isNaN(qtyNum) || qtyNum <= 0) {
-      Alert.alert('Erro', 'Insira uma quantidade válida.');
-      return;
-    }
+  const [search, setSearch] = useState('');
+  const [products, setProducts] = useState([]);
+  const [quantidades, setQuantidades] = useState({});
 
-    if (product && qtyNum > product.stock) {
-      Alert.alert('Erro', 'Quantidade solicitada é maior que o estoque atual.');
-      return;
-    }
+
+  // ==============================
+  // BUSCAR PRODUTOS
+  // ==============================
+
+  const loadProducts = async () => {
 
     try {
-      await api.post('/stock/move', {
-        productId: product.id,
-        type: 'Saída',
-        quantity: qtyNum,
-      });
 
-      Alert.alert('Sucesso', 'Saída realizada com sucesso!', [
-        { text: 'OK', onPress: () => navigation.navigate('Home') },
-      ]);
+      const response = await api.get('/produtos');
+
+      console.log('Produtos recebidos:', response.data);
+
+      setProducts(response.data);
+
     } catch (error) {
-      Alert.alert('Erro', error.response?.data?.message || 'Erro ao registrar saída.');
+
+      console.log(
+        'Erro ao buscar produtos:',
+        error.response?.data || error.message
+      );
+
+      Alert.alert(
+        'Erro',
+        'Não foi possível carregar os produtos.'
+      );
+
     }
+
   };
 
-  const remainingStock = (product?.stock || 0) - Number(quantity || 0);
 
-  return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Saída de Estoque</Text>
+  useFocusEffect(
 
-      <TouchableOpacity style={styles.qrButton}>
-        <Ionicons name="qr-code-outline" size={28} color="#FFFFFF" />
-        <Text style={styles.qrText}>Escanear Produto</Text>
-      </TouchableOpacity>
+    useCallback(() => {
 
-      {product && (
-        <View style={styles.productCard}>
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.stock}>Estoque Atual: {product.stock}</Text>
+      loadProducts();
+
+    }, [])
+
+  );
+
+
+  // ==============================
+  // ALTERAR QUANTIDADE
+  // ==============================
+
+  const alterarQuantidade = (id, valor) => {
+
+    setQuantidades((prev) => {
+
+      const quantidadeAtual = prev[id] || 1;
+
+      const novaQuantidade =
+        quantidadeAtual + valor;
+
+      return {
+        ...prev,
+        [id]: Math.max(1, novaQuantidade),
+      };
+
+    });
+
+  };
+
+
+  // ==============================
+  // REGISTRAR SAÍDA
+  // ==============================
+
+  const registrarSaida = async (item) => {
+
+    const quantidade =
+      Number(quantidades[item.id]) || 1;
+
+    const estoqueAtual =
+      Number(item.quantidade) || 0;
+
+
+    // ==============================
+    // VERIFICAR ESTOQUE
+    // ==============================
+
+    if (quantidade > estoqueAtual) {
+
+      Alert.alert(
+        'Estoque insuficiente',
+        `O estoque atual é de ${estoqueAtual} unidade(s).`
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      const response = await api.post(
+        '/saidas',
+        {
+          produto_id: item.id,
+          quantidade: quantidade,
+        }
+      );
+
+
+      console.log(
+        'Saída registrada:',
+        response.data
+      );
+
+
+      Alert.alert(
+        'Saída registrada',
+        `${quantidade} unidade(s) retirada(s) do estoque.`
+      );
+
+
+      // Atualiza os produtos depois da saída
+      await loadProducts();
+
+
+      // Volta a quantidade para 1
+      setQuantidades((prev) => ({
+        ...prev,
+        [item.id]: 1,
+      }));
+
+
+    } catch (error) {
+
+      console.log(
+        'Erro na saída:',
+        error.response?.data || error.message
+      );
+
+
+      Alert.alert(
+        'Erro',
+        error.response?.data?.message ||
+          'Não foi possível registrar a saída.'
+      );
+
+    }
+
+  };
+
+
+  // ==============================
+  // FILTRO
+  // ==============================
+
+  const filteredProducts = products.filter((item) => {
+
+    const nome =
+      String(item.nome || '').toLowerCase();
+
+    const marca =
+      String(item.marca || '').toLowerCase();
+
+    const textoPesquisa =
+      search.toLowerCase();
+
+    return (
+      nome.includes(textoPesquisa) ||
+      marca.includes(textoPesquisa)
+    );
+
+  });
+
+
+  // ==============================
+  // CARD DO PRODUTO
+  // ==============================
+
+  const renderProduct = ({ item }) => {
+
+    const quantidade =
+      Number(item.quantidade) || 0;
+
+    const estoqueBaixo =
+      quantidade <= 5;
+
+
+    return (
+
+      <View style={styles.card}>
+
+        {/* CABEÇALHO DO CARD */}
+
+        <View style={styles.cardHeader}>
+
+          <View style={styles.titleContainer}>
+
+            <Text
+              style={styles.productName}
+              numberOfLines={1}
+            >
+              {item.nome}
+            </Text>
+
+
+            <Text
+              style={styles.brand}
+              numberOfLines={1}
+            >
+              {item.marca || 'Marca não informada'}
+            </Text>
+
+          </View>
+
+
+          {/* STATUS */}
+
+          <View
+            style={[
+              styles.statusBadge,
+              estoqueBaixo
+                ? styles.lowStockBadge
+                : styles.availableBadge,
+            ]}
+          >
+
+            <View
+              style={[
+                styles.statusDot,
+                estoqueBaixo
+                  ? styles.lowStockDot
+                  : styles.availableDot,
+              ]}
+            />
+
+
+            <Text
+              style={[
+                styles.statusText,
+                estoqueBaixo
+                  ? styles.lowStockText
+                  : styles.availableText,
+              ]}
+            >
+              {estoqueBaixo
+                ? 'Estoque baixo'
+                : 'Disponível'}
+            </Text>
+
+          </View>
+
         </View>
-      )}
 
-      <Text style={styles.label}>Quantidade de Saída</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Digite a quantidade"
-        placeholderTextColor="#8FA0B3"
-        keyboardType="numeric"
-        value={quantity}
-        onChangeText={setQuantity}
-      />
+        {/* LINHA DIVISÓRIA */}
 
-      <View style={styles.resultCard}>
-        <Text style={styles.resultText}>Estoque Restante</Text>
-        <Text style={styles.resultValue}>
-          {remainingStock < 0 ? 0 : remainingStock}
-        </Text>
+        <View style={styles.divider} />
+
+
+        {/* INFORMAÇÕES */}
+
+        <View style={styles.infoGrid}>
+
+          {/* ESTOQUE */}
+
+          <View style={styles.infoItem}>
+
+            <View style={styles.iconBox}>
+
+              <Ionicons
+                name="cube-outline"
+                size={19}
+                color="#1a6fa8"
+              />
+
+            </View>
+
+
+            <View>
+
+              <Text style={styles.infoLabel}>
+                Estoque
+              </Text>
+
+
+              <Text style={styles.infoValue}>
+                {quantidade}{' '}
+                {item.unidade_medida || ''}
+              </Text>
+
+            </View>
+
+          </View>
+
+
+          {/* VALIDADE */}
+
+          <View style={styles.infoItem}>
+
+            <View style={styles.iconBox}>
+
+              <Ionicons
+                name="calendar-outline"
+                size={19}
+                color="#1a6fa8"
+              />
+
+            </View>
+
+
+            <View>
+
+              <Text style={styles.infoLabel}>
+                Validade
+              </Text>
+
+
+              <Text style={styles.infoValue}>
+
+                {item.data_de_validade
+                  ? new Date(
+                      item.data_de_validade
+                    ).toLocaleDateString('pt-BR')
+                  : 'Não informada'}
+
+              </Text>
+
+            </View>
+
+          </View>
+
+        </View>
+
+
+        {/* SEGUNDA LINHA */}
+
+        <View style={styles.secondaryInfo}>
+
+          <View style={styles.secondaryItem}>
+
+            <Ionicons
+              name="barcode-outline"
+              size={17}
+              color="#718096"
+            />
+
+            <Text style={styles.secondaryText}>
+              Código #{item.id}
+            </Text>
+
+          </View>
+
+
+          <View style={styles.secondaryItem}>
+
+            <Ionicons
+              name="cube-outline"
+              size={17}
+              color="#718096"
+            />
+
+            <Text
+              style={styles.secondaryText}
+              numberOfLines={1}
+            >
+              {item.especificacao ||
+                'Sem especificação'}
+            </Text>
+
+          </View>
+
+        </View>
+
+
+        {/* ============================== */}
+        {/* CONTROLE DE SAÍDA */}
+        {/* ============================== */}
+
+        <View style={styles.movementContainer}>
+
+          {/* QUANTIDADE */}
+
+          <View style={styles.quantityControl}>
+
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() =>
+                alterarQuantidade(
+                  item.id,
+                  -1
+                )
+              }
+            >
+
+              <Ionicons
+                name="remove"
+                size={18}
+                color="#1a6fa8"
+              />
+
+            </TouchableOpacity>
+
+
+            <Text style={styles.quantityText}>
+              {quantidades[item.id] || 1}
+            </Text>
+
+
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() =>
+                alterarQuantidade(
+                  item.id,
+                  1
+                )
+              }
+            >
+
+              <Ionicons
+                name="add"
+                size={18}
+                color="#1a6fa8"
+              />
+
+            </TouchableOpacity>
+
+          </View>
+
+
+          {/* BOTÃO SAÍDA */}
+
+          <TouchableOpacity
+            style={styles.exitButton}
+            onPress={() =>
+              registrarSaida(item)
+            }
+          >
+
+            <Ionicons
+              name="arrow-up"
+              size={17}
+              color="#ffffff"
+            />
+
+            <Text style={styles.exitButtonText}>
+              Saída
+            </Text>
+
+          </TouchableOpacity>
+
+        </View>
+
       </View>
 
-      <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmExit}>
-        <Ionicons name="remove-circle" size={24} color="#FFFFFF" />
-        <Text style={styles.confirmText}>Confirmar Saída</Text>
-      </TouchableOpacity>
-    </ScrollView>
+    );
+
+  };
+
+
+  // ==============================
+  // TELA
+  // ==============================
+
+  return (
+
+    <View style={styles.container}>
+
+      {/* CABEÇALHO */}
+
+      <View style={styles.header}>
+
+        <View>
+
+          <Text style={styles.title}>
+            Saída
+          </Text>
+
+
+          <Text style={styles.subtitle}>
+            Registre a saída dos produtos do estoque
+          </Text>
+
+        </View>
+
+
+        <View style={styles.counter}>
+
+          <Text style={styles.counterNumber}>
+            {products.length}
+          </Text>
+
+
+          <Text style={styles.counterLabel}>
+            itens
+          </Text>
+
+        </View>
+
+      </View>
+
+
+      {/* PESQUISA */}
+
+      <View style={styles.searchContainer}>
+
+        <Ionicons
+          name="search-outline"
+          size={21}
+          color="#718096"
+        />
+
+
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Pesquisar por nome ou marca..."
+          placeholderTextColor="#9aa8b7"
+          value={search}
+          onChangeText={setSearch}
+        />
+
+
+        {search.length > 0 && (
+
+          <TouchableOpacity
+            onPress={() =>
+              setSearch('')
+            }
+          >
+
+            <Ionicons
+              name="close-circle"
+              size={20}
+              color="#9aa8b7"
+            />
+
+          </TouchableOpacity>
+
+        )}
+
+      </View>
+
+
+      {/* LISTA */}
+
+      <FlatList
+
+        data={filteredProducts}
+
+        keyExtractor={(item) =>
+          item.id.toString()
+        }
+
+        renderItem={renderProduct}
+
+        showsVerticalScrollIndicator={false}
+
+        contentContainerStyle={
+          styles.listContent
+        }
+
+
+        ListEmptyComponent={
+
+          <View style={styles.emptyContainer}>
+
+            <Ionicons
+              name="cube-outline"
+              size={52}
+              color="#a5b3c1"
+            />
+
+
+            <Text style={styles.emptyTitle}>
+              Nenhum produto encontrado
+            </Text>
+
+
+            <Text style={styles.emptyText}>
+
+              {search
+                ? 'Tente pesquisar por outro nome ou marca.'
+                : 'Não existem produtos cadastrados.'}
+
+            </Text>
+
+          </View>
+
+        }
+
+      />
+
+    </View>
+
   );
+
 }
 
+
+// =====================================================
+// ESTILOS
+// =====================================================
+
 const styles = StyleSheet.create({
-  // Fundo principal: --fundo
+
   container: {
+
     flex: 1,
-    backgroundColor: '#F4F7FA',
-    padding: 20,
+
+    backgroundColor: '#f5f7fa',
+
+    paddingHorizontal: 20,
+
   },
 
-  // Texto principal: --texto
-  title: {
-    color: '#1A2332',
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginTop: 50,
-    marginBottom: 30,
-  },
 
-  // Ação principal usando azul médico
-  qrButton: {
-    backgroundColor: '#1A6FA8',
-    height: 70,
-    borderRadius: 22,
+  // ==============================
+  // CABEÇALHO
+  // ==============================
+
+  header: {
+
+    marginTop: 55,
+
+    marginBottom: 22,
+
     flexDirection: 'row',
-    justifyContent: 'center',
+
+    justifyContent: 'space-between',
+
     alignItems: 'center',
-    gap: 10,
+
   },
 
-  qrText: {
-    color: '#FFFFFF',
+
+  title: {
+
+    fontSize: 31,
+
+    fontWeight: '800',
+
+    color: '#17212b',
+
+  },
+
+
+  subtitle: {
+
+    fontSize: 14,
+
+    color: '#718096',
+
+    marginTop: 5,
+
+  },
+
+
+  counter: {
+
+    backgroundColor: '#e8f2f8',
+
+    borderRadius: 14,
+
+    paddingHorizontal: 14,
+
+    paddingVertical: 9,
+
+    alignItems: 'center',
+
+    minWidth: 58,
+
+  },
+
+
+  counterNumber: {
+
     fontSize: 18,
-    fontWeight: 'bold',
+
+    fontWeight: '800',
+
+    color: '#1a6fa8',
+
   },
 
-  // Card branco clínico
-  productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 25,
-    marginTop: 30,
-    borderWidth: 1,
-    borderColor: '#D8E3ED',
+
+  counterLabel: {
+
+    fontSize: 11,
+
+    color: '#718096',
+
+    marginTop: 1,
+
   },
+
+
+  // ==============================
+  // PESQUISA
+  // ==============================
+
+  searchContainer: {
+
+    height: 56,
+
+    backgroundColor: '#ffffff',
+
+    borderRadius: 16,
+
+    borderWidth: 1,
+
+    borderColor: '#e0e6ec',
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    paddingHorizontal: 16,
+
+    marginBottom: 18,
+
+  },
+
+
+  searchInput: {
+
+    flex: 1,
+
+    marginLeft: 10,
+
+    marginRight: 8,
+
+    color: '#17212b',
+
+    fontSize: 15,
+
+  },
+
+
+  // ==============================
+  // LISTA
+  // ==============================
+
+  listContent: {
+
+    paddingBottom: 40,
+
+  },
+
+
+  // ==============================
+  // CARD
+  // ==============================
+
+  card: {
+
+    backgroundColor: '#ffffff',
+
+    borderRadius: 20,
+
+    borderWidth: 1,
+
+    borderColor: '#e1e7ed',
+
+    padding: 18,
+
+    marginBottom: 14,
+
+    shadowColor: '#000',
+
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
+    shadowOpacity: 0.04,
+
+    shadowRadius: 5,
+
+    elevation: 2,
+
+  },
+
+
+  // ==============================
+  // CABEÇALHO CARD
+  // ==============================
+
+  cardHeader: {
+
+    flexDirection: 'row',
+
+    justifyContent: 'space-between',
+
+    alignItems: 'flex-start',
+
+  },
+
+
+  titleContainer: {
+
+    flex: 1,
+
+    paddingRight: 10,
+
+  },
+
 
   productName: {
-    color: '#1A2332',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
 
-  // Verde saúde
-  stock: {
-    color: '#1A9E72',
-    marginTop: 10,
-    fontWeight: 'bold',
-  },
+    color: '#17212b',
 
-  label: {
-    color: '#1A2332',
     fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 35,
-    marginBottom: 15,
+
+    fontWeight: '700',
+
   },
 
-  // Campo de entrada
-  input: {
-    backgroundColor: '#EDF1F5',
-    height: 65,
-    borderRadius: 18,
-    paddingHorizontal: 20,
-    color: '#1A2332',
-    fontSize: 18,
-    borderWidth: 1.5,
-    borderColor: '#D8E3ED',
+
+  brand: {
+
+    color: '#718096',
+
+    fontSize: 14,
+
+    marginTop: 4,
+
   },
 
-  // Alerta suave usando --vermelho-claro
-  resultCard: {
-    backgroundColor: '#FDECEA',
-    borderRadius: 22,
-    padding: 25,
-    marginTop: 30,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F3C8C5',
-  },
 
-  resultText: {
-    color: '#8B1A1A',
-    fontSize: 16,
-  },
+  // ==============================
+  // STATUS
+  // ==============================
 
-  resultValue: {
-    color: '#D94040',
-    fontSize: 40,
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
+  statusBadge: {
 
-  // Ação de saída usando vermelho clínico
-  confirmButton: {
-    backgroundColor: '#D94040',
-    height: 65,
-    borderRadius: 22,
-    marginTop: 35,
     flexDirection: 'row',
-    justifyContent: 'center',
+
     alignItems: 'center',
-    gap: 10,
+
+    borderRadius: 20,
+
+    paddingHorizontal: 10,
+
+    paddingVertical: 7,
+
   },
 
-  confirmText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+
+  availableBadge: {
+
+    backgroundColor: '#e8f7f1',
+
   },
+
+
+  lowStockBadge: {
+
+    backgroundColor: '#fff1f0',
+
+  },
+
+
+  statusDot: {
+
+    width: 7,
+
+    height: 7,
+
+    borderRadius: 4,
+
+    marginRight: 6,
+
+  },
+
+
+  availableDot: {
+
+    backgroundColor: '#1a9e72',
+
+  },
+
+
+  lowStockDot: {
+
+    backgroundColor: '#d64545',
+
+  },
+
+
+  statusText: {
+
+    fontSize: 11,
+
+    fontWeight: '700',
+
+  },
+
+
+  availableText: {
+
+    color: '#167154',
+
+  },
+
+
+  lowStockText: {
+
+    color: '#b33434',
+
+  },
+
+
+  // ==============================
+  // DIVISÓRIA
+  // ==============================
+
+  divider: {
+
+    height: 1,
+
+    backgroundColor: '#edf0f3',
+
+    marginVertical: 16,
+
+  },
+
+
+  // ==============================
+  // INFORMAÇÕES
+  // ==============================
+
+  infoGrid: {
+
+    flexDirection: 'row',
+
+    gap: 12,
+
+  },
+
+
+  infoItem: {
+
+    flex: 1,
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    backgroundColor: '#f7f9fb',
+
+    borderRadius: 13,
+
+    padding: 11,
+
+  },
+
+
+  iconBox: {
+
+    width: 34,
+
+    height: 34,
+
+    borderRadius: 10,
+
+    backgroundColor: '#e8f2f8',
+
+    justifyContent: 'center',
+
+    alignItems: 'center',
+
+    marginRight: 9,
+
+  },
+
+
+  infoLabel: {
+
+    color: '#8996a4',
+
+    fontSize: 11,
+
+    marginBottom: 2,
+
+  },
+
+
+  infoValue: {
+
+    color: '#273444',
+
+    fontSize: 13,
+
+    fontWeight: '700',
+
+  },
+
+
+  // ==============================
+  // INFORMAÇÕES SECUNDÁRIAS
+  // ==============================
+
+  secondaryInfo: {
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    marginTop: 14,
+
+    gap: 15,
+
+  },
+
+
+  secondaryItem: {
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    flex: 1,
+
+  },
+
+
+  secondaryText: {
+
+    color: '#718096',
+
+    fontSize: 12,
+
+    marginLeft: 6,
+
+  },
+
+
+  // ==============================
+  // CONTROLE DE SAÍDA
+  // ==============================
+
+  movementContainer: {
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    marginTop: 16,
+
+    paddingTop: 15,
+
+    borderTopWidth: 1,
+
+    borderTopColor: '#edf0f3',
+
+    gap: 8,
+
+  },
+
+
+  quantityControl: {
+
+    height: 42,
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    backgroundColor: '#f4f7fa',
+
+    borderRadius: 12,
+
+    borderWidth: 1,
+
+    borderColor: '#e1e7ed',
+
+  },
+
+
+  quantityButton: {
+
+    width: 36,
+
+    height: 40,
+
+    justifyContent: 'center',
+
+    alignItems: 'center',
+
+  },
+
+
+  quantityText: {
+
+    minWidth: 28,
+
+    textAlign: 'center',
+
+    fontSize: 15,
+
+    fontWeight: '700',
+
+    color: '#273444',
+
+  },
+
+
+  // ==============================
+  // BOTÃO SAÍDA
+  // ==============================
+
+  exitButton: {
+
+    flex: 1,
+
+    height: 42,
+
+    borderRadius: 12,
+
+    backgroundColor: '#d64545',
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    justifyContent: 'center',
+
+    gap: 6,
+
+  },
+
+
+  exitButtonText: {
+
+    color: '#ffffff',
+
+    fontSize: 13,
+
+    fontWeight: '700',
+
+  },
+
+
+  // ==============================
+  // VAZIO
+  // ==============================
+
+  emptyContainer: {
+
+    alignItems: 'center',
+
+    justifyContent: 'center',
+
+    paddingTop: 80,
+
+    paddingHorizontal: 30,
+
+  },
+
+
+  emptyTitle: {
+
+    color: '#273444',
+
+    fontSize: 19,
+
+    fontWeight: '700',
+
+    marginTop: 15,
+
+  },
+
+
+  emptyText: {
+
+    color: '#8996a4',
+
+    fontSize: 14,
+
+    textAlign: 'center',
+
+    marginTop: 7,
+
+    lineHeight: 20,
+
+  },
+
 });
