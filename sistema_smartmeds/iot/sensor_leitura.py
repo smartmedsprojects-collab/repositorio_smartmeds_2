@@ -73,17 +73,14 @@ class SensorLeitura:
         if sensor and str(sensor).strip().upper() != SensorLeitura.SENSOR:
             return []
 
-        # Não use interpolação com o operador % nesta consulta: os formatos
-        # %Y, %m, %d etc. pertencem ao DATE_FORMAT do MySQL, não ao Python.
-        where_sql = " AND ".join(filtros)
-        sql = f"""
+        sql = """
             SELECT id, device_id, sensor, temperatura, umidade,
                    DATE_FORMAT(timestamp, '%Y-%m-%d %H:%i:%s') AS timestamp
             FROM sensor_leitura
-            WHERE {where_sql}
+            WHERE %s
             ORDER BY timestamp DESC, id DESC
-            LIMIT %s
-        """
+            LIMIT %%s
+        """ % " AND ".join(filtros)
         valores.append(limite)
 
         conexao = Database.connect()

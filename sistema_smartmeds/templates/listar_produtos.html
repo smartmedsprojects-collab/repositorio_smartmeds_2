@@ -273,7 +273,7 @@
                                 <form action="{{ url_for('excluir_produto', id=produto.id) }}" 
                                       method="POST" 
                                       class="d-inline" 
-                                      onsubmit="return confirm('Excluir este produto? As movimentações e os itens de entrada/saída vinculados a ele também serão removidos. Os dados gerais dos pedidos serão mantidos.');">
+                                      onsubmit="return confirm('Tem certeza que deseja excluir este produto?');">
                                     <button type="submit" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Excluir Produto">
                                         <i class="bi bi-trash"></i>
                                     </button>
