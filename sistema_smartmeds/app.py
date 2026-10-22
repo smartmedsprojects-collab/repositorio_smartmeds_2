@@ -655,14 +655,30 @@ def excluir_produto(id):
             return redirect(url_for("listar_produtos"))
 
         if hasattr(Produto, "safe_delete"):
-            Produto.safe_delete(id)
+            resultado = Produto.safe_delete(id)
         else:
             Produto.delete(id)
+            resultado = {}
 
-        flash("Produto excluído com sucesso.", "sucesso")
-    except Exception as e:
-        print(f"Erro ao excluir produto: {e}")
-        flash("Erro ao excluir produto.", "erro")
+        itens_entrada = int(resultado.get("itens_entrada_excluidos", 0)) if isinstance(resultado, dict) else 0
+        itens_saida = int(resultado.get("itens_saida_excluidos", 0)) if isinstance(resultado, dict) else 0
+        if itens_entrada or itens_saida:
+            flash(
+                "Produto excluído. Também foram removidos "
+                f"{itens_entrada} item(ns) de entrada e {itens_saida} item(ns) de saída "
+                "vinculados a ele; os dados gerais dos pedidos foram mantidos.",
+                "sucesso",
+            )
+        else:
+            flash("Produto excluído com sucesso.", "sucesso")
+    except ValueError as e:
+        flash(str(e), "erro")
+    except Exception:
+        app.logger.exception("Falha ao excluir produto (produto_id=%s)", id)
+        flash(
+            "Não foi possível excluir o produto. O erro detalhado foi registrado no terminal.",
+            "erro",
+        )
 
     return redirect(url_for("listar_produtos"))
 
@@ -857,16 +873,20 @@ def excluir_pedido_entrada(id):
             flash("Pedido de entrada não encontrado ou acesso negado.", "erro")
             return redirect(url_for("listar_pedido_entrada"))
 
-        if hasattr(PedidoEntrada, "safe_delete"):
-            PedidoEntrada.safe_delete(id, usuario_id=user_id)
-        else:
-            PedidoEntrada.delete(id, usuario_id=user_id)
-
+        PedidoEntrada.safe_delete(id, usuario_id=user_id)
         flash("Pedido de entrada excluído com sucesso.", "sucesso")
     except ValueError as e:
         flash(str(e), "erro")
-    except Exception as e:
-        flash("Erro ao excluir pedido de entrada.", "erro")
+    except Exception:
+        app.logger.exception(
+            "Falha ao excluir pedido de entrada (pedido_id=%s, usuario_id=%s)",
+            id,
+            user_id,
+        )
+        flash(
+            "Erro ao excluir pedido de entrada. Consulte o terminal para ver os detalhes.",
+            "erro",
+        )
     return redirect(url_for("listar_pedido_entrada"))
 
 

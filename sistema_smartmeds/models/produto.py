@@ -216,39 +216,70 @@ class Produto(CrudBase):
 
     @classmethod
     def safe_delete(cls, produto_id):
+        """Exclui o produto e os registros dependentes em uma única transação.
+
+        Os itens de entrada/saída que apontam para as movimentações do produto
+        são removidos primeiro para respeitar as chaves estrangeiras. Os
+        cabeçalhos dos pedidos são preservados.
+        """
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
-            sql_produto = """
-                SELECT id
-                FROM produto
-                WHERE id = %s
-            """
-            cursor.execute(sql_produto, (produto_id,))
+            cursor.execute(
+                "SELECT id FROM produto WHERE id = %s FOR UPDATE",
+                (produto_id,),
+            )
             produto = cursor.fetchone()
-
             if not produto:
                 raise ValueError("Produto não encontrado.")
 
-            sql_movimentacao = """
-                DELETE FROM movimentacao
-                WHERE produto_id = %s
-            """
-            cursor.execute(sql_movimentacao, (produto_id,))
-            movimentacoes_excluidas = cursor.rowcount
+            # Bloqueia e identifica as movimentações vinculadas ao produto.
+            cursor.execute(
+                "SELECT id FROM movimentacao WHERE produto_id = %s FOR UPDATE",
+                (produto_id,),
+            )
+            movimentacoes = cursor.fetchall()
+            ids_movimentacao = [int(linha[0]) for linha in movimentacoes]
 
-            sql_produto_delete = """
-                DELETE FROM produto
-                WHERE id = %s
-            """
-            cursor.execute(sql_produto_delete, (produto_id,))
+            itens_entrada_excluidos = 0
+            itens_saida_excluidos = 0
+            movimentacoes_excluidas = 0
+
+            if ids_movimentacao:
+                placeholders = ", ".join(["%s"] * len(ids_movimentacao))
+                parametros = tuple(ids_movimentacao)
+
+                # Primeiro exclui as linhas filhas; caso contrário, o MySQL
+                # impede a exclusão da movimentação (FK item_entrada/item_saida).
+                cursor.execute(
+                    f"DELETE FROM item_entrada WHERE movimentacao_id IN ({placeholders})",
+                    parametros,
+                )
+                itens_entrada_excluidos = cursor.rowcount
+
+                cursor.execute(
+                    f"DELETE FROM item_saida WHERE movimentacao_id IN ({placeholders})",
+                    parametros,
+                )
+                itens_saida_excluidos = cursor.rowcount
+
+                cursor.execute(
+                    "DELETE FROM movimentacao WHERE produto_id = %s",
+                    (produto_id,),
+                )
+                movimentacoes_excluidas = cursor.rowcount
+
+            cursor.execute("DELETE FROM produto WHERE id = %s", (produto_id,))
             produto_excluido = cursor.rowcount
+            if produto_excluido != 1:
+                raise ValueError("O produto não foi excluído. Atualize a página e tente novamente.")
 
             conexao.commit()
-
             return {
                 "produto_excluido": produto_excluido,
-                "movimentacoes_excluidas": movimentacoes_excluidas
+                "movimentacoes_excluidas": movimentacoes_excluidas,
+                "itens_entrada_excluidos": itens_entrada_excluidos,
+                "itens_saida_excluidos": itens_saida_excluidos,
             }
         except Exception:
             conexao.rollback()
