@@ -73,21 +73,27 @@ class SensorLeitura:
         if sensor and str(sensor).strip().upper() != SensorLeitura.SENSOR:
             return []
 
-        sql = """
-            SELECT id, device_id, sensor, temperatura, umidade,
-                   DATE_FORMAT(timestamp, '%Y-%m-%d %H:%i:%s') AS timestamp
+        # Não usar DATE_FORMAT com parâmetros: o %s da máscara de data pode ser
+        # interpretado pelo MySQL Connector como um marcador SQL adicional.
+        sql = f"""
+            SELECT id, device_id, sensor, temperatura, umidade, timestamp
             FROM sensor_leitura
-            WHERE %s
+            WHERE {" AND ".join(filtros)}
             ORDER BY timestamp DESC, id DESC
-            LIMIT %%s
-        """ % " AND ".join(filtros)
+            LIMIT %s
+        """
         valores.append(limite)
 
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
             cursor.execute(sql, tuple(valores))
-            return cursor.fetchall()
+            leituras = cursor.fetchall()
+            for leitura in leituras:
+                leitura["timestamp"] = SensorLeitura._formatar_data(
+                    leitura.get("timestamp")
+                )
+            return leituras
         finally:
             cursor.close()
             conexao.close()

@@ -15,6 +15,9 @@
         </div>
     </div>
 
+    <div id="erro-atualizacao" class="alert alert-warning d-none" role="alert"></div>
+    <p class="small text-muted mb-3">Tela atualizada às <span id="hora-atualizacao">--</span>. A consulta é repetida automaticamente a cada 30 segundos.</p>
+
     <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-4">
         <div class="col">
             <div class="dash-card card border-0 p-4 h-100">
@@ -129,9 +132,9 @@ function grafico(id, label, labels, valores, unidade) {
 
 async function atualizar() {
     const [resumoResposta, leiturasResposta, statusResposta] = await Promise.all([
-        fetch('/api/resumo'),
-        fetch('/api/sensores'),
-        fetch('/api/status-iot')
+        fetch('/api/resumo', { cache: 'no-store' }),
+        fetch('/api/sensores', { cache: 'no-store' }),
+        fetch('/api/status-iot', { cache: 'no-store' })
     ]);
 
     if (![resumoResposta, leiturasResposta, statusResposta].every(r => r.ok)) {
@@ -153,7 +156,18 @@ async function atualizar() {
     badge.className = `badge rounded-pill ${resumo.temperatura == null ? 'bg-secondary-subtle text-secondary' : (normal ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger')}`;
 
     document.getElementById('status-dot').className = `rounded-circle ${status.mqtt ? 'bg-success' : 'bg-danger'}`;
-    document.getElementById('status-text').textContent = status.mqtt ? 'MQTT conectado' : 'MQTT desconectado';
+    const instanteLeitura = resumo.ultima_leitura
+        ? new Date(resumo.ultima_leitura.replace(' ', 'T'))
+        : null;
+    const leituraRecente = instanteLeitura && !Number.isNaN(instanteLeitura.getTime())
+        && (Date.now() - instanteLeitura.getTime()) <= 90000;
+    document.getElementById('status-text').textContent = !status.mqtt
+        ? 'MQTT desconectado'
+        : (!resumo.ultima_leitura
+            ? 'MQTT conectado • aguardando primeira leitura'
+            : (leituraRecente
+                ? 'MQTT conectado • dados recentes'
+                : 'MQTT conectado • sem nova leitura há mais de 90 s'));
 
     const historico = leituras.slice().reverse();
     grafico('graficoTemperatura', 'Temperatura', historico.map(x => hora(x.timestamp)), historico.map(x => Number(x.temperatura)), '°C');
@@ -171,9 +185,23 @@ async function atualizar() {
                 <td><span class="badge ${normalLinha ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} rounded-pill">${normalLinha ? 'NORMAL' : 'ALERTA'}</span></td>
             </tr>`;
     }).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">Nenhuma leitura do DHT11 registrada.</td></tr>';
+
+    document.getElementById('hora-atualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('erro-atualizacao').classList.add('d-none');
 }
 
-atualizar().catch(console.error);
-setInterval(() => atualizar().catch(console.error), INTERVALO);
+async function atualizarComTratamento() {
+    try {
+        await atualizar();
+    } catch (erro) {
+        console.error('Falha ao atualizar as leituras do DHT11:', erro);
+        const aviso = document.getElementById('erro-atualizacao');
+        aviso.textContent = 'Não foi possível atualizar as leituras. Confira se o Flask e o banco estão funcionando; o detalhe do erro está no terminal do servidor.';
+        aviso.classList.remove('d-none');
+    }
+}
+
+atualizarComTratamento();
+setInterval(atualizarComTratamento, INTERVALO);
 </script>
 {% endblock %}

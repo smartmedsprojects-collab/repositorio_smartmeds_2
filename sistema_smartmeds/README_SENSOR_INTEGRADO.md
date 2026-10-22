@@ -37,3 +37,18 @@ A tabela `sensor_leitura` é criada automaticamente. Em instalações novas, ape
 pip install -r requeriments.txt
 python app.py
 ```
+
+## Atualização automática e envio físico
+
+A página `/sensores` consulta as APIs automaticamente a cada **30 segundos**. Ela só mostra leituras novas se o ESP32 publicar mensagens MQTT e o Flask as gravar em `sensor_leitura`.
+
+### Configurar o ESP32
+
+1. Abra `iot/esp32_dht11.py` no Thonny e envie esse arquivo ao ESP32 com MicroPython.
+2. Instale a biblioteca `umqtt.simple` no dispositivo caso ainda não exista.
+3. Preencha `WIFI_SSID` e `WIFI_PASSWORD`. A `MQTT_PASSWORD` do exemplo coincide com o valor padrão de `config.py`; se você alterou o valor em `config.py` ou na variável `SMARTMEDS_MQTT_PASSWORD`, atualize também a senha no ESP32.
+4. Confirme que `MQTT_BROKER`, `MQTT_PORT` e `MQTT_TOPIC` correspondem aos valores do SmartMeds.
+5. Execute o programa. No terminal serial devem aparecer `Wi-Fi conectado`, `Conectado ao HiveMQ` e `Leitura enviada` a cada 10 segundos.
+
+Não é necessário atualizar manualmente a página. Se ela continuar igual, confira se o horário da última leitura muda e se o terminal serial mostra `Leitura enviada`; estar com o Flask conectado ao HiveMQ, por si só, não garante que o ESP32 esteja publicando.
+
