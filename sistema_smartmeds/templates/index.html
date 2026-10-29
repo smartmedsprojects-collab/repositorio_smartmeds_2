@@ -44,8 +44,9 @@
                         <i class="bi bi-exclamation-triangle-fill"></i>
                     </div>
                     <div>
-                        <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.72rem;">Estoque Baixo</span>
+                        <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.72rem;">Estoque Baixo (&lt; {{ limite_estoque_baixo|default(50) }} un.)</span>
                         <h3 class="fw-bold mb-0 text-danger">{{ produtos_baixo|length if produtos_baixo else 0 }}</h3>
+                        <a href="{{ url_for('listar_produtos', filtro='baixo-estoque') }}" class="small text-decoration-none fw-semibold">Ver produtos <i class="bi bi-arrow-right"></i></a>
                     </div>
                 </div>
             </div>
@@ -96,6 +97,58 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- LISTA DE PRODUTOS COM ESTOQUE BAIXO -->
+    <div class="dash-card card border-0 mb-4">
+        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Produtos com Estoque Baixo</h6>
+                <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill">{{ produtos_baixo|length }}</span>
+            </div>
+            <a href="{{ url_for('listar_produtos', filtro='baixo-estoque') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                Ver estoque baixo <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="table-responsive px-3 pb-3">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="border-0 rounded-start">Produto</th>
+                        <th class="border-0">Marca</th>
+                        <th class="border-0">Quantidade disponível</th>
+                        <th class="border-0 rounded-end text-end">Situação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in produtos_baixo[:5] %}
+                    <tr>
+                        <td class="fw-semibold text-dark">{{ p.nome or 'Produto sem nome' }}</td>
+                        <td class="text-muted">{{ p.marca or '—' }}</td>
+                        <td class="fw-bold text-danger">{{ p.quantidade or 0 }} {{ p.unidade_medida or 'un' }}</td>
+                        <td class="text-end">
+                            {% if (p.quantidade or 0)|int <= 0 %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">Esgotado</span>
+                            {% else %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">Baixo estoque</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            <i class="bi bi-check-circle text-success me-1"></i>
+                            Nenhum produto abaixo de {{ limite_estoque_baixo }} unidades.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if produtos_baixo|length > 5 %}
+            <p class="text-muted small mt-2 mb-0">Exibindo 5 de {{ produtos_baixo|length }} produtos com estoque baixo.</p>
+            {% endif %}
+        </div>
     </div>
 
     <!-- GERENCIAMENTO DE TEMPERATURA E CADEIA DE FRIO -->

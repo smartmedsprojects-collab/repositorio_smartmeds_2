@@ -12,7 +12,7 @@
                     {{ produtos|length if produtos else 0 }} registros
                 </span>
             </div>
-            <p class="text-secondary small mb-0 mt-1">Gerencie produtos, acompanhe níveis de estoque e solicite movimentações.</p>
+            <p class="text-secondary small mb-0 mt-1">Gerencie produtos e acompanhe os níveis de estoque. Baixo estoque: menos de 50 unidades.</p>
         </div>
 
         <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
@@ -85,7 +85,7 @@
                         <span class="text-secondary extra-small fw-bold text-uppercase d-block mb-1">Refrigerados</span>
                         {% set ns = namespace(refrigerados=0) %}
                         {% for p in produtos %}
-                            {% if p.precisa_temperatura_baixa and p.precisa_temperatura_baixa not in [0, '0', 'false', 'False', False, None] %}
+                            {% if p.precisa_temperatura_baixa|default(0)|int == 1 %}
                                 {% set ns.refrigerados = ns.refrigerados + 1 %}
                             {% endif %}
                         {% endfor %}
@@ -105,7 +105,7 @@
                         <span class="text-secondary extra-small fw-bold text-uppercase d-block mb-1">Baixo Estoque</span>
                         {% set ns_baixo = namespace(qtd=0) %}
                         {% for p in produtos %}
-                            {% if p.quantidade is not none and p.quantidade|int <= 5 %}
+                            {% if p.quantidade is not none and p.quantidade|int < (limite_estoque_baixo|default(50)|int) %}
                                 {% set ns_baixo.qtd = ns_baixo.qtd + 1 %}
                             {% endif %}
                         {% endfor %}
@@ -179,8 +179,8 @@
 
                 <tbody class="border-top-0">
                     {% for produto in produtos %}
-                    {% set e_refrigerado = produto.precisa_temperatura_baixa and produto.precisa_temperatura_baixa not in [0, '0', 'false', 'False', False, None] %}
-                    {% set e_baixo_estoque = produto.quantidade is not none and produto.quantidade|int <= 5 %}
+                    {% set e_refrigerado = produto.precisa_temperatura_baixa|default(0)|int == 1 %}
+                    {% set e_baixo_estoque = produto.quantidade is not none and produto.quantidade|int < (limite_estoque_baixo|default(50)|int) %}
                     
                     <!-- LINHA PRINCIPAL (CLIQUE EXPANDE OS DETALHES) -->
                     <tr class="produto-linha align-middle"
@@ -234,7 +234,7 @@
                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 extra-small">
                                     <i class="bi bi-x-circle me-1"></i>Esgotado
                                 </span>
-                            {% elif produto.quantidade|int <= 5 %}
+                            {% elif produto.quantidade|int < (limite_estoque_baixo|default(50)|int) %}
                                 <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 extra-small" title="Estoque Baixo">
                                     <i class="bi bi-exclamation-triangle me-1"></i>{{ produto.quantidade }}
                                 </span>
@@ -391,7 +391,13 @@
         const inputPesquisa = document.getElementById('inputPesquisa');
         const contadorResultados = document.getElementById('contadorResultados');
         const botoesFiltro = document.querySelectorAll('#filtroRapido button');
-        let filtroAtivo = 'todos';
+        const filtroSolicitado = new URLSearchParams(window.location.search).get('filtro');
+        let filtroAtivo = ['todos', 'refrigerados', 'baixo-estoque'].includes(filtroSolicitado)
+            ? filtroSolicitado
+            : 'todos';
+        botoesFiltro.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filtro === filtroAtivo);
+        });
 
         // Função de Filtragem Combinada (Busca + Filtros Rápidos)
         function aplicarFiltros() {
@@ -445,6 +451,9 @@
                 aplicarFiltros();
             });
         });
+
+        // Aplica imediatamente o filtro solicitado pela URL (ex.: vindo do dashboard).
+        aplicarFiltros();
 
         // Inicialização dos Tooltips
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

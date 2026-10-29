@@ -5,7 +5,6 @@ from core.validator import Validator
 
 class Produto(CrudBase):
     table = "produto"
-
     fields = [
         "nome",
         "marca",
@@ -13,26 +12,41 @@ class Produto(CrudBase):
         "especificacao",
         "unidade_medida",
         "quantidade",
-        "usuario_id"
+        "precisa_temperatura_baixa",
+        "usuario_id",
     ]
 
     def __init__(
         self,
-        nome,
-        marca,
-        data_de_validade,
-        especificacao,
-        unidade_medida,
+        nome="",
+        marca="",
+        data_de_validade=None,
+        especificacao="",
+        unidade_medida="Unidade",
         usuario_id=None,
-        quantidade=0
+        quantidade=0,
+        id=None,
+        precisa_temperatura_baixa=0,
     ):
-        self.nome = nome
-        self.marca = marca
+        self.id = id
+        self.nome = (nome or "").strip()
+        self.marca = (marca or "").strip()
         self.data_de_validade = data_de_validade
-        self.especificacao = especificacao
-        self.unidade_medida = unidade_medida
-        self.quantidade = int(quantidade)
-        self.usuario_id = int(usuario_id) if usuario_id else None
+        self.especificacao = (especificacao or "").strip()
+        self.unidade_medida = (unidade_medida or "Unidade").strip()
+        try:
+            self.quantidade = int(quantidade) if quantidade not in (None, "") else 0
+        except (TypeError, ValueError):
+            self.quantidade = -1
+        self.usuario_id = int(usuario_id) if usuario_id not in (None, "", 0, "0") else None
+        try:
+            self.precisa_temperatura_baixa = (
+                int(precisa_temperatura_baixa)
+                if precisa_temperatura_baixa not in (None, "")
+                else 0
+            )
+        except (TypeError, ValueError):
+            self.precisa_temperatura_baixa = -1
 
     def validate(self):
         erros = [
@@ -45,9 +59,11 @@ class Produto(CrudBase):
             Validator.required(self.especificacao, "Especificação"),
             Validator.min_length(self.especificacao, "Especificação", 5),
             Validator.required(self.unidade_medida, "Unidade de medida"),
-            Validator.required(self.quantidade, "Quantidade"),
+            Validator.non_negative(self.quantidade, "Quantidade"),
             Validator.required(self.usuario_id, "Usuário"),
         ]
+        if self.precisa_temperatura_baixa not in (0, 1):
+            erros.append("Informe se o produto precisa de refrigeração.")
         return [erro for erro in erros if erro]
 
     @classmethod
@@ -56,19 +72,10 @@ class Produto(CrudBase):
         cursor = conexao.cursor(dictionary=True)
         try:
             if usuario_id is not None:
-                sql = f"""
-                    SELECT *
-                    FROM {cls.table}
-                    WHERE usuario_id = %s
-                    ORDER BY {order_by}
-                """
+                sql = f"SELECT * FROM {cls.table} WHERE usuario_id = %s ORDER BY {order_by}"
                 cursor.execute(sql, (usuario_id,))
             else:
-                sql = f"""
-                    SELECT *
-                    FROM {cls.table}
-                    ORDER BY {order_by}
-                """
+                sql = f"SELECT * FROM {cls.table} ORDER BY {order_by}"
                 cursor.execute(sql)
             return cursor.fetchall()
         finally:
@@ -80,33 +87,18 @@ class Produto(CrudBase):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
+            sql = """
+                SELECT p.*, l.rua, l.numero, l.andar
+                FROM produto p
+                LEFT JOIN localizacao l
+                  ON l.id = p.localizacao_id AND l.usuario_id = p.usuario_id
+            """
+            parametros = ()
             if usuario_id is not None:
-                sql = """
-                    SELECT
-                        p.*,
-                        l.rua,
-                        l.numero,
-                        l.andar
-                    FROM produto p
-                    LEFT JOIN localizacao l
-                        ON l.id = p.localizacao_id
-                    WHERE p.usuario_id = %s
-                    ORDER BY p.nome
-                """
-                cursor.execute(sql, (usuario_id,))
-            else:
-                sql = """
-                    SELECT
-                        p.*,
-                        l.rua,
-                        l.numero,
-                        l.andar
-                    FROM produto p
-                    LEFT JOIN localizacao l
-                        ON l.id = p.localizacao_id
-                    ORDER BY p.nome
-                """
-                cursor.execute(sql)
+                sql += " WHERE p.usuario_id = %s"
+                parametros = (usuario_id,)
+            sql += " ORDER BY p.nome"
+            cursor.execute(sql, parametros)
             return cursor.fetchall()
         finally:
             cursor.close()
@@ -117,38 +109,34 @@ class Produto(CrudBase):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
+            sql = "SELECT * FROM produto WHERE nome LIKE %s"
+            parametros = [f"%{nome}%"]
             if usuario_id is not None:
-                sql = f"""
-                    SELECT *
-                    FROM {cls.table}
-                    WHERE nome LIKE %s AND usuario_id = %s
-                    ORDER BY nome ASC
-                """
-                cursor.execute(sql, (f"%{nome}%", usuario_id))
-            else:
-                sql = f"""
-                    SELECT *
-                    FROM {cls.table}
-                    WHERE nome LIKE %s
-                    ORDER BY nome ASC
-                """
-                cursor.execute(sql, (f"%{nome}%",))
+                sql += " AND usuario_id = %s"
+                parametros.append(usuario_id)
+            sql += " ORDER BY nome ASC"
+            cursor.execute(sql, tuple(parametros))
             return cursor.fetchall()
         finally:
             cursor.close()
             conexao.close()
 
     @classmethod
-    def aumentar_estoque(cls, produto_id, quantidade):
+    def aumentar_estoque(cls, produto_id, quantidade, usuario_id=None):
+        quantidade = int(quantidade)
+        if quantidade <= 0:
+            raise ValueError("A quantidade deve ser maior que zero.")
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
-            sql = """
-                UPDATE produto
-                SET quantidade = quantidade + %s
-                WHERE id = %s
-            """
-            cursor.execute(sql, (quantidade, produto_id))
+            sql = "UPDATE produto SET quantidade = quantidade + %s WHERE id = %s"
+            parametros = [quantidade, produto_id]
+            if usuario_id is not None:
+                sql += " AND usuario_id = %s"
+                parametros.append(usuario_id)
+            cursor.execute(sql, tuple(parametros))
+            if cursor.rowcount != 1:
+                raise ValueError("Produto não encontrado ou acesso negado.")
             conexao.commit()
         except Exception:
             conexao.rollback()
@@ -158,17 +146,24 @@ class Produto(CrudBase):
             conexao.close()
 
     @classmethod
-    def diminuir_estoque(cls, produto_id, quantidade):
+    def diminuir_estoque(cls, produto_id, quantidade, usuario_id=None):
+        quantidade = int(quantidade)
+        if quantidade <= 0:
+            raise ValueError("A quantidade deve ser maior que zero.")
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
             sql = """
-                UPDATE produto
-                SET quantidade = quantidade - %s
-                WHERE id = %s
-                AND quantidade >= %s
+                UPDATE produto SET quantidade = quantidade - %s
+                WHERE id = %s AND quantidade >= %s
             """
-            cursor.execute(sql, (quantidade, produto_id, quantidade))
+            parametros = [quantidade, produto_id, quantidade]
+            if usuario_id is not None:
+                sql += " AND usuario_id = %s"
+                parametros.append(usuario_id)
+            cursor.execute(sql, tuple(parametros))
+            if cursor.rowcount != 1:
+                raise ValueError("Estoque insuficiente ou produto não encontrado.")
             conexao.commit()
             return cursor.rowcount
         except Exception:
@@ -183,28 +178,29 @@ class Produto(CrudBase):
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
-            sql = """
-                SELECT COUNT(*)
-                FROM movimentacao
-                WHERE produto_id = %s
-            """
-            cursor.execute(sql, (produto_id,))
-            resultado = cursor.fetchone()
-            return resultado[0] > 0
+            cursor.execute("SELECT COUNT(*) FROM movimentacao WHERE produto_id = %s", (produto_id,))
+            return cursor.fetchone()[0] > 0
         finally:
             cursor.close()
             conexao.close()
 
     @classmethod
     def delete_movimentacoes(cls, produto_id):
+        """Remove apenas movimentações que não tenham itens de entrada/saída vinculados."""
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
-            sql = """
-                DELETE FROM movimentacao
-                WHERE produto_id = %s
-            """
-            cursor.execute(sql, (produto_id,))
+            cursor.execute(
+                """SELECT COUNT(*) FROM movimentacao m
+                   WHERE m.produto_id = %s AND (
+                     EXISTS (SELECT 1 FROM item_entrada i WHERE i.movimentacao_id = m.id)
+                     OR EXISTS (SELECT 1 FROM item_saida s WHERE s.movimentacao_id = m.id)
+                   )""",
+                (produto_id,),
+            )
+            if cursor.fetchone()[0]:
+                raise ValueError("Existem itens vinculados ao histórico deste produto.")
+            cursor.execute("DELETE FROM movimentacao WHERE produto_id = %s", (produto_id,))
             conexao.commit()
             return cursor.rowcount
         except Exception:
@@ -215,41 +211,46 @@ class Produto(CrudBase):
             conexao.close()
 
     @classmethod
-    def safe_delete(cls, produto_id):
+    def safe_delete(cls, produto_id, usuario_id=None):
+        """Exclui o produto somente quando isso não apaga histórico de entrada/saída."""
         conexao = Database.connect()
         cursor = conexao.cursor()
         try:
-            sql_produto = """
-                SELECT id
-                FROM produto
-                WHERE id = %s
-            """
-            cursor.execute(sql_produto, (produto_id,))
-            produto = cursor.fetchone()
+            sql = "SELECT id FROM produto WHERE id = %s"
+            parametros = [produto_id]
+            if usuario_id is not None:
+                sql += " AND usuario_id = %s"
+                parametros.append(usuario_id)
+            sql += " FOR UPDATE"
+            cursor.execute(sql, tuple(parametros))
+            if not cursor.fetchone():
+                raise ValueError("Produto não encontrado ou acesso negado.")
 
-            if not produto:
-                raise ValueError("Produto não encontrado.")
+            cursor.execute(
+                """SELECT COUNT(*) FROM movimentacao m
+                   WHERE m.produto_id = %s AND (
+                     EXISTS (SELECT 1 FROM item_entrada i WHERE i.movimentacao_id = m.id)
+                     OR EXISTS (SELECT 1 FROM item_saida s WHERE s.movimentacao_id = m.id)
+                   )""",
+                (produto_id,),
+            )
+            if cursor.fetchone()[0]:
+                raise ValueError(
+                    "Este produto possui itens de entrada/saída vinculados ao histórico. "
+                    "Para preservar os registros de estoque, não é possível excluí-lo."
+                )
 
-            sql_movimentacao = """
-                DELETE FROM movimentacao
-                WHERE produto_id = %s
-            """
-            cursor.execute(sql_movimentacao, (produto_id,))
-            movimentacoes_excluidas = cursor.rowcount
-
-            sql_produto_delete = """
-                DELETE FROM produto
-                WHERE id = %s
-            """
-            cursor.execute(sql_produto_delete, (produto_id,))
-            produto_excluido = cursor.rowcount
-
+            cursor.execute("DELETE FROM movimentacao WHERE produto_id = %s", (produto_id,))
+            sql = "DELETE FROM produto WHERE id = %s"
+            parametros = [produto_id]
+            if usuario_id is not None:
+                sql += " AND usuario_id = %s"
+                parametros.append(usuario_id)
+            cursor.execute(sql, tuple(parametros))
+            if cursor.rowcount != 1:
+                raise ValueError("Produto não encontrado ou acesso negado.")
             conexao.commit()
-
-            return {
-                "produto_excluido": produto_excluido,
-                "movimentacoes_excluidas": movimentacoes_excluidas
-            }
+            return {"produto_excluido": 1}
         except Exception:
             conexao.rollback()
             raise

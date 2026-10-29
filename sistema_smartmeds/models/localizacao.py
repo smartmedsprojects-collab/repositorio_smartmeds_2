@@ -52,7 +52,7 @@ class Localizacao(CrudBase):
                 sql = """
                     SELECT l.*, GROUP_CONCAT(p.nome SEPARATOR ', ') AS nome_produto
                     FROM localizacao l
-                    LEFT JOIN produto p ON p.localizacao_id = l.id
+                    LEFT JOIN produto p ON p.localizacao_id = l.id AND p.usuario_id = l.usuario_id
                     WHERE l.usuario_id = %s
                     GROUP BY l.id
                     ORDER BY l.id DESC
@@ -62,7 +62,7 @@ class Localizacao(CrudBase):
                 sql = """
                     SELECT l.*, GROUP_CONCAT(p.nome SEPARATOR ', ') AS nome_produto
                     FROM localizacao l
-                    LEFT JOIN produto p ON p.localizacao_id = l.id
+                    LEFT JOIN produto p ON p.localizacao_id = l.id AND p.usuario_id = l.usuario_id
                     GROUP BY l.id
                     ORDER BY l.id DESC
                 """

@@ -5,26 +5,12 @@ from core.validator import Validator
 
 class Movimentacao(CrudBase):
     table = "movimentacao"
+    fields = ["tipo_movimentacao", "quantidade", "data_movimentacao", "produto_id"]
 
-    fields = [
-        "tipo_movimentacao",  # Nome da coluna no banco
-        "quantidade",
-        "data_movimentacao",
-        "produto_id",
-    ]
-
-    def __init__(
-        self,
-        tipo,
-        quantidade,
-        produto_id,
-        data_movimentacao=None,
-        observacao=None,
-    ):
-        # O nome do atributo deve ser igual ao item em `fields`
-        self.tipo_movimentacao = tipo
-        self.quantidade = int(quantidade) if quantidade else 0
-        self.produto_id = int(produto_id) if produto_id else None
+    def __init__(self, tipo, quantidade, produto_id, data_movimentacao=None, observacao=None):
+        self.tipo_movimentacao = (tipo or "").strip().upper()
+        self.quantidade = int(quantidade) if quantidade not in (None, "") else 0
+        self.produto_id = int(produto_id) if produto_id not in (None, "", 0, "0") else None
         self.data_movimentacao = data_movimentacao
         self.observacao = observacao
 
@@ -34,12 +20,12 @@ class Movimentacao(CrudBase):
 
     @tipo.setter
     def tipo(self, value):
-        self.tipo_movimentacao = value
+        self.tipo_movimentacao = (value or "").strip().upper()
 
     def validate(self):
         erros = [
             Validator.required(self.tipo_movimentacao, "Tipo"),
-            Validator.required(self.quantidade, "Quantidade"),
+            Validator.positive(self.quantidade, "Quantidade"),
             Validator.required(self.produto_id, "Produto"),
         ]
         return [erro for erro in erros if erro]
@@ -49,12 +35,17 @@ class Movimentacao(CrudBase):
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
-            sql = f"""
+            sql = """
                 SELECT m.*
-                FROM {cls.table} m
-                ORDER BY m.id DESC
+                FROM movimentacao m
+                INNER JOIN produto p ON p.id = m.produto_id
             """
-            cursor.execute(sql)
+            parametros = ()
+            if usuario_id is not None:
+                sql += " WHERE p.usuario_id = %s"
+                parametros = (usuario_id,)
+            sql += " ORDER BY m.id DESC"
+            cursor.execute(sql, parametros)
             return cursor.fetchall()
         finally:
             cursor.close()
@@ -66,15 +57,16 @@ class Movimentacao(CrudBase):
         cursor = conexao.cursor(dictionary=True)
         try:
             sql = """
-                SELECT 
-                    m.*,
-                    p.nome AS produto_nome,
-                    p.marca AS produto_marca
+                SELECT m.*, p.nome AS produto_nome, p.marca AS produto_marca
                 FROM movimentacao m
                 INNER JOIN produto p ON p.id = m.produto_id
-                ORDER BY m.id DESC
             """
-            cursor.execute(sql)
+            parametros = ()
+            if usuario_id is not None:
+                sql += " WHERE p.usuario_id = %s"
+                parametros = (usuario_id,)
+            sql += " ORDER BY m.id DESC"
+            cursor.execute(sql, parametros)
             return cursor.fetchall()
         finally:
             cursor.close()

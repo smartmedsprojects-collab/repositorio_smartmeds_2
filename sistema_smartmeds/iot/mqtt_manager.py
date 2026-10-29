@@ -37,8 +37,8 @@ class MQTTManager:
             return
         self.iniciado = True
         try:
-            self.client.loop_start()
             self.client.connect_async(MQTT_BROKER, MQTT_PORT, keepalive=60)
+            self.client.loop_start()
             logger.info("MQTT DHT11 iniciado para %s:%s", MQTT_BROKER, MQTT_PORT)
         except Exception:
             self.iniciado = False
@@ -48,8 +48,8 @@ class MQTTManager:
         if not self.iniciado:
             return
         try:
-            self.client.loop_stop()
             self.client.disconnect()
+            self.client.loop_stop()
         finally:
             self.iniciado = False
             self.conectado = False

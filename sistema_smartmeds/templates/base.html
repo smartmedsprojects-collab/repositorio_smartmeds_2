@@ -289,7 +289,7 @@
                                    data-produto-url="{{ url_for('buscar_produto', id=p.id) if p.id else '' }}"
                                    data-detalhes='{{ [
                                        {"label": "Quantidade disponível", "valor": ((p.quantidade or 0) ~ " " ~ (p.unidade_medida or "un"))},
-                                       {"label": "Estoque mínimo", "valor": ((p.estoque_minimo or "-") ~ " " ~ (p.unidade_medida or "un"))}
+                                       {"label": "Limite de estoque baixo", "valor": ((limite_estoque_baixo|default(50)) ~ " " ~ (p.unidade_medida or "un"))}
                                    ] | tojson }}'>
                                     <i class="bi bi-exclamation-circle-fill text-danger fs-5"></i>
                                     <div class="text-truncate">

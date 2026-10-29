@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
+{% set pedido_entrada_id = none %}
+{% if pedido_entrada %}
+  {% if pedido_entrada.id_pedido_entrada is defined and pedido_entrada.id_pedido_entrada %}
+    {% set pedido_entrada_id = pedido_entrada.id_pedido_entrada %}
+  {% elif pedido_entrada.id is defined and pedido_entrada.id %}
+    {% set pedido_entrada_id = pedido_entrada.id %}
+  {% endif %}
+{% endif %}
 <div class="container-fluid py-4">
 
   <!-- CABEÇALHO DA PÁGINA -->
@@ -12,8 +20,8 @@
             <a href="{{ url_for('listar_pedido_entrada') }}" class="text-decoration-none">Pedidos de Entrada</a>
           </li>
           <li class="breadcrumb-item active" aria-current="page">
-            {% if pedido_entrada and pedido_entrada.id %}
-              Editar #{{ pedido_entrada.id }}
+            {% if pedido_entrada_id %}
+              Editar #{{ pedido_entrada_id }}
             {% else %}
               Novo Pedido
             {% endif %}
@@ -22,8 +30,8 @@
       </nav>
       <h2 class="h4 fw-bold text-dark mb-0">
         <i class="bi bi-box-arrow-in-right text-primary me-2"></i>
-        {% if pedido_entrada and pedido_entrada.id %}
-          Editar Pedido de Entrada #{{ pedido_entrada.id }}
+        {% if pedido_entrada_id %}
+          Editar Pedido de Entrada #{{ pedido_entrada_id }}
         {% else %}
           Novo Pedido de Entrada
         {% endif %}
@@ -56,7 +64,7 @@
     </div>
 
     <div class="card-body p-4">
-      <form method="POST" action="{% if pedido_entrada and pedido_entrada.id %}{{ url_for('atualizar_pedido_entrada', id=pedido_entrada.id) }}{% else %}{{ url_for('salvar_pedido_entrada') }}{% endif %}">
+      <form method="POST" action="{% if pedido_entrada_id %}{{ url_for('atualizar_pedido_entrada', id=pedido_entrada_id) }}{% else %}{{ url_for('salvar_pedido_entrada') }}{% endif %}">
         
         <div class="row g-3">
 
@@ -126,29 +134,9 @@
             </div>
           </div>
 
-          <!-- 6. PRODUTO DE ENTRADA (SELEÇÃO DOS PRODUTOS CADASTRADOS) -->
-          <div class="col-md-6 col-lg-4">
-            <label for="produto_id" class="form-label fw-semibold text-secondary small">Produto de Entrada</label>
-            <div class="input-group">
-              <span class="input-group-text bg-light text-muted"><i class="bi bi-box-seam"></i></span>
-              <select id="produto_id" name="produto_id" class="form-select bg-light" required>
-                {% if produtos and produtos|length > 0 %}
-                  <option value="">Selecione um produto cadastrado</option>
-                  {% for prod in produtos %}
-                    {% set pid = prod.id or prod.id_produto %}
-                    {% set pnome = prod.nome or prod.descricao or prod.nome_produto %}
-                    <option value="{{ pid }}" {% if pedido_entrada and pedido_entrada.produto_id == pid %}selected{% endif %}>
-                      {{ pnome }}
-                    </option>
-                  {% endfor %}
-                {% else %}
-                  <option value="" disabled selected>Nenhum produto cadastrado no sistema</option>
-                {% endif %}
-              </select>
-            </div>
-          </div>
+          <!-- O produto é selecionado na área de inclusão dos itens, após salvar o pedido. -->
 
-          <!-- 7. OBSERVAÇÕES -->
+          <!-- 6. OBSERVAÇÕES -->
           <div class="col-12">
             <label for="observacao" class="form-label fw-semibold text-secondary small">Observações</label>
             <textarea id="observacao" name="observacao" class="form-control bg-light" rows="3"
@@ -170,6 +158,83 @@
       </form>
     </div>
   </div>
+
+  {% if pedido_entrada_id %}
+  <section id="itens" class="row g-3 mt-1">
+    <div class="col-12 col-xl-5">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+          <h5 class="fw-bold fs-6 mb-0"><i class="bi bi-box-seam text-primary me-2"></i>Adicionar item ao pedido</h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('salvar_item_entrada') }}">
+            <input type="hidden" name="pedido_entrada_id" value="{{ pedido_entrada_id }}">
+            <div class="mb-3">
+              <label for="produto_item_id" class="form-label fw-semibold small text-secondary">Produto</label>
+              <select id="produto_item_id" name="produto_id" class="form-select bg-light" required>
+                <option value="">Selecione um produto</option>
+                {% for prod in produtos or [] %}
+                <option value="{{ prod.id }}">{{ prod.nome }} — estoque atual: {{ prod.quantidade }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label for="quantidade_item" class="form-label fw-semibold small text-secondary">Quantidade (mínimo 50)</label>
+                <input id="quantidade_item" type="number" name="quantidade" class="form-control bg-light" min="50" step="1" required>
+              </div>
+              <div class="col-sm-6">
+                <label for="valor_item" class="form-label fw-semibold small text-secondary">Valor unitário (R$)</label>
+                <input id="valor_item" type="number" name="valor" class="form-control bg-light" min="0" step="0.01" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-success fw-semibold w-100 mt-4">
+              <i class="bi bi-plus-circle me-1"></i> Registrar entrada e atualizar estoque
+            </button>
+          </form>
+          <p class="small text-muted mt-3 mb-0">O estoque e o histórico são atualizados juntos. Se ocorrer um erro, a operação é revertida.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-7">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center gap-2">
+          <h5 class="fw-bold fs-6 mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Itens registrados</h5>
+          <span class="badge bg-light text-secondary border">Pedido #{{ pedido_entrada_id }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Produto</th>
+                  <th class="text-end">Quantidade</th>
+                  <th class="text-end">Valor unitário</th>
+                  <th class="text-end pe-3">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in itens or [] %}
+                {% set qtd = item.quantidade|int %}
+                {% set valor_item = item.valor|float %}
+                <tr>
+                  <td class="ps-3 fw-semibold">{{ item.produto }}</td>
+                  <td class="text-end">{{ qtd }}</td>
+                  <td class="text-end">R$ {{ '%.2f'|format(valor_item) }}</td>
+                  <td class="text-end pe-3 fw-semibold">R$ {{ '%.2f'|format(qtd * valor_item) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Nenhum item registrado neste pedido.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
 </div>
 {% endblock %}

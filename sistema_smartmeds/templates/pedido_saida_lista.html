@@ -55,8 +55,8 @@
                         <td>{{ pedido.quantidade }}</td>
                         <td>R$ {{ pedido.valor }}</td>
                         <td>{{ pedido.data_pagamento }}</td>
-                        <td>{{ pedido.cliente_id }}</td>
-                        <td>{{ pedido.usuario_id }}</td>
+                        <td>{{ pedido.cliente if pedido.cliente else pedido.cliente_id }}</td>
+                        <td>{{ pedido.usuario if pedido.usuario else pedido.usuario_id }}</td>
 
                         <td class="text-end">
 

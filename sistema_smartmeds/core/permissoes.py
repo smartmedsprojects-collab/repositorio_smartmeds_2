@@ -89,6 +89,10 @@ def tem_permissao(usuario, permissao=None):
     else:
         tipo = getattr(usuario, "tipo", None)
 
+    # Aceita o rótulo antigo "admin" e o rótulo atual "adm".
+    if tipo == "admin":
+        tipo = "adm"
+
     # -------------------------------------------------
     # ADMINISTRADOR TEM TODAS AS PERMISSÕES
     # -------------------------------------------------

@@ -1,14 +1,40 @@
+from getpass import getpass
+
 from models.usuario import Usuario
-from core.security import gerar_hash_senha
 
-usuario = Usuario(
-    nome="gerenciador admin",
-    email="smartmedsproject@gmail.com",
-    senha=gerar_hash_senha("123456"),
-    tipo="admin",
-    identificacao="0001",
-)
 
-usuario.insert()
+def main():
+    print("=== Cadastro inicial de administrador SmartMeds ===")
+    nome = input("Nome completo: ").strip()
+    email = input("E-mail: ").strip().lower()
+    identificacao = input("Identificação: ").strip()
+    senha = getpass("Senha (mínimo 8 caracteres): ")
+    confirmar = getpass("Confirme a senha: ")
 
-print("Administrador criado com sucesso")
+    if senha != confirmar:
+        raise SystemExit("Erro: as senhas não correspondem.")
+
+    usuario = Usuario(
+        nome=nome,
+        email=email,
+        senha=senha,
+        tipo="adm",
+        identificacao=identificacao,
+    )
+    erros = usuario.validate()
+    if erros:
+        raise SystemExit("\n".join(erros))
+
+    try:
+        usuario.insert()
+    except Exception as erro:
+        raise SystemExit(
+            "Não foi possível cadastrar o administrador. Verifique se o banco está configurado "
+            "e se o e-mail/identificação já existem."
+        ) from erro
+
+    print("Administrador cadastrado com sucesso.")
+
+
+if __name__ == "__main__":
+    main()

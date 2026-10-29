@@ -92,7 +92,7 @@
                                     <label class="form-label fw-semibold text-secondary small">Senha</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
-                                        <input type="password" name="senha" class="form-control border-start-0 bg-light" placeholder="Sua senha..." required>
+                                        <input type="password" name="senha" class="form-control border-start-0 bg-light" placeholder="{{ 'Deixe em branco para manter a senha atual' if cliente and cliente.id else 'Sua senha...' }}" {{ 'required' if not cliente or not cliente.id else '' }}>
                                     </div>
                                 </div>
 
@@ -100,7 +100,7 @@
                                     <label class="form-label fw-semibold text-secondary small">Confirmar Senha</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock-fill"></i></span>
-                                        <input type="password" name="confirmar_senha" class="form-control border-start-0 bg-light" placeholder="Confirme a senha..." required>
+                                        <input type="password" name="confirmar_senha" class="form-control border-start-0 bg-light" placeholder="Confirme a senha..." {{ 'required' if not cliente or not cliente.id else '' }}>
                                     </div>
                                 </div>
                             </div>
