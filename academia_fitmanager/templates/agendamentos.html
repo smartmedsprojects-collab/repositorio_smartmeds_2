@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% block title %}Agendamentos{% endblock %}{% block page_heading %}Agendamentos{% endblock %}
+{% block content %}<div class="section-intro"><div><div class="eyebrow">ORGANIZAÇÃO DE HORÁRIOS</div><h1 class="page-title">Agendamentos</h1><p class="page-subtitle">Visualize e organize os horários por data e hora.</p></div></div>
+<div class="panel form-panel"><div class="panel-heading"><div><h2><i class="bi bi-calendar2-plus me-2"></i>Novo agendamento</h2><p>Escolha o aluno e um dos planos vinculados a ele.</p></div></div>
+{% if alunos and planos %}<form method="post" id="agendamento-form" class="row g-3"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="col-md-4"><label class="form-label" for="aluno_id">Aluno *</label><select class="form-select" name="aluno_id" id="aluno_id" required><option value="">Selecione</option>{% for aluno in alunos %}<option value="{{ aluno.id }}">{{ aluno.nome }}</option>{% endfor %}</select></div>
+<div class="col-md-4"><label class="form-label" for="plano_id">Plano de treino *</label><select class="form-select" name="plano_id" id="plano_id" required disabled><option value="">Selecione o aluno primeiro</option></select></div>
+<div class="col-md-4"><label class="form-label" for="data_hora">Data e horário *</label><input class="form-control" type="datetime-local" id="data_hora" name="data_hora" required></div>
+<div class="col-12 d-flex justify-content-end"><button class="btn-primary-custom compact" type="submit"><i class="bi bi-calendar-check"></i> Confirmar agendamento</button></div></form>{% else %}<div class="empty-state"><i class="bi bi-info-circle"></i><strong>Faltam alunos ou planos</strong><span>Cadastre um aluno e associe um plano antes de agendar.</span><a href="{{ url_for('planos') }}" class="btn-primary-custom compact mt-3">Ver planos</a></div>{% endif %}</div>
+<div class="panel table-panel"><div class="panel-heading"><div><h2>Agenda registrada</h2><p>{{ agendamentos|length }} agendamento(s), em ordem cronológica</p></div><span class="table-tag"><i class="bi bi-sort-down"></i> Data crescente</span></div>
+<div class="table-responsive"><table class="table custom-table align-middle"><thead><tr><th>DATA E HORA</th><th>ALUNO</th><th>PLANO DE TREINO</th><th>STATUS</th><th></th></tr></thead><tbody>
+{% for ag in agendamentos %}<tr><td><div class="date-cell"><i class="bi bi-calendar-event"></i><span><strong>{{ ag.data_hora[8:10] }}/{{ ag.data_hora[5:7] }}/{{ ag.data_hora[0:4] }}</strong><small>{{ ag.data_hora[11:16] }}</small></span></div></td><td><strong>{{ ag.aluno_nome }}</strong></td><td><span class="plan-inline"><i class="bi bi-activity"></i>{{ ag.plano_nome }}</span></td><td><span class="status-badge"><span></span> Confirmado</span></td><td class="text-end"><a class="icon-action" href="{{ url_for('editar_agendamento', agendamento_id=ag.id) }}" title="Alterar data" aria-label="Alterar data"><i class="bi bi-pencil-square"></i></a></td></tr>
+{% else %}<tr><td colspan="5"><div class="empty-state"><i class="bi bi-calendar2-x"></i><strong>Nenhum agendamento cadastrado</strong><span>Cadastre um horário no formulário acima.</span></div></td></tr>{% endfor %}
+</tbody></table></div></div>{% endblock %}
+{% block scripts %}<script>
+const alunoSelect=document.getElementById('aluno_id');
+const planoSelect=document.getElementById('plano_id');
+if(alunoSelect && planoSelect){
+  alunoSelect.addEventListener('change', async ()=>{
+    planoSelect.innerHTML='';
+    planoSelect.disabled=true;
+    const id=alunoSelect.value;
+    if(!id){planoSelect.add(new Option('Selecione o aluno primeiro',''));return;}
+    try{
+      const response=await fetch(`/api/planos/${id}`);
+      const data=await response.json();
+      planoSelect.add(new Option(data.planos.length?'Selecione um plano':'Este aluno não possui planos',''));
+      data.planos.forEach(p=>planoSelect.add(new Option(p.nome,p.id)));
+      planoSelect.disabled=data.planos.length===0;
+    }catch(e){planoSelect.add(new Option('Erro ao carregar planos',''));}
+  });
+}
+</script>{% endblock %}

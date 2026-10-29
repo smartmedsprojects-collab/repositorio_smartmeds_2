@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Alunos{% endblock %}{% block page_heading %}Alunos{% endblock %}
+{% block content %}
+<div class="section-intro"><div><div class="eyebrow">CADASTRO E RELACIONAMENTO</div><h1 class="page-title">Gestão de alunos</h1><p class="page-subtitle">Mantenha os dados organizados e fáceis de encontrar.</p></div></div>
+<div class="panel form-panel"><div class="panel-heading"><div><h2><i class="bi bi-person-plus me-2"></i>Novo aluno</h2><p>Preencha os dados para registrar um aluno.</p></div></div>
+<form method="post" class="row g-3"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="col-md-6"><label class="form-label" for="nome">Nome completo *</label><input class="form-control" id="nome" name="nome" required minlength="2" maxlength="120" placeholder="Nome do aluno"></div>
+<div class="col-md-6"><label class="form-label" for="email">E-mail</label><input class="form-control" id="email" name="email" type="email" maxlength="160" placeholder="aluno@email.com"></div>
+<div class="col-md-6"><label class="form-label" for="telefone">Telefone</label><input class="form-control" id="telefone" name="telefone" maxlength="30" placeholder="(11) 99999-9999"></div>
+<div class="col-md-6"><label class="form-label" for="cpf">CPF *</label><input class="form-control" id="cpf" name="cpf" inputmode="numeric" pattern="[0-9.\\-]{11,14}" maxlength="14" required placeholder="000.000.000-00"><div class="form-text">O CPF é criptografado antes de ser armazenado.</div></div>
+<div class="col-12 d-flex justify-content-end"><button class="btn-primary-custom compact" type="submit"><i class="bi bi-plus-lg"></i> Cadastrar aluno</button></div></form></div>
+<div class="panel table-panel"><div class="panel-heading"><div><h2>Alunos cadastrados</h2><p>{{ alunos|length }} registro(s) encontrado(s)</p></div>
+<form method="get" class="search-form"><i class="bi bi-search"></i><input name="q" value="{{ termo }}" placeholder="Buscar por nome, e-mail ou telefone" aria-label="Termo de busca"><button type="submit">Buscar</button>{% if termo %}<a href="{{ url_for('alunos') }}" class="clear-search" aria-label="Limpar busca"><i class="bi bi-x-lg"></i></a>{% endif %}</form></div>
+<div class="table-responsive"><table class="table custom-table align-middle"><thead><tr><th>ALUNO</th><th>TELEFONE</th><th>CPF PROTEGIDO</th><th>CADASTRO</th><th></th></tr></thead><tbody>
+{% for aluno in alunos %}<tr><td><div class="table-person"><span class="mini-avatar">{{ aluno.nome[0]|upper }}</span><span><strong>{{ aluno.nome }}</strong><small>{{ aluno.email or 'Sem e-mail informado' }}</small></span></div></td><td>{{ aluno.telefone or '—' }}</td><td><span class="cpf-mask"><i class="bi bi-shield-lock"></i> {{ aluno.cpf_exibicao }}</span></td><td>{{ aluno.criado_em[:10] }}</td><td class="text-end"><a class="icon-action" href="{{ url_for('editar_aluno', aluno_id=aluno.id) }}" title="Editar aluno" aria-label="Editar aluno"><i class="bi bi-pencil-square"></i></a></td></tr>
+{% else %}<tr><td colspan="5"><div class="empty-state"><i class="bi bi-person-exclamation"></i><strong>Nenhum aluno encontrado</strong><span>Tente outro termo ou cadastre um novo aluno.</span></div></td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

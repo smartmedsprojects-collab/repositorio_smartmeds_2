@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block public_content %}
+<div class="login-decoration decor-one"></div><div class="login-decoration decor-two"></div>
+<div class="login-card">
+  <div class="login-brand"><span class="brand-icon"><i class="bi bi-activity"></i></span><span>FIT<span class="brand-light">MANAGER</span><small>GESTÃO INTELIGENTE</small></span></div>
+  <div class="login-kicker">BEM-VINDO DE VOLTA</div><h1>A sua academia,<br><span>sob controle.</span></h1>
+  <p class="login-description">Acesse o painel para gerenciar alunos, treinos e horários em um só lugar.</p>
+  <form method="post" class="login-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="email">E-mail</label><div class="input-icon"><i class="bi bi-envelope"></i><input id="email" name="email" type="email" placeholder="voce@academia.com" autocomplete="username" required></div>
+    <label for="senha">Senha</label><div class="input-icon"><i class="bi bi-lock"></i><input id="senha" name="senha" type="password" placeholder="Digite sua senha" autocomplete="current-password" required></div>
+    <button class="btn-primary-custom" type="submit">Acessar sistema <i class="bi bi-arrow-right"></i></button>
+  </form>
+  <div class="login-footer"><i class="bi bi-shield-lock"></i> Acesso protegido · Sessão com expiração</div>
+</div>
+<div class="login-caption">TREINE COM PROPÓSITO. GERENCIE COM PRECISÃO.</div>
+{% endblock %}

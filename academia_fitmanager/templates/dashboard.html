@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Visão geral{% endblock %}{% block page_heading %}Visão geral{% endblock %}
+{% block content %}
+<div class="welcome-row"><div><div class="eyebrow">RESUMO OPERACIONAL</div><h1 class="page-title">Bom trabalho, {{ session.get('user_name') }}.</h1><p class="page-subtitle">Acompanhe a rotina da academia em um só lugar.</p></div><div class="date-pill"><i class="bi bi-calendar3"></i> {{ now if now else "Painel atualizado" }}</div></div>
+<div class="stats-grid">
+  <article class="stat-card"><div class="stat-top"><span>Total de alunos</span><span class="stat-icon violet"><i class="bi bi-people"></i></span></div><div class="stat-number">{{ stats.alunos }}</div><div class="stat-note">Cadastros ativos no sistema</div></article>
+  <article class="stat-card"><div class="stat-top"><span>Planos de treino</span><span class="stat-icon blue"><i class="bi bi-clipboard2-pulse"></i></span></div><div class="stat-number">{{ stats.planos }}</div><div class="stat-note">Planos associados a alunos</div></article>
+  <article class="stat-card"><div class="stat-top"><span>Agendamentos</span><span class="stat-icon pink"><i class="bi bi-calendar-check"></i></span></div><div class="stat-number">{{ stats.agendamentos }}</div><div class="stat-note">Horários registrados</div></article>
+</div>
+<div class="content-grid">
+  <section class="panel"><div class="panel-heading"><div><h2>Próximos agendamentos</h2><p>Os cinco horários mais próximos</p></div><a class="text-link" href="{{ url_for('agendamentos') }}">Ver todos <i class="bi bi-arrow-up-right"></i></a></div>
+    {% if proximos %}<div class="schedule-list">{% for ag in proximos %}<div class="schedule-item"><div class="schedule-date"><strong>{{ ag.data_hora[8:10] }}</strong><span>{{ ag.data_hora[5:7] }}/{{ ag.data_hora[0:4] }}</span></div><div class="schedule-info"><strong>{{ ag.aluno }}</strong><span>{{ ag.plano }}</span></div><div class="schedule-time"><i class="bi bi-clock"></i> {{ ag.data_hora[11:16] }}</div></div>{% endfor %}</div>{% else %}<div class="empty-state"><i class="bi bi-calendar2-x"></i><strong>Nenhum horário futuro</strong><span>Cadastre um agendamento para começar.</span></div>{% endif %}
+  </section>
+  <section class="panel quick-panel"><div class="panel-heading"><div><h2>Acesso rápido</h2><p>Atalhos para tarefas frequentes</p></div></div>
+    <a class="quick-action" href="{{ url_for('alunos') }}"><span class="quick-icon"><i class="bi bi-person-plus"></i></span><span><strong>Gerenciar alunos</strong><small>Cadastrar, buscar e editar</small></span><i class="bi bi-chevron-right"></i></a>
+    <a class="quick-action" href="{{ url_for('planos') }}"><span class="quick-icon"><i class="bi bi-journal-plus"></i></span><span><strong>Criar plano de treino</strong><small>Associe o plano a um aluno</small></span><i class="bi bi-chevron-right"></i></a>
+    <a class="quick-action" href="{{ url_for('agendamentos') }}"><span class="quick-icon"><i class="bi bi-calendar-plus"></i></span><span><strong>Agendar horário</strong><small>Organize a agenda da academia</small></span><i class="bi bi-chevron-right"></i></a>
+  </section>
+</div>
+{% endblock %}

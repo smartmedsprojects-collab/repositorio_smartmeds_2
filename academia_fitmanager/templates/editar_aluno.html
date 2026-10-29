@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Editar aluno{% endblock %}{% block page_heading %}Editar aluno{% endblock %}
+{% block content %}<div class="section-intro"><div><div class="eyebrow">CADASTRO E RELACIONAMENTO</div><h1 class="page-title">Editar aluno</h1><p class="page-subtitle">Atualize as informações de {{ aluno.nome }}.</p></div><a class="btn-secondary-custom" href="{{ url_for('alunos') }}"><i class="bi bi-arrow-left"></i> Voltar</a></div>
+<div class="panel form-panel narrow-panel"><form method="post" class="row g-3"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="col-12"><label class="form-label" for="nome">Nome completo *</label><input class="form-control" id="nome" name="nome" required minlength="2" value="{{ aluno.nome }}"></div>
+<div class="col-md-6"><label class="form-label" for="email">E-mail</label><input class="form-control" id="email" name="email" type="email" value="{{ aluno.email or '' }}"></div>
+<div class="col-md-6"><label class="form-label" for="telefone">Telefone</label><input class="form-control" id="telefone" name="telefone" value="{{ aluno.telefone or '' }}"></div>
+<div class="col-12"><label class="form-label" for="cpf">Novo CPF (opcional)</label><input class="form-control" id="cpf" name="cpf" inputmode="numeric" placeholder="Deixe em branco para manter o CPF atual"><div class="form-text">O CPF existente não é exibido por segurança. Se preenchido, o novo valor será criptografado.</div></div>
+<div class="col-12 d-flex justify-content-end gap-2"><a class="btn-secondary-custom" href="{{ url_for('alunos') }}">Cancelar</a><button class="btn-primary-custom compact" type="submit"><i class="bi bi-check2"></i> Salvar alterações</button></div></form></div>{% endblock %}
