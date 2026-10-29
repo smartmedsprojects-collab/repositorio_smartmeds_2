@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Página não encontrada · MT Fit{% endblock %}
+{% block content %}
+<style>
+  .mtfit-error-wrap {
+    min-height: min(72vh, 720px);
+    display: grid;
+    place-items: center;
+    padding: 2.5rem 1rem;
+  }
+  .mtfit-error-card {
+    width: 100%;
+    max-width: 760px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    padding: clamp(2rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 3.5rem);
+    border: 1px solid rgba(127, 145, 180, .22);
+    border-radius: 28px;
+    background: linear-gradient(145deg, rgba(24, 29, 44, .98), rgba(13, 17, 29, .98));
+    box-shadow: 0 26px 70px rgba(4, 8, 20, .22);
+    color: #f4f6fb;
+  }
+  .mtfit-error-card::before {
+    content: "";
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    top: -190px;
+    right: -100px;
+    border-radius: 50%;
+    background: rgba(111, 89, 191, .25);
+    filter: blur(8px);
+    pointer-events: none;
+  }
+  .mtfit-error-icon {
+    width: 76px;
+    height: 76px;
+    display: inline-grid;
+    place-items: center;
+    margin-bottom: 1.25rem;
+    border-radius: 24px;
+    color: #c7b7ff;
+    background: rgba(133, 105, 219, .14);
+    border: 1px solid rgba(174, 154, 237, .24);
+    font-size: 2rem;
+  }
+  .mtfit-error-code {
+    margin: 0;
+    font-size: clamp(5rem, 16vw, 9rem);
+    line-height: .95;
+    letter-spacing: -.085em;
+    font-weight: 850;
+    color: #c8bbff;
+    text-shadow: 0 8px 40px rgba(139, 111, 226, .18);
+  }
+  .mtfit-error-title { margin-top: 1.5rem; font-size: clamp(1.45rem, 4vw, 2rem); font-weight: 750; }
+  .mtfit-error-text { max-width: 490px; margin: .8rem auto 1.8rem; color: #b7bfd0; line-height: 1.75; }
+  .mtfit-error-actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+  .mtfit-error-actions .btn { border-radius: 12px; padding: .75rem 1.2rem; font-weight: 650; }
+  .mtfit-error-brand { margin-top: 2.5rem; color: #8892a8; font-size: .8rem; letter-spacing: .13em; text-transform: uppercase; }
+</style>
+<div class="mtfit-error-wrap">
+  <section class="mtfit-error-card" aria-labelledby="error-title">
+    <div class="mtfit-error-icon" aria-hidden="true"><i class="bi bi-compass"></i></div>
+    <p class="mtfit-error-code" aria-label="Erro 404">404</p>
+    <h1 class="mtfit-error-title" id="error-title">Parece que você saiu da rota.</h1>
+    <p class="mtfit-error-text">A página que você está procurando não existe, foi movida ou o endereço foi digitado incorretamente. Vamos levar você de volta ao caminho certo.</p>
+    <div class="mtfit-error-actions">
+      {% if session.get('usuario_id') %}
+        <a class="btn btn-primary" href="{{ url_for('dashboard') }}"><i class="bi bi-house-door me-2"></i>Voltar ao painel</a>
+      {% else %}
+        <a class="btn btn-primary" href="{{ url_for('login') }}"><i class="bi bi-box-arrow-in-right me-2"></i>Ir para o login</a>
+      {% endif %}
+      <button class="btn btn-outline-light" type="button" onclick="window.history.back()"><i class="bi bi-arrow-left me-2"></i>Página anterior</button>
+    </div>
+    <div class="mtfit-error-brand"><i class="bi bi-activity me-2"></i>MT Fit · Gestão de academia</div>
+  </section>
+</div>
+{% endblock %}

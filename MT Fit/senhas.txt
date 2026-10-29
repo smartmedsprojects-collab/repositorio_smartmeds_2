@@ -1,0 +1,4 @@
+admin.demo@academia.com, 
+recepcao.demo@academia.com, 
+gestor.demo@academia.com
+Senha das contas demo: Demo@12345
