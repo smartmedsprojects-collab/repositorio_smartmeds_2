@@ -1,0 +1,24 @@
+tutorial do projeto 
+python -m pip uninstall mysql-connector
+python -m pip install --upgrade mysql-connector-python
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+
+
+
+
+primeiro roda isso depois de ter criado o ambiente com 
+.\amb\Scripts\python.exe -m pip install --upgrade mysql-connector-python
+
+depois rodar isso 
+Copy-Item .env.example .env
+
+depois roda isso e com a chave gerada coloca no .env na linha do CPF_ENCRYPTION_KEY=
+.\amb\Scripts\python.exe -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+depois roda para pa=opular o banco 
+.\amb\Scripts\python.exe popular_banco.py
+
+pro ultimo o 
+python app.py
