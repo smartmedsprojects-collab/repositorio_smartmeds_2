@@ -21,7 +21,7 @@ MQTT_USER = "IOT-SENAI"
 MQTT_PASSWORD = "12345678"  # igual ao valor padrão de config.py; altere se necessário
 MQTT_TOPIC = b"sensores/leitura"
 DEVICE_ID = "esp32-01"
-INTERVALO = 10
+INTERVALO = 3  # DHT11: publica a cada 3 segundos, sem leitura excessivamente frequente.
 
 sensor = dht.DHT11(Pin(13))
 wlan = network.WLAN(network.STA_IF)

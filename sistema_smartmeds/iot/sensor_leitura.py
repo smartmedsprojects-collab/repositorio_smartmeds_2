@@ -153,7 +153,8 @@ class SensorLeitura:
                 """
                 SELECT device_id AS nome,
                        temperatura, umidade,
-                       DATE_FORMAT(timestamp, '%d/%m/%Y %H:%i:%s') AS ultima_leitura
+                       DATE_FORMAT(timestamp, '%d/%m/%Y %H:%i:%s') AS ultima_leitura,
+                       DATE_FORMAT(timestamp, '%Y-%m-%dT%H:%i:%s') AS timestamp_iso
                 FROM sensor_leitura s
                 WHERE sensor = 'DHT11'
                   AND temperatura IS NOT NULL

@@ -208,6 +208,8 @@ def dashboard():
         sensores_temperatura=sensores,
         alertas_temperatura=alertas_temperatura,
         iot_conectado=mqtt_manager.conectado,
+        temperatura_min=SENSOR_TEMP_MIN,
+        temperatura_max=SENSOR_TEMP_MAX,
         limite_estoque_baixo=LIMITE_ESTOQUE_BAIXO,
     )
 
@@ -1591,6 +1593,41 @@ def api_dht11():
 @login_obrigatorio
 def api_dht11_detalhado():
     return jsonify({"sensor": "DHT11", "leituras": SensorLeitura.listar(sensor="DHT11")})
+
+
+@app.route("/api/dashboard/temperatura")
+@login_obrigatorio
+def api_dashboard_temperatura():
+    """Retorna a leitura mais recente de cada DHT11 para o dashboard ao vivo."""
+    try:
+        sensores = SensorLeitura.dispositivos_temperatura()
+        for sensor in sensores:
+            valor = sensor.get("temperatura")
+            try:
+                temperatura = float(valor) if valor is not None else None
+            except (TypeError, ValueError):
+                temperatura = None
+
+            sensor["temperatura"] = temperatura
+            sensor["temp_min"] = SENSOR_TEMP_MIN
+            sensor["temp_max"] = SENSOR_TEMP_MAX
+            sensor["status"] = (
+                "critico"
+                if temperatura is not None
+                and (temperatura < SENSOR_TEMP_MIN or temperatura > SENSOR_TEMP_MAX)
+                else "normal"
+            )
+
+        return jsonify({
+            "sensores": sensores,
+            "mqtt": mqtt_manager.conectado,
+            "temperatura_min": SENSOR_TEMP_MIN,
+            "temperatura_max": SENSOR_TEMP_MAX,
+            "atualizado_em": datetime.now().isoformat(timespec="seconds"),
+        })
+    except Exception:
+        app.logger.exception("Erro ao atualizar temperatura no dashboard")
+        return jsonify({"erro": "Não foi possível consultar as leituras de temperatura."}), 503
 
 
 @app.route("/api/status-iot")

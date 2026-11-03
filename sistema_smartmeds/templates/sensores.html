@@ -656,10 +656,11 @@
             </label>
 
             <select id="intervalo-atualizacao" class="sm-select">
-                <option value="15000">15 segundos</option>
-                <option value="30000" selected>30 segundos</option>
+                <option value="3000">3 segundos</option>
+                <option value="5000" selected>5 segundos</option>
+                <option value="10000">10 segundos</option>
+                <option value="30000">30 segundos</option>
                 <option value="60000">1 minuto</option>
-                <option value="120000">2 minutos</option>
             </select>
 
             <button type="button" id="btn-pausar" class="sm-btn" aria-pressed="false">
@@ -912,7 +913,7 @@
         status: '/api/status-iot',
         temperaturaMin: Number({{ temperatura_min|tojson }}),
         temperaturaMax: Number({{ temperatura_max|tojson }}),
-        intervalo: 30000,
+        intervalo: 5000,
         periodo: 21600000
     };
 
@@ -1464,7 +1465,7 @@
     $('btn-exportar').addEventListener('click', exportarCSV);
 
     $('intervalo-atualizacao').addEventListener('change', (evento) => {
-        CONFIG.intervalo = Number(evento.target.value) || 30000;
+        CONFIG.intervalo = Number(evento.target.value) || 5000;
         programar();
     });
 
