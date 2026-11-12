@@ -286,45 +286,35 @@ def inicializar_dht11():
     except OSError as erro:
         print("DHT11 ainda nao respondeu:", erro)
         return False
-
-
 def ler_dht11():
     try:
         sensor_dht.measure()
         temperatura = sensor_dht.temperature()
         umidade = sensor_dht.humidity()
-
         # Faixas gerais de validacao do DHT11.
         if temperatura < 0 or temperatura > 50:
             print("Leitura descartada: temperatura fora da faixa.")
             return
-
         if umidade < 0 or umidade > 100:
             print("Leitura descartada: umidade fora da faixa.")
             return
-
         print("\n--------------------------------")
         print("DHT11")
         print("Temperatura:", temperatura, "C")
         print("Umidade:", umidade, "%")
-
         dados = {
             "device_id": DEVICE_ID,
             "sensor": "DHT11",
             "temperatura": temperatura,
             "umidade": umidade
         }
-
         publicar(dados)
-
     except OSError as erro:
         print("Falha na leitura DHT11:", erro)
-
 
 # =====================================================
 # 10. LEITURA HC-SR04
 # =====================================================
-
 def ler_ultrassonico():
     try:
         trig.value(0)
@@ -332,124 +322,93 @@ def ler_ultrassonico():
         trig.value(1)
         time.sleep_us(10)
         trig.value(0)
-
         timeout = time.ticks_us()
         while echo.value() == 0:
             if time.ticks_diff(time.ticks_us(), timeout) > 30000:
                 raise OSError("Timeout aguardando inicio do ECHO")
-
         inicio = time.ticks_us()
         timeout = time.ticks_us()
-
         while echo.value() == 1:
             if time.ticks_diff(time.ticks_us(), timeout) > 30000:
                 raise OSError("Timeout aguardando final do ECHO")
-
         fim = time.ticks_us()
         duracao = time.ticks_diff(fim, inicio)
         distancia = round((duracao * 0.0343) / 2, 2)
-
         if distancia < 2 or distancia > 400:
             print("Distancia fora da faixa do HC-SR04:", distancia)
             return
-
         print("\nHC-SR04 - Distancia:", distancia, "cm")
-
         dados = {
             "device_id": DEVICE_ID,
             "sensor": "HC-SR04",
             "distancia": distancia
         }
-
         publicar(dados)
-
     except Exception as erro:
         print("Falha na leitura HC-SR04:", erro)
-
 
 # =====================================================
 # 11. LEITURA RFID
 # =====================================================
-
 def converter_uid(uid):
     return "-".join("{:02X}".format(numero) for numero in uid)
-
-
 def ler_rfid():
     global ultimo_uid
     global leituras_sem_cartao
-
     try:
         status, tag_type = rfid.request(rfid.REQIDL)
-
         if status != rfid.OK:
             if ultimo_uid is not None:
                 leituras_sem_cartao += 1
-
                 if leituras_sem_cartao >= 3:
                     print("Cartao retirado. RFID liberado.")
                     ultimo_uid = None
                     leituras_sem_cartao = 0
             return
-
         leituras_sem_cartao = 0
         status, uid = rfid.anticoll()
-
         if status != rfid.OK:
             return
-
         uid_texto = converter_uid(uid)
-
         if uid_texto == ultimo_uid:
             return
-
         print("\nNovo cartao detectado. UID:", uid_texto)
-
         dados = {
             "device_id": DEVICE_ID,
             "sensor": "MFRC522",
             "rfid_uid": uid_texto
         }
-
         if publicar(dados):
             ultimo_uid = uid_texto
             print("Cartao registrado. Retire-o para nova leitura.")
-
     except Exception as erro:
         print("Falha na leitura RFID:", erro)
-
 
 # =====================================================
 # 12. INICIO DO SISTEMA
 # =====================================================
-
 print("\n================================")
 print("     SISTEMA IoT - SENAI")
 print("================================")
 print("ESP32 MULTISSENSOR")
 print("Sensores habilitados:")
-
 if USAR_DHT11:
     print("- DHT11")
 if USAR_ULTRASSONICO:
     print("- HC-SR04")
 if USAR_RFID:
     print("- MFRC522")
-
 # Primeira conexao. Se falhar, o programa continua tentando.
 while not wifi.isconnected():
     if not conectar_wifi():
         print("Nova tentativa de Wi-Fi em 5 segundos...")
         time.sleep(5)
-
 while client is None:
     if not conectar_mqtt():
         print("Nova tentativa de MQTT em 5 segundos...")
         time.sleep(5)
-
 if USAR_DHT11:
     inicializar_dht11()
-
 print("\n================================")
 print("SISTEMA INICIALIZADO")
 print("Wi-Fi: OK")
@@ -457,16 +416,12 @@ print("MQTT: OK")
 print("Monitoramento iniciado.")
 print("================================")
 
-
 # =====================================================
 # 13. LOOP PRINCIPAL
 # =====================================================
-
 ultima_leitura_sensores = time.ticks_ms()
-
 while True:
     agora = time.ticks_ms()
-
     # Se o Wi-Fi cair, tenta recupera-lo. A conexao MQTT sera
     # reconstruida pela rotina publicar() quando necessario.
     if not wifi.isconnected():
@@ -474,22 +429,15 @@ while True:
         conectar_wifi()
         if wifi.isconnected():
             client = None
-
     if time.ticks_diff(agora, ultima_leitura_sensores) >= INTERVALO_LEITURA_MS:
         print("\n================================")
         print("NOVA RODADA DE LEITURAS")
         print("================================")
-
         if USAR_DHT11:
             ler_dht11()
-
         if USAR_ULTRASSONICO:
             ler_ultrassonico()
-
         ultima_leitura_sensores = time.ticks_ms()
-
     if USAR_RFID:
         ler_rfid()
-
     time.sleep_ms(200)
-
