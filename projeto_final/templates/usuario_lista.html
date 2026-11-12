@@ -1,0 +1,475 @@
+{% extends 'base.html' %} 
+
+{% block conteudo %}
+<!-- PALETA SMARTMEDS BLUE MEDTECH & UI DESIGN -->
+<style>
+  :root {
+    --sm-blue: #2563eb;
+    --sm-blue-dark: #1d4ed8;
+    --sm-blue-light: #eff6ff;
+    --sm-cyan: #0284c7;
+    --sm-cyan-light: #f0f9ff;
+    --sm-navy: #0f172a;
+    --sm-slate: #475569;
+    --sm-bg-gray: #f8fafc;
+    --sm-border: #e2e8f0;
+    --sm-shadow: 0 12px 30px -8px rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+    --sm-glow: 0 0 20px rgba(37, 99, 235, 0.22);
+  }
+
+  body {
+    background-color: var(--sm-bg-gray);
+  }
+
+  /* Header Superior em Gradient Azul Medtech com Glow */
+  .sm-hero-card {
+    background: linear-gradient(135deg, var(--sm-navy) 0%, #1e3a8a 50%, #1e40af 100%);
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sm-hero-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(2, 132, 199, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Avatar com Glow Azul */
+  .sm-avatar-glow {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    box-shadow: var(--sm-glow);
+  }
+
+  /* Cards Internos */
+  .sm-card {
+    background: #ffffff;
+    border: 1px solid var(--sm-border);
+    border-radius: 1.25rem;
+    box-shadow: var(--sm-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* Abas Segmentadas Flutuantes */
+  .sm-tabs-container {
+    background: #ffffff;
+    border: 1px solid var(--sm-border);
+    padding: 0.4rem;
+    border-radius: 1rem;
+    box-shadow: var(--sm-shadow);
+  }
+
+  .sm-tabs .nav-link {
+    color: var(--sm-slate);
+    font-weight: 600;
+    border-radius: 0.75rem;
+    padding: 0.65rem 1.25rem;
+    border: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sm-tabs .nav-link:hover {
+    color: var(--sm-blue);
+    background-color: var(--sm-blue-light);
+  }
+
+  .sm-tabs .nav-link.active {
+    background: linear-gradient(135deg, var(--sm-blue) 0%, var(--sm-blue-dark) 100%);
+    color: #ffffff !important;
+    box-shadow: 0 6px 16px -2px rgba(37, 99, 235, 0.35);
+  }
+
+  /* Botão Principal SmartMeds Azul */
+  .btn-smartmeds {
+    background: linear-gradient(135deg, var(--sm-blue) 0%, var(--sm-blue-dark) 100%);
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+    transition: all 0.25s ease;
+  }
+
+  .btn-smartmeds:hover {
+    background: linear-gradient(135deg, var(--sm-blue-dark) 0%, #172554 100%);
+    color: #ffffff;
+    box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Card de Funcionário Atrelado */
+  .sm-employee-card {
+    background: #ffffff;
+    border: 1px solid var(--sm-border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    transition: all 0.25s ease;
+  }
+
+  .sm-employee-card:hover {
+    border-color: var(--sm-blue);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.12);
+  }
+
+  .sm-badge-blue {
+    background-color: var(--sm-blue-light);
+    color: var(--sm-blue-dark);
+    font-weight: 600;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+  }
+</style>
+
+<div class="container py-4">
+
+  <!-- IDENTIFICAÇÃO DO USUÁRIO LOGADO -->
+  {% if current_user is defined and current_user.is_authenticated %}
+    {% set user = current_user %}
+  {% elif usuario is defined and usuario %}
+    {% set user = usuario %}
+  {% elif usuario_logado is defined and usuario_logado %}
+    {% set user = usuario_logado %}
+  {% elif g is defined and g.usuario %}
+    {% set user = g.usuario %}
+  {% else %}
+    {% set user = None %}
+  {% endif %}
+
+  <!-- FUNCIONÁRIOS ATRELADOS AO GESTOR -->
+  {% set lista_funcionarios = funcionarios or user.funcionarios if user and user.funcionarios is defined else [] %}
+
+  <!-- MENSAGENS FLASH -->
+  {% with messages = get_flashed_messages(with_categories=true) %} 
+  {% if messages %} 
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'success' if category == 'success' else 'success' }} alert-dismissible fade show border-0 mb-4 rounded-4 shadow-sm" role="alert">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-triangle-fill' }} fs-5 me-2"></i>
+        <div class="fw-medium">{{ message }}</div>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %} 
+  {% endif %} 
+  {% endwith %}
+
+  {% if user %}
+  <!-- HERO BANNER DO PERFIL (AZUL SMARTMEDS) -->
+  <div class="sm-hero-card p-4 p-md-5 text-white mb-4">
+    <div class="row align-items-center g-4 position-relative z-1">
+      
+      <!-- FOTO COM GLOW AZUL -->
+      <div class="col-auto">
+        {% if user.foto %}
+          <img src="{{ url_for('static', filename='uploads/' + user.foto) }}" 
+               alt="{{ user.nome }}" 
+               class="sm-avatar-glow">
+        {% else %}
+          <div class="sm-avatar-glow bg-white d-flex align-items-center justify-content-center" 
+               style="color: var(--sm-blue);">
+            <i class="bi bi-person-fill display-5"></i>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- INFORMAÇÕES DO USUÁRIO -->
+      <div class="col">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <h2 class="fw-bold text-white mb-0 fs-3">{{ user.nome }}</h2>
+          <span class="badge bg-white bg-opacity-15 text-white border border-white-50 rounded-pill px-3">ID #{{ user.id }}</span>
+          
+          {% if user.tipo == 'adm' %}
+            <span class="badge bg-danger text-white rounded-pill px-3">Administrador</span>
+          {% elif user.tipo == 'estoquista' %}
+            <span class="badge bg-warning text-dark rounded-pill px-3">Estoquista</span>
+          {% else %}
+            <span class="badge sm-badge-blue rounded-pill px-3">{{ user.tipo|capitalize if user.tipo else 'Gestor' }}</span>
+          {% endif %}
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-3 text-white-50 small">
+          <span class="d-flex align-items-center"><i class="bi bi-envelope-fill me-1 text-info"></i>{{ user.email }}</span>
+          <span class="d-flex align-items-center"><i class="bi bi-patch-check-fill me-1 text-light"></i>Conta Autenticada SmartMeds</span>
+        </div>
+      </div>
+
+      <!-- BOTÃO NOVO FUNCIONÁRIO -->
+      <div class="col-12 col-md-auto text-md-end">
+        {% if tem_permissao("usuarios_criar") %}
+        <a href="{{ url_for('novo_usuario') }}" class="btn btn-light rounded-pill px-4 shadow-sm fw-bold text-dark d-inline-flex align-items-center">
+          <i class="bi bi-person-plus-fill me-2" style="color: var(--sm-blue);"></i> Novo Funcionário
+        </a>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BARRA DE ABAS FLUTUANTES -->
+  <div class="sm-tabs-container mb-4">
+    <ul class="nav sm-tabs nav-pills d-flex flex-nowrap overflow-auto" id="profileTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab">
+          <i class="bi bi-grid-1x2-fill me-2"></i>Visão Geral
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="employees-tab" data-bs-toggle="pill" data-bs-target="#employees" type="button" role="tab">
+          <i class="bi bi-people-fill me-2"></i>Seus Funcionários
+          <span class="badge rounded-pill bg-white text-primary ms-2 fw-bold">{{ lista_funcionarios|length }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="security-tab" data-bs-toggle="pill" data-bs-target="#security" type="button" role="tab">
+          <i class="bi bi-shield-lock-fill me-2"></i>Permissões & Segurança
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="activity-tab" data-bs-toggle="pill" data-bs-target="#activity" type="button" role="tab">
+          <i class="bi bi-clock-history me-2"></i>Histórico do Perfil
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- CONTEÚDO DAS ABAS -->
+  <div class="tab-content" id="profileTabsContent">
+
+    <!-- ABA 1: VISÃO GERAL -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+      <div class="row g-4">
+        
+        <!-- CARDS DE INFORMAÇÕES -->
+        <div class="col-12 col-lg-8">
+          <div class="sm-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h5 class="fw-bold text-dark mb-0 d-flex align-items-center">
+                <i class="bi bi-person-vcard-fill me-2" style="color: var(--sm-blue);"></i>Dados Cadastrais do Gestor
+              </h5>
+              {% if tem_permissao("usuarios_editar") %}
+              <a href="{{ url_for('buscar_usuario', id=user.id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-pencil me-1"></i> Editar Dados
+              </a>
+              {% endif %}
+            </div>
+
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <div class="p-3 bg-light rounded-3 border">
+                  <small class="text-muted d-block mb-1">Nome Completo</small>
+                  <span class="fw-bold text-dark">{{ user.nome }}</span>
+                </div>
+              </div>
+
+              <div class="col-12 col-sm-6">
+                <div class="p-3 bg-light rounded-3 border">
+                  <small class="text-muted d-block mb-1">E-mail Corporativo</small>
+                  <span class="fw-bold text-dark">{{ user.email }}</span>
+                </div>
+              </div>
+
+              <div class="col-12 col-sm-6">
+                <div class="p-3 bg-light rounded-3 border">
+                  <small class="text-muted d-block mb-1">Identificação / CPF</small>
+                  <span class="fw-bold text-dark">{{ user.identificacao if user.identificacao else 'Não informado' }}</span>
+                </div>
+              </div>
+
+              <div class="col-12 col-sm-6">
+                <div class="p-3 bg-light rounded-3 border">
+                  <small class="text-muted d-block mb-1">Grupo de Acesso</small>
+                  <span class="fw-bold text-dark">{{ user.tipo|capitalize if user.tipo else 'Gestor' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESUMO DA EQUIPE DE FUNCIONÁRIOS -->
+        <div class="col-12 col-lg-4">
+          <div class="sm-card p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+              <h6 class="fw-bold text-dark mb-3">Sua Equipe Vinculada</h6>
+              <div class="p-3 rounded-4 mb-3 d-flex align-items-center justify-content-between" style="background-color: var(--sm-blue-light);">
+                <div>
+                  <span class="text-muted small d-block">Funcionários Atrelados</span>
+                  <span class="display-6 fw-bold" style="color: var(--sm-blue);">{{ lista_funcionarios|length }}</span>
+                </div>
+                <div class="p-3 rounded-circle bg-white shadow-sm" style="color: var(--sm-blue);">
+                  <i class="bi bi-people-fill fs-2"></i>
+                </div>
+              </div>
+              <p class="text-muted small">Gerencie os funcionários vinculados diretamente à sua conta e unidade de atendimento.</p>
+            </div>
+
+            {% if tem_permissao("usuarios_criar") %}
+            <a href="{{ url_for('novo_usuario') }}" class="btn btn-smartmeds w-100 rounded-pill py-2">
+              <i class="bi bi-plus-circle me-1"></i> Adicionar Colaborador
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ABA 2: SEUS FUNCIONÁRIOS -->
+    <div class="tab-pane fade" id="employees" role="tabpanel">
+      <div class="sm-card p-4">
+        
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+          <div>
+            <h5 class="fw-bold text-dark mb-1 d-flex align-items-center">
+              <i class="bi bi-people-fill me-2" style="color: var(--sm-blue);"></i>Funcionários Atrelados a Você
+            </h5>
+            <p class="text-muted small mb-0">Gestão dos usuários e colaboradores conectados diretamente à sua conta.</p>
+          </div>
+
+          {% if tem_permissao("usuarios_criar") %}
+          <a href="{{ url_for('novo_usuario') }}" class="btn btn-smartmeds btn-sm rounded-pill px-3 py-2">
+            <i class="bi bi-person-plus-fill me-1"></i> Vincular Novo Funcionário
+          </a>
+          {% endif %}
+        </div>
+
+        {% if lista_funcionarios %}
+        <!-- CARDS DE FUNCIONÁRIOS -->
+        <div class="row g-3">
+          {% for func in lista_funcionarios %}
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="sm-employee-card">
+              <div class="d-flex align-items-center gap-3">
+                
+                <!-- Foto -->
+                {% if func.foto %}
+                  <img src="{{ url_for('static', filename='uploads/' + func.foto) }}" 
+                       alt="{{ func.nome }}" 
+                       class="rounded-circle border" 
+                       style="width: 54px; height: 54px; object-fit: cover;">
+                {% else %}
+                  <div class="rounded-circle bg-light text-secondary d-flex align-items-center justify-content-center border" 
+                       style="width: 54px; height: 54px;">
+                    <i class="bi bi-person-fill fs-3"></i>
+                  </div>
+                {% endif %}
+
+                <!-- Informações -->
+                <div class="flex-grow-1 overflow-hidden">
+                  <h6 class="fw-bold text-dark text-truncate mb-0">{{ func.nome }}</h6>
+                  <small class="text-muted text-truncate d-block mb-1">{{ func.email }}</small>
+                  <span class="badge sm-badge-blue rounded-pill px-2 py-1">
+                    {{ func.tipo|capitalize if func.tipo else 'Atendente' }}
+                  </span>
+                </div>
+
+                <!-- Botão Editar -->
+                {% if tem_permissao("usuarios_editar") %}
+                <div>
+                  <a href="{{ url_for('buscar_usuario', id=func.id) }}" 
+                     class="btn btn-sm btn-outline-primary rounded-circle" 
+                     title="Editar funcionário">
+                    <i class="bi bi-pencil-fill"></i>
+                  </a>
+                </div>
+                {% endif %}
+
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% else %}
+        <!-- ESTADO VAZIO -->
+        <div class="text-center py-5 border rounded-4 bg-light">
+          <div class="p-3 rounded-circle d-inline-flex mb-3 bg-white shadow-sm" style="color: var(--sm-blue);">
+            <i class="bi bi-people display-6"></i>
+          </div>
+          <h6 class="fw-bold text-dark mb-1">Nenhum funcionário vinculado</h6>
+          <p class="text-muted small mb-3">Você ainda não possui colaboradores cadastrados sob a sua gestão.</p>
+          {% if tem_permissao("usuarios_criar") %}
+          <a href="{{ url_for('novo_usuario') }}" class="btn btn-smartmeds btn-sm rounded-pill px-4">
+            <i class="bi bi-person-plus-fill me-1"></i> Vincular Primeiro Funcionário
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- ABA 3: PERMISSÕES & SEGURANÇA -->
+    <div class="tab-pane fade" id="security" role="tabpanel">
+      <div class="sm-card p-4">
+        <h5 class="fw-bold text-dark mb-2 d-flex align-items-center">
+          <i class="bi bi-shield-check me-2" style="color: var(--sm-blue);"></i>Permissões e Nível de Acesso
+        </h5>
+        <p class="text-muted small mb-4">Credenciais e autorizações concedidas no portal SmartMeds.</p>
+        
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge sm-badge-blue rounded-pill px-3 py-2">
+            <i class="bi bi-check-circle-fill me-1"></i>Acesso Geral ao Portal
+          </span>
+          {% if tem_permissao("usuarios_criar") %}
+          <span class="badge sm-badge-blue rounded-pill px-3 py-2">
+            <i class="bi bi-check-circle-fill me-1"></i>Cadastrar Funcionários
+          </span>
+          {% endif %}
+          {% if tem_permissao("usuarios_editar") %}
+          <span class="badge sm-badge-blue rounded-pill px-3 py-2">
+            <i class="bi bi-check-circle-fill me-1"></i>Editar Dados de Colaboradores
+          </span>
+          {% endif %}
+          {% if tem_permissao("usuarios_excluir") %}
+          <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>Excluir Registros de Usuários
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 4: HISTÓRICO -->
+    <div class="tab-pane fade" id="activity" role="tabpanel">
+      <div class="sm-card p-4">
+        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+          <i class="bi bi-clock-history me-2" style="color: var(--sm-blue);"></i>Atividades do Perfil
+        </h5>
+        <div class="list-group list-group-flush border-top">
+          <div class="list-group-item px-0 py-3 bg-transparent">
+            <div class="fw-semibold text-dark">Sessão Ativa</div>
+            <small class="text-muted">Usuário conectado e autenticado no SmartMeds Portal.</small>
+          </div>
+          <div class="list-group-item px-0 py-3 bg-transparent">
+            <div class="fw-semibold text-dark">Consulta de Colaboradores</div>
+            <small class="text-muted">Acesso realizado à aba de gestão de funcionários vinculados.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {% else %}
+  <!-- ESTADO DESCONECTADO -->
+  <div class="sm-card text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-person-x text-muted display-4 mb-2 d-block"></i>
+      <h5 class="fw-bold text-dark">Nenhum perfil conectado</h5>
+      <p class="text-muted small mb-0">Por favor, faça login para acessar suas informações e funcionários atrelados.</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

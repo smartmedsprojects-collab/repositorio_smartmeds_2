@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<style>
+    .sm-404-page {
+        min-height: calc(100vh - 180px);
+        display: grid;
+        place-items: center;
+        padding: clamp(1rem, 4vw, 3rem) .5rem;
+    }
+
+    .sm-404-card {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        width: min(100%, 780px);
+        padding: clamp(1.75rem, 5vw, 3.5rem);
+        text-align: center;
+        background: linear-gradient(145deg, #ffffff 0%, #f4f7fc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 24px;
+        box-shadow: 0 20px 55px rgba(15, 23, 42, .09);
+    }
+
+    .sm-404-card::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        width: 260px;
+        height: 260px;
+        top: -150px;
+        right: -100px;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, .09);
+    }
+
+    .sm-404-icon {
+        display: grid;
+        place-items: center;
+        width: 76px;
+        height: 76px;
+        margin: 0 auto 1.25rem;
+        border: 1px solid #dbeafe;
+        border-radius: 22px;
+        color: #2563eb;
+        background: #eff6ff;
+        font-size: 2rem;
+    }
+
+    .sm-404-code {
+        margin: 0;
+        color: #0f172a;
+        font-size: clamp(5rem, 17vw, 9rem);
+        line-height: .95;
+        font-weight: 850;
+        letter-spacing: -.085em;
+    }
+
+    .sm-404-title {
+        margin: 1.2rem 0 .65rem;
+        color: #1e293b;
+        font-size: clamp(1.35rem, 3vw, 1.8rem);
+        font-weight: 750;
+        letter-spacing: -.035em;
+    }
+
+    .sm-404-description {
+        max-width: 470px;
+        margin: 0 auto;
+        color: #64748b;
+        font-size: .95rem;
+        line-height: 1.75;
+    }
+
+    .sm-404-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: .7rem;
+        margin-top: 1.75rem;
+    }
+
+    .sm-404-actions .btn {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        border-radius: 12px;
+        padding: .7rem 1.1rem;
+        font-weight: 650;
+    }
+
+    .sm-404-footnote {
+        margin: 1.6rem 0 0;
+        color: #94a3b8;
+        font-size: .75rem;
+    }
+
+    @media (max-width: 480px) {
+        .sm-404-actions { flex-direction: column; }
+        .sm-404-actions .btn { width: 100%; }
+    }
+</style>
+
+<section class="sm-404-page" aria-labelledby="titulo-404">
+    <div class="sm-404-card">
+        <div class="sm-404-icon" aria-hidden="true">
+            <i class="bi bi-search"></i>
+        </div>
+
+        <p class="text-primary text-uppercase fw-bold small mb-2" style="letter-spacing: .14em;">
+            SmartMeds · Sistema de Estoque
+        </p>
+
+        <p class="sm-404-code" aria-label="Erro 404">404</p>
+        <h1 id="titulo-404" class="sm-404-title">Página não encontrada</h1>
+        <p class="sm-404-description">
+            A página que você tentou acessar não existe, foi movida ou o endereço foi digitado incorretamente.
+            Verifique o link e tente novamente.
+        </p>
+
+        <div class="sm-404-actions">
+            <a class="btn btn-primary" href="{{ url_for('dashboard') if session.get('usuario_id') else url_for('login') }}">
+                <i class="bi bi-house-door"></i>
+                {{ 'Voltar ao painel' if session.get('usuario_id') else 'Ir para o login' }}
+            </a>
+            <button class="btn btn-outline-secondary" type="button" onclick="history.back()">
+                <i class="bi bi-arrow-left"></i>
+                Voltar à página anterior
+            </button>
+        </div>
+
+        <p class="sm-404-footnote">
+            <i class="bi bi-shield-check me-1"></i>
+            SmartMeds · Controle de estoque e monitoramento
+        </p>
+    </div>
+</section>
+{% endblock %}

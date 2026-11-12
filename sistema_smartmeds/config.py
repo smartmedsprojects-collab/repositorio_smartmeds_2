@@ -7,6 +7,7 @@ DB_CONFIG = {
     "password": os.getenv("SMARTMEDS_DB_PASSWORD", "123456"),
     "database": os.getenv("SMARTMEDS_DB_NAME", "smartmeds3"),
     "auth_plugin": os.getenv("SMARTMEDS_DB_AUTH_PLUGIN", "mysql_native_password"),
+
 }
 
 # Só força um plugin de autenticação se ele tiver sido configurado explicitamente.

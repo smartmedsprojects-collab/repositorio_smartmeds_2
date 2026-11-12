@@ -2,6 +2,30 @@
 
 {% block conteudo %}
 
+<style>
+    #alerta-temperatura-dashboard {
+        border: 1px solid transparent;
+    }
+    #alerta-temperatura-dashboard.alert-danger {
+        border-color: #f1aeb5;
+        background: #fff0f1;
+        color: #842029;
+    }
+    #alerta-temperatura-dashboard.alert-warning {
+        border-color: #ffda6a;
+        background: #fff8e1;
+        color: #664d03;
+    }
+    #alerta-temperatura-dashboard.alert-info {
+        border-color: #9eeaf9;
+        background: #e8f8fc;
+        color: #055160;
+    }
+    .sensor-temperature-value {
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+
 <div class="container-fluid py-2">
 
     <!-- CABEÇALHO DA PÁGINA -->
@@ -17,6 +41,21 @@
             <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold shadow-sm">
                 <i class="bi bi-arrow-clockwise me-1"></i> Sincronizar
             </a>
+        </div>
+    </div>
+
+    <!-- ALERTA DE TEMPERATURA EM TEMPO QUASE REAL -->
+    <div id="alerta-temperatura-dashboard"
+         class="alert rounded-3 shadow-sm d-none mb-4"
+         role="alert" aria-live="assertive">
+        <div class="d-flex align-items-start gap-3">
+            <i id="icone-alerta-temperatura-dashboard" class="bi bi-thermometer-half fs-4 mt-1" aria-hidden="true"></i>
+            <div class="flex-grow-1">
+                <div id="titulo-alerta-temperatura-dashboard" class="fw-bold">Monitoramento de temperatura</div>
+                <div id="detalhe-alerta-temperatura-dashboard" class="small mt-1"></div>
+                <div id="hora-alerta-temperatura-dashboard" class="small mt-1 opacity-75"></div>
+            </div>
+            <a href="{{ url_for('pagina_sensores') }}" class="btn btn-sm btn-outline-dark rounded-pill flex-shrink-0">Abrir monitor</a>
         </div>
     </div>
 
@@ -84,12 +123,12 @@
             <div class="dash-card card h-100 border-0 p-3">
                 {% set alertas_temp_count = alertas_temperatura|length if alertas_temperatura else 0 %}
                 <div class="d-flex align-items-center gap-3">
-                    <div class="icon-shape {{ 'bg-danger-subtle text-danger' if alertas_temp_count > 0 else 'bg-info-subtle text-info-emphasis' }}">
+                    <div id="icone-indicador-temperatura" class="icon-shape {{ 'bg-danger-subtle text-danger' if alertas_temp_count > 0 else 'bg-info-subtle text-info-emphasis' }}">
                         <i class="bi bi-thermometer-half"></i>
                     </div>
                     <div>
                         <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.72rem;">Alertas Temp.</span>
-                        <h3 class="fw-bold mb-0 {{ 'text-danger' if alertas_temp_count > 0 else 'text-dark' }}">
+                        <h3 id="contador-alertas-temperatura" class="fw-bold mb-0 {{ 'text-danger' if alertas_temp_count > 0 else 'text-dark' }}">
                             {{ alertas_temp_count }}
                         </h3>
                     </div>
@@ -159,13 +198,13 @@
                 <h6 class="fw-bold mb-0 text-dark">Monitoramento da Cadeia de Frio</h6>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="status-dot {{ 'status-dot-active' if iot_conectado else 'bg-danger' }}"></span>
-                <span class="small text-muted fw-semibold" style="font-size: 0.78rem;">{{ 'Sensores conectados' if iot_conectado else 'MQTT desconectado' }}</span>
+                <span id="status-dot-dashboard" class="status-dot {{ 'status-dot-active' if iot_conectado else 'status-dot-danger' }}"></span>
+                <span id="status-text-dashboard" class="small text-muted fw-semibold" style="font-size: 0.78rem;">{{ 'Sensores conectados' if iot_conectado else 'MQTT desconectado' }}</span>
                 <a href="{{ url_for('pagina_sensores') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Ver monitor</a>
             </div>
         </div>
         <div class="card-body px-4 pb-4 pt-1">
-            <div class="row g-3">
+            <div id="lista-sensores-dashboard" class="row g-3" data-endpoint="{{ url_for('api_dashboard_temperatura') }}">
                 {% for sensor in sensores_temperatura %}
                 <div class="col-12 col-md-6 col-xl-3">
                     <div class="sensor-card p-3">
@@ -354,16 +393,200 @@ document.addEventListener("DOMContentLoaded", function () {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { 
-                    legend: { 
+                plugins: {
+                    legend: {
                         position: "bottom",
                         labels: { font: { size: 12 }, usePointStyle: true, boxWidth: 8 }
-                    } 
+                    }
                 },
                 cutout: "75%"
             }
         });
     }
+
+    // Atualização automática do DHT11 no dashboard, sem recarregar a página.
+    const listaSensores = document.getElementById("lista-sensores-dashboard");
+    const endpointSensores = listaSensores?.dataset.endpoint;
+    const alerta = document.getElementById("alerta-temperatura-dashboard");
+    const minimoInicial = {{ temperatura_min|default(15)|tojson }};
+    const maximoInicial = {{ temperatura_max|default(30)|tojson }};
+    let consultaTemperaturaEmAndamento = false;
+
+    function criarElemento(tag, classe, texto) {
+        const elemento = document.createElement(tag);
+        if (classe) elemento.className = classe;
+        if (texto !== undefined && texto !== null) elemento.textContent = texto;
+        return elemento;
+    }
+
+    function obterDataLeitura(sensor) {
+        const valor = sensor.timestamp_iso || sensor.ultima_leitura;
+        if (!valor) return null;
+        const data = new Date(String(valor).replace(" ", "T"));
+        return Number.isNaN(data.getTime()) ? null : data;
+    }
+
+    function estadoSensor(sensor, agora) {
+        const temperatura = sensor.temperatura === null || sensor.temperatura === undefined
+            ? null : Number(sensor.temperatura);
+        const min = Number(sensor.temp_min ?? minimoInicial);
+        const max = Number(sensor.temp_max ?? maximoInicial);
+        const dataLeitura = obterDataLeitura(sensor);
+        const desatualizado = !dataLeitura || (agora - dataLeitura.getTime() > 15000);
+        const critico = temperatura !== null && Number.isFinite(temperatura)
+            && (temperatura < min || temperatura > max);
+        return { temperatura, min, max, dataLeitura, desatualizado, critico };
+    }
+
+    function renderizarCartoesSensores(sensores, agora) {
+        if (!listaSensores) return;
+        listaSensores.replaceChildren();
+
+        if (!sensores.length) {
+            const coluna = criarElemento("div", "col-12 text-center text-muted py-4");
+            coluna.append(
+                criarElemento("i", "bi bi-thermometer-sun fs-2 text-secondary mb-2 d-block"),
+                criarElemento("p", "mb-0 fw-semibold text-secondary", "Aguardando a primeira leitura do DHT11.")
+            );
+            listaSensores.appendChild(coluna);
+            return;
+        }
+
+        sensores.forEach((sensor) => {
+            const estado = estadoSensor(sensor, agora);
+            const coluna = criarElemento("div", "col-12 col-md-6 col-xl-3");
+            const cartao = criarElemento("article", "sensor-card p-3 h-100");
+            const cabecalho = criarElemento("div", "d-flex justify-content-between align-items-center mb-2");
+            const nome = criarElemento("span", "fw-bold text-dark text-truncate", sensor.nome || "DHT11");
+            nome.style.maxWidth = "140px";
+            nome.title = sensor.nome || "DHT11";
+
+            let statusTexto = "Ideal";
+            let statusClasse = "badge bg-success-subtle text-success border border-success-subtle rounded-pill";
+            if (estado.temperatura === null || !Number.isFinite(estado.temperatura)) {
+                statusTexto = "Sem leitura";
+                statusClasse = "badge bg-secondary-subtle text-secondary border rounded-pill";
+            } else if (estado.critico) {
+                statusTexto = "Crítico";
+                statusClasse = "badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill";
+            } else if (estado.desatualizado) {
+                statusTexto = "Desatualizado";
+                statusClasse = "badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill";
+            }
+            const badge = criarElemento("span", statusClasse, statusTexto);
+            cabecalho.append(nome, badge);
+
+            const linhaTemperatura = criarElemento("div", "d-flex align-items-baseline flex-wrap gap-2 my-1");
+            const valorTemperatura = estado.temperatura === null || !Number.isFinite(estado.temperatura)
+                ? "--" : estado.temperatura.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            linhaTemperatura.append(
+                criarElemento("h2", `fw-bold mb-0 ${estado.critico ? "text-danger" : "text-dark"}`, `${valorTemperatura} °C`),
+                criarElemento("span", "text-muted small", `Faixa: ${estado.min}°C a ${estado.max}°C`)
+            );
+
+            const umidadeValor = sensor.umidade === null || sensor.umidade === undefined
+                ? "--" : `${Number(sensor.umidade).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+            const linhaUmidade = criarElemento("div", "small text-muted mt-2", `Umidade relativa: ${umidadeValor}`);
+            const rodape = criarElemento("div", "d-flex justify-content-between align-items-center mt-3 pt-2 border-top text-muted flex-wrap gap-1");
+            rodape.style.fontSize = "0.78rem";
+            const instante = estado.dataLeitura
+                ? estado.dataLeitura.toLocaleString("pt-BR") : "Sem horário";
+            const horario = criarElemento("span", "", `Última leitura: ${instante}`);
+            const dispositivo = criarElemento("span", "", sensor.nome || "DHT11");
+            rodape.append(horario, dispositivo);
+
+            cartao.append(cabecalho, linhaTemperatura, linhaUmidade, rodape);
+            coluna.appendChild(cartao);
+            listaSensores.appendChild(coluna);
+        });
+    }
+
+    function mostrarAlerta(classe, titulo, detalhe, instante) {
+        if (!alerta) return;
+        alerta.classList.remove("d-none", "alert-danger", "alert-warning", "alert-info");
+        alerta.classList.add(classe);
+        document.getElementById("titulo-alerta-temperatura-dashboard").textContent = titulo;
+        document.getElementById("detalhe-alerta-temperatura-dashboard").textContent = detalhe;
+        document.getElementById("hora-alerta-temperatura-dashboard").textContent = instante || "";
+    }
+
+    function atualizarIndicadoresConexao(mqtt, temLeituraRecente) {
+        const ponto = document.getElementById("status-dot-dashboard");
+        const texto = document.getElementById("status-text-dashboard");
+        if (ponto) {
+            ponto.classList.remove("status-dot-active", "status-dot-danger");
+            ponto.classList.add(mqtt && temLeituraRecente ? "status-dot-active" : "status-dot-danger");
+        }
+        if (texto) {
+            texto.textContent = !mqtt ? "MQTT desconectado" :
+                (temLeituraRecente ? "Sensor conectado · dados recentes" : "Sem leitura recente");
+        }
+    }
+
+    async function atualizarTemperaturaDashboard() {
+        if (!endpointSensores || consultaTemperaturaEmAndamento || document.visibilityState === "hidden") return;
+        consultaTemperaturaEmAndamento = true;
+        try {
+            const resposta = await fetch(endpointSensores, {
+                cache: "no-store",
+                headers: { Accept: "application/json" }
+            });
+            if (!resposta.ok) throw new Error(`Consulta de temperatura indisponível (HTTP ${resposta.status}).`);
+            const dadosTemperatura = await resposta.json();
+            const sensores = Array.isArray(dadosTemperatura.sensores) ? dadosTemperatura.sensores : [];
+            const agora = Date.now();
+            renderizarCartoesSensores(sensores, agora);
+
+            const estados = sensores.map((sensor) => ({ sensor, estado: estadoSensor(sensor, agora) }));
+            const criticos = estados.filter((item) => item.estado.critico);
+            const desatualizados = estados.filter((item) => item.estado.desatualizado);
+            const mqtt = Boolean(dadosTemperatura.mqtt);
+            const temLeituraRecente = sensores.length > 0 && desatualizados.length === 0;
+            const contador = document.getElementById("contador-alertas-temperatura");
+            const iconeIndicador = document.getElementById("icone-indicador-temperatura");
+
+            if (contador) {
+                contador.textContent = String(criticos.length);
+                contador.classList.toggle("text-danger", criticos.length > 0);
+                contador.classList.toggle("text-dark", criticos.length === 0);
+            }
+            if (iconeIndicador) {
+                iconeIndicador.classList.toggle("bg-danger-subtle", criticos.length > 0);
+                iconeIndicador.classList.toggle("text-danger", criticos.length > 0);
+                iconeIndicador.classList.toggle("bg-info-subtle", criticos.length === 0);
+                iconeIndicador.classList.toggle("text-info-emphasis", criticos.length === 0);
+            }
+
+            atualizarIndicadoresConexao(mqtt, temLeituraRecente);
+            const hora = `Atualizado às ${new Date().toLocaleTimeString("pt-BR")}`;
+            if (criticos.length) {
+                const detalhe = criticos.map(({ sensor, estado }) =>
+                    `${sensor.nome || "DHT11"}: ${estado.temperatura.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}°C (faixa ${estado.min}–${estado.max}°C)`
+                ).join(" · ");
+                mostrarAlerta("alert-danger", "Alerta crítico: temperatura fora da faixa", detalhe, hora);
+            } else if (!mqtt) {
+                mostrarAlerta("alert-warning", "Atenção: comunicação MQTT desconectada", "As leituras podem deixar de ser atualizadas. Verifique a conexão do servidor e do ESP32.", hora);
+            } else if (!sensores.length) {
+                mostrarAlerta("alert-info", "Aguardando dados do DHT11", "Nenhuma leitura foi recebida ainda. Confira a alimentação do sensor, o Wi-Fi e a conexão MQTT.", hora);
+            } else if (desatualizados.length) {
+                mostrarAlerta("alert-warning", "Atenção: leitura de temperatura desatualizada", `${desatualizados.map((item) => item.sensor.nome || "DHT11").join(", ")} sem atualização recente. Verifique o ESP32 e a conexão MQTT.`, hora);
+            } else if (alerta) {
+                alerta.classList.add("d-none");
+                alerta.classList.remove("alert-danger", "alert-warning", "alert-info");
+                document.getElementById("titulo-alerta-temperatura-dashboard").textContent = "";
+                document.getElementById("detalhe-alerta-temperatura-dashboard").textContent = "";
+                document.getElementById("hora-alerta-temperatura-dashboard").textContent = "";
+            }
+        } catch (erro) {
+            console.warn("Não foi possível atualizar a temperatura no dashboard:", erro);
+            mostrarAlerta("alert-warning", "Não foi possível atualizar o monitoramento", erro.message || "Confira a sessão e a conexão com o servidor.", "A próxima tentativa será automática.");
+        } finally {
+            consultaTemperaturaEmAndamento = false;
+        }
+    }
+
+    atualizarTemperaturaDashboard();
+    window.setInterval(atualizarTemperaturaDashboard, 4000);
 
 });
 </script>
