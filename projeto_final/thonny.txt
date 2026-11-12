@@ -1,0 +1,495 @@
+"""
+Projeto IoT SENAI - ESP32 MULTISSENSOR
+Sensores: DHT11, HC-SR04 e MFRC522
+Fluxo: ESP32 -> HiveMQ Cloud (MQTT) -> FastAPI -> MySQL
+
+Ajustes principais:
+- Reconexao automatica do Wi-Fi e MQTT.
+- Cliente MQTT global atualizado apos reconexao.
+- Publicacao com uma nova tentativa apos recuperar a conexao.
+- Validacao basica das leituras do DHT11.
+- Identificacao correta dos sensores habilitados.
+- Tratamento de timeout do HC-SR04.
+"""
+
+import network
+import time
+import ujson
+import dht
+
+from machine import Pin, SPI
+from umqtt.simple import MQTTClient
+from mfrc522 import MFRC522
+
+
+# =====================================================
+# 1. CONFIGURACAO DOS SENSORES
+# =====================================================
+
+USAR_DHT11 = True
+USAR_ULTRASSONICO = False
+USAR_RFID = False
+
+DEVICE_ID = "SmartMeds"
+
+# Intervalo entre leituras dos sensores (milissegundos)
+INTERVALO_LEITURA_MS = 5000
+
+
+# =====================================================
+# 2. CONFIGURACAO WI-FI
+# =====================================================
+
+WIFI_SSID = "SENAI-IOT"
+WIFI_PASSWORD = "12345678"
+
+
+# =====================================================
+# 3. CONFIGURACAO MQTT - HIVEMQ CLOUD
+# =====================================================
+
+MQTT_BROKER = (
+    "b1600c60a35c4520b32b9507d0b47b02"
+    ".s1.eu.hivemq.cloud"
+)
+
+MQTT_PORT = 8883
+MQTT_USER = "IOT-SENAI"
+MQTT_PASSWORD = "12345678"
+MQTT_CLIENT_ID = "esp32-sensores-01"
+MQTT_TOPIC = b"sensores/leitura/smartmeds"
+MQTT_KEEPALIVE = 60
+
+# O cliente fica global para que todas as funcoes usem
+# sempre a conexao atual, inclusive depois de reconectar.
+wifi = network.WLAN(network.STA_IF)
+client = None
+
+
+# =====================================================
+# 4. INICIALIZACAO DOS SENSORES
+# =====================================================
+
+if USAR_DHT11:
+    sensor_dht = dht.DHT11(Pin(27))
+
+if USAR_ULTRASSONICO:
+    trig = Pin(25, Pin.OUT)
+    echo = Pin(26, Pin.IN)
+    trig.value(0)
+
+if USAR_RFID:
+    print("Configurando MFRC522...")
+
+    spi = SPI(
+        2,
+        baudrate=2500000,
+        polarity=0,
+        phase=0,
+        sck=Pin(18),
+        mosi=Pin(23),
+        miso=Pin(19)
+    )
+
+    rfid = MFRC522(
+        spi=spi,
+        gpioRst=22,
+        gpioCs=5
+    )
+
+    print("MFRC522 configurado.")
+
+ultimo_uid = None
+leituras_sem_cartao = 0
+
+
+# =====================================================
+# 5. CONEXAO WI-FI
+# =====================================================
+
+def conectar_wifi():
+    print("\n================================")
+    print("CONECTANDO AO WIFI")
+    print("================================")
+
+    try:
+        wifi.active(True)
+
+        if not wifi.isconnected():
+            print("Conectando a rede:", WIFI_SSID)
+            wifi.connect(WIFI_SSID, WIFI_PASSWORD)
+
+            tentativas = 0
+            while not wifi.isconnected() and tentativas < 30:
+                print(".", end="")
+                time.sleep(1)
+                tentativas += 1
+
+        if not wifi.isconnected():
+            print("\nERRO: nao foi possivel conectar ao Wi-Fi.")
+            return False
+
+        configuracao = wifi.ifconfig()
+        print("\nWi-Fi conectado com sucesso!")
+        print("IP:", configuracao[0])
+        print("Mascara:", configuracao[1])
+        print("Gateway:", configuracao[2])
+        print("DNS:", configuracao[3])
+        return True
+
+    except Exception as erro:
+        print("Erro ao conectar Wi-Fi:", erro)
+        return False
+
+
+# =====================================================
+# 6. CONEXAO MQTT
+# =====================================================
+
+def conectar_mqtt():
+    global client
+
+    print("\n================================")
+    print("CONECTANDO AO MQTT")
+    print("================================")
+    print("Broker:", MQTT_BROKER)
+    print("Porta:", MQTT_PORT)
+    print("Usuario:", MQTT_USER)
+    print("Client ID:", MQTT_CLIENT_ID)
+    print("TLS: ativado")
+
+    novo_cliente = None
+
+    try:
+        novo_cliente = MQTTClient(
+            client_id=MQTT_CLIENT_ID,
+            server=MQTT_BROKER,
+            port=MQTT_PORT,
+            user=MQTT_USER,
+            password=MQTT_PASSWORD,
+            keepalive=MQTT_KEEPALIVE,
+            ssl=True,
+            ssl_params={"server_hostname": MQTT_BROKER}
+        )
+
+        novo_cliente.connect()
+        client = novo_cliente
+        print("MQTT conectado com sucesso!")
+        return True
+
+    except Exception as erro:
+        print("Falha na conexao MQTT:", erro)
+
+        if novo_cliente is not None:
+            try:
+                novo_cliente.disconnect()
+            except Exception:
+                pass
+
+        client = None
+        return False
+
+
+# =====================================================
+# 7. RECUPERACAO DA CONEXAO
+# =====================================================
+
+def reconectar():
+    global client
+
+    print("\nTentando recuperar comunicacao...")
+
+    # Descarta o objeto anterior, pois o socket pode estar fechado.
+    if client is not None:
+        try:
+            client.disconnect()
+        except Exception:
+            pass
+        client = None
+
+    if not wifi.isconnected():
+        print("Wi-Fi desconectado. Recuperando...")
+        if not conectar_wifi():
+            return False
+
+    if conectar_mqtt():
+        print("Comunicacao MQTT recuperada.")
+        return True
+
+    print("Ainda nao foi possivel recuperar o MQTT.")
+    return False
+
+
+# =====================================================
+# 8. PUBLICACAO MQTT
+# =====================================================
+
+def publicar(dados):
+    global client
+
+    try:
+        mensagem = ujson.dumps(dados).encode("utf-8")
+    except Exception as erro:
+        print("Erro ao converter dados para JSON:", erro)
+        return False
+
+    print("\nPublicando MQTT...")
+    print("Topico:", MQTT_TOPIC)
+    print("Mensagem:", mensagem)
+
+    # No maximo duas tentativas: a segunda ocorre depois da reconexao.
+    for tentativa in range(2):
+        if client is None:
+            if not reconectar():
+                time.sleep(2)
+                continue
+
+        try:
+            client.publish(MQTT_TOPIC, mensagem)
+            print("MQTT enviado com sucesso!")
+            return True
+
+        except Exception as erro:
+            print("Falha na publicacao MQTT:", erro)
+
+            try:
+                client.disconnect()
+            except Exception:
+                pass
+
+            client = None
+
+            if tentativa == 0:
+                print("Sera realizada uma nova conexao e tentativa.")
+                time.sleep(2)
+
+    print("Mensagem nao enviada. Sera tentada na proxima leitura.")
+    return False
+
+
+# =====================================================
+# 9. INICIALIZACAO E LEITURA DHT11
+# =====================================================
+
+def inicializar_dht11():
+    print("\nInicializando DHT11...")
+    time.sleep(2)
+
+    try:
+        sensor_dht.measure()
+        temperatura = sensor_dht.temperature()
+        umidade = sensor_dht.humidity()
+        print("DHT11 pronto.")
+        print("Temperatura inicial:", temperatura, "C")
+        print("Umidade inicial:", umidade, "%")
+        return True
+    except OSError as erro:
+        print("DHT11 ainda nao respondeu:", erro)
+        return False
+
+
+def ler_dht11():
+    try:
+        sensor_dht.measure()
+        temperatura = sensor_dht.temperature()
+        umidade = sensor_dht.humidity()
+
+        # Faixas gerais de validacao do DHT11.
+        if temperatura < 0 or temperatura > 50:
+            print("Leitura descartada: temperatura fora da faixa.")
+            return
+
+        if umidade < 0 or umidade > 100:
+            print("Leitura descartada: umidade fora da faixa.")
+            return
+
+        print("\n--------------------------------")
+        print("DHT11")
+        print("Temperatura:", temperatura, "C")
+        print("Umidade:", umidade, "%")
+
+        dados = {
+            "device_id": DEVICE_ID,
+            "sensor": "DHT11",
+            "temperatura": temperatura,
+            "umidade": umidade
+        }
+
+        publicar(dados)
+
+    except OSError as erro:
+        print("Falha na leitura DHT11:", erro)
+
+
+# =====================================================
+# 10. LEITURA HC-SR04
+# =====================================================
+
+def ler_ultrassonico():
+    try:
+        trig.value(0)
+        time.sleep_us(2)
+        trig.value(1)
+        time.sleep_us(10)
+        trig.value(0)
+
+        timeout = time.ticks_us()
+        while echo.value() == 0:
+            if time.ticks_diff(time.ticks_us(), timeout) > 30000:
+                raise OSError("Timeout aguardando inicio do ECHO")
+
+        inicio = time.ticks_us()
+        timeout = time.ticks_us()
+
+        while echo.value() == 1:
+            if time.ticks_diff(time.ticks_us(), timeout) > 30000:
+                raise OSError("Timeout aguardando final do ECHO")
+
+        fim = time.ticks_us()
+        duracao = time.ticks_diff(fim, inicio)
+        distancia = round((duracao * 0.0343) / 2, 2)
+
+        if distancia < 2 or distancia > 400:
+            print("Distancia fora da faixa do HC-SR04:", distancia)
+            return
+
+        print("\nHC-SR04 - Distancia:", distancia, "cm")
+
+        dados = {
+            "device_id": DEVICE_ID,
+            "sensor": "HC-SR04",
+            "distancia": distancia
+        }
+
+        publicar(dados)
+
+    except Exception as erro:
+        print("Falha na leitura HC-SR04:", erro)
+
+
+# =====================================================
+# 11. LEITURA RFID
+# =====================================================
+
+def converter_uid(uid):
+    return "-".join("{:02X}".format(numero) for numero in uid)
+
+
+def ler_rfid():
+    global ultimo_uid
+    global leituras_sem_cartao
+
+    try:
+        status, tag_type = rfid.request(rfid.REQIDL)
+
+        if status != rfid.OK:
+            if ultimo_uid is not None:
+                leituras_sem_cartao += 1
+
+                if leituras_sem_cartao >= 3:
+                    print("Cartao retirado. RFID liberado.")
+                    ultimo_uid = None
+                    leituras_sem_cartao = 0
+            return
+
+        leituras_sem_cartao = 0
+        status, uid = rfid.anticoll()
+
+        if status != rfid.OK:
+            return
+
+        uid_texto = converter_uid(uid)
+
+        if uid_texto == ultimo_uid:
+            return
+
+        print("\nNovo cartao detectado. UID:", uid_texto)
+
+        dados = {
+            "device_id": DEVICE_ID,
+            "sensor": "MFRC522",
+            "rfid_uid": uid_texto
+        }
+
+        if publicar(dados):
+            ultimo_uid = uid_texto
+            print("Cartao registrado. Retire-o para nova leitura.")
+
+    except Exception as erro:
+        print("Falha na leitura RFID:", erro)
+
+
+# =====================================================
+# 12. INICIO DO SISTEMA
+# =====================================================
+
+print("\n================================")
+print("     SISTEMA IoT - SENAI")
+print("================================")
+print("ESP32 MULTISSENSOR")
+print("Sensores habilitados:")
+
+if USAR_DHT11:
+    print("- DHT11")
+if USAR_ULTRASSONICO:
+    print("- HC-SR04")
+if USAR_RFID:
+    print("- MFRC522")
+
+# Primeira conexao. Se falhar, o programa continua tentando.
+while not wifi.isconnected():
+    if not conectar_wifi():
+        print("Nova tentativa de Wi-Fi em 5 segundos...")
+        time.sleep(5)
+
+while client is None:
+    if not conectar_mqtt():
+        print("Nova tentativa de MQTT em 5 segundos...")
+        time.sleep(5)
+
+if USAR_DHT11:
+    inicializar_dht11()
+
+print("\n================================")
+print("SISTEMA INICIALIZADO")
+print("Wi-Fi: OK")
+print("MQTT: OK")
+print("Monitoramento iniciado.")
+print("================================")
+
+
+# =====================================================
+# 13. LOOP PRINCIPAL
+# =====================================================
+
+ultima_leitura_sensores = time.ticks_ms()
+
+while True:
+    agora = time.ticks_ms()
+
+    # Se o Wi-Fi cair, tenta recupera-lo. A conexao MQTT sera
+    # reconstruida pela rotina publicar() quando necessario.
+    if not wifi.isconnected():
+        print("Wi-Fi caiu. Tentando reconectar...")
+        conectar_wifi()
+        if wifi.isconnected():
+            client = None
+
+    if time.ticks_diff(agora, ultima_leitura_sensores) >= INTERVALO_LEITURA_MS:
+        print("\n================================")
+        print("NOVA RODADA DE LEITURAS")
+        print("================================")
+
+        if USAR_DHT11:
+            ler_dht11()
+
+        if USAR_ULTRASSONICO:
+            ler_ultrassonico()
+
+        ultima_leitura_sensores = time.ticks_ms()
+
+    if USAR_RFID:
+        ler_rfid()
+
+    time.sleep_ms(200)
+
