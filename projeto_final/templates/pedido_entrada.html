@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="container-fluid py-4">
+
+  <!-- CABEÇALHO DA PÁGINA -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small mb-1">
+          <li class="breadcrumb-item">
+            <a href="{{ url_for('listar_pedido_entrada') }}" class="text-decoration-none">Pedidos de Entrada</a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">
+            {% if pedido_entrada and pedido_entrada.id %}
+              Editar #{{ pedido_entrada.id }}
+            {% else %}
+              Novo Pedido
+            {% endif %}
+          </li>
+        </ol>
+      </nav>
+      <h2 class="h4 fw-bold text-dark mb-0">
+        <i class="bi bi-box-arrow-in-right text-primary me-2"></i>
+        {% if pedido_entrada and pedido_entrada.id %}
+          Editar Pedido de Entrada #{{ pedido_entrada.id }}
+        {% else %}
+          Novo Pedido de Entrada
+        {% endif %}
+      </h2>
+    </div>
+
+    <a href="{{ url_for('listar_pedido_entrada') }}" class="btn btn-outline-secondary fw-semibold">
+      <i class="bi bi-arrow-left me-1"></i> Voltar para a Lista
+    </a>
+  </div>
+
+  <!-- MENSAGENS FLASH (ALERTAS DO SISTEMA) -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'sucesso' else ('info' if category == 'info' else 'danger') }} alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- CARTÃO PRINCIPAL DO FORMULÁRIO -->
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-white border-bottom py-3 px-4">
+      <h5 class="fw-bold text-dark fs-6 mb-0 d-flex align-items-center">
+        <i class="bi bi-file-earmark-text text-primary me-2"></i>Informações do Pedido
+      </h5>
+    </div>
+
+    <div class="card-body p-4">
+      <form method="POST" action="{% if pedido_entrada and pedido_entrada.id %}{{ url_for('atualizar_pedido_entrada', id=pedido_entrada.id) }}{% else %}{{ url_for('salvar_pedido_entrada') }}{% endif %}">
+        
+        <div class="row g-3">
+
+          <!-- 1. NÚMERO DO DOCUMENTO -->
+          <div class="col-md-6 col-lg-4">
+            <label for="numero_documento" class="form-label fw-semibold text-secondary small">Número do Documento</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-hash"></i></span>
+              <input type="text" id="numero_documento" name="numero_documento" class="form-control bg-light"
+                     placeholder="Ex: NF-10293"
+                     value="{{ pedido_entrada.numero_documento if pedido_entrada else '' }}" required>
+            </div>
+          </div>
+
+          <!-- 2. FORNECEDOR -->
+          <div class="col-md-6 col-lg-4">
+            <label for="fornecedor" class="form-label fw-semibold text-secondary small">Fornecedor</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-truck"></i></span>
+              <input type="text" id="fornecedor" name="fornecedor" class="form-control bg-light"
+                     placeholder="Nome da empresa / fornecedor"
+                     value="{{ pedido_entrada.fornecedor if pedido_entrada else '' }}" required>
+            </div>
+          </div>
+
+          <!-- 3. DATA DE ENTRADA -->
+          <div class="col-md-6 col-lg-4">
+            <label for="data_entrada" class="form-label fw-semibold text-secondary small">Data de Entrada</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-calendar-event"></i></span>
+              <input type="date" id="data_entrada" name="data_entrada" class="form-control bg-light"
+                     value="{{ pedido_entrada.data_entrada if pedido_entrada else '' }}" required>
+            </div>
+          </div>
+
+          <!-- 4. USUÁRIO RESPONSÁVEL (CHUMBADO COM O USUÁRIO CONECTADO) -->
+          <div class="col-md-6 col-lg-4">
+            <label class="form-label fw-semibold text-secondary small">Usuário Responsável</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-person-check-fill text-success"></i></span>
+              
+              {# Captura o nome e ID do usuário logado #}
+              {% set nome_usuario_logado = (current_user.nome if current_user and current_user.nome else (usuario_logado.nome if usuario_logado else 'Usuário Conectado')) %}
+              {% set id_usuario_logado = (current_user.id if current_user else (usuario_logado.id if usuario_logado else '')) %}
+              
+              <!-- Campo visível (bloqueado para edição) -->
+              <input type="text" class="form-control bg-light fw-medium text-dark" value="{{ nome_usuario_logado }}" readonly disabled>
+              
+              <!-- Campo oculto enviado no formulário -->
+              <input type="hidden" id="id_usuario" name="id_usuario" value="{{ id_usuario_logado }}">
+            </div>
+          </div>
+
+          <!-- 5. STATUS -->
+          <div class="col-md-6 col-lg-4">
+            <label for="status" class="form-label fw-semibold text-secondary small">Status do Pedido</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-flag"></i></span>
+              <select id="status" name="status" class="form-select bg-light" required>
+                <option value="">Selecione o status</option>
+                {% for st in ['ABERTO', 'PENDENTE', 'FINALIZADO', 'CANCELADO'] %}
+                  <option value="{{ st }}" {% if pedido_entrada and pedido_entrada.status == st %}selected{% endif %}>
+                    {{ st }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- 6. PRODUTO DE ENTRADA (SELEÇÃO DOS PRODUTOS CADASTRADOS) -->
+          <div class="col-md-6 col-lg-4">
+            <label for="produto_id" class="form-label fw-semibold text-secondary small">Produto de Entrada</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-box-seam"></i></span>
+              <select id="produto_id" name="produto_id" class="form-select bg-light" required>
+                {% if produtos and produtos|length > 0 %}
+                  <option value="">Selecione um produto cadastrado</option>
+                  {% for prod in produtos %}
+                    {% set pid = prod.id or prod.id_produto %}
+                    {% set pnome = prod.nome or prod.descricao or prod.nome_produto %}
+                    <option value="{{ pid }}" {% if pedido_entrada and pedido_entrada.produto_id == pid %}selected{% endif %}>
+                      {{ pnome }}
+                    </option>
+                  {% endfor %}
+                {% else %}
+                  <option value="" disabled selected>Nenhum produto cadastrado no sistema</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+
+          <!-- 7. OBSERVAÇÕES -->
+          <div class="col-12">
+            <label for="observacao" class="form-label fw-semibold text-secondary small">Observações</label>
+            <textarea id="observacao" name="observacao" class="form-control bg-light" rows="3"
+                      placeholder="Digite aqui informações ou observações adicionais sobre o pedido...">{{ pedido_entrada.observacao if pedido_entrada and pedido_entrada.observacao else '' }}</textarea>
+          </div>
+
+        </div>
+
+        <!-- BOTOES DE AÇÃO -->
+        <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4 pt-3 border-top">
+          <a href="{{ url_for('listar_pedido_entrada') }}" class="btn btn-outline-secondary fw-semibold px-4">
+            <i class="bi bi-x-circle me-1"></i> Cancelar
+          </a>
+          <button type="submit" class="btn btn-success fw-semibold px-4">
+            <i class="bi bi-check-circle me-1"></i> Salvar Pedido
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
