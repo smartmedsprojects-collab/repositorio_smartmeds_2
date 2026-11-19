@@ -25,113 +25,59 @@
 
 <meta property="og:image" content="./ladingpage/logo/logo.png">
 
-<title>
-    SmartMeds | Gestão Inteligente de Medicamentos
-</title>
-
-
+<title> SmartMeds | Gestão Inteligente de Medicamentos </title>
 <!-- FAVICON -->
-
 <link
     rel="icon"
     type="image/png"
     href="./ladingpage/logo/logo.png"
 >
-
-
 <!-- CSS -->
-
 <link
     rel="stylesheet"
     href="style.css"
 >
-
-
 <!-- BOOTSTRAP -->
-
 <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
     rel="stylesheet"
     integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
     crossorigin="anonymous"
 >
-
-
 </head>
-
 <body>
-
-
-
-
+<a class="skip-link" href="#conteudo">Pular para o conteúdo principal</a>
 <!-- =====================================================
      HEADER
      ===================================================== -->
-
 <header>
-
     <div id="logo">
-
         <a href="#inicio">
-
-            <img
-                src="./ladingpage/logo/logo.png"
-                alt="SmartMeds - Página inicial"
-            >
-
+            <img src="./ladingpage/logo/logo.png" alt="SmartMeds - Página inicial">
         </a>
-
     </div>
-
-
-    <nav
-        class="menu"
-        aria-label="Navegação principal"
-    >
-
+    <nav class="menu" aria-label="Navegação principal">
         <ul>
             <li>
-                <a href="#inicio">
-                    Início
-                </a>
+                <a href="#inicio"> Início </a>
             </li>
             <li>
-                <a href="#problema">
-                    O problema
-                </a>
+                <a href="#problema"> O problema </a>
             </li>
-
             <li>
-                <a href="#solucoes">
-                    Soluções
-                </a>
+                <a href="#solucoes"> Soluções </a>
             </li>
-
             <li>
-                <a href="#como-funciona">
-                    Como funciona
-                </a>
+                <a href="#como-funciona"> Como funciona </a>
             </li>
-
             <li>
-                <a href="#empresa">
-                    Sobre nós
-                </a>
+                 <a href="#empresa"> Sobre nós </a>
             </li>
-
             <li>
-                <a
-                    href="http://127.0.0.1:5000/login"
-                    id="pedido"
-                >
-                    Entrar
-                </a>
+                <a ref="http://127.0.0.1:5000/login" id="pedido"> Entrar </a>
             </li>
-
         </ul>
-
     </nav>
-
 </header>
 
 
@@ -1081,9 +1027,17 @@
 
             <form
                 class="contact-form"
-                action="#"
-                method="post"
+                id="formContato"
+                action="https://formsubmit.co/smartmedsprojects@gmail.com"
+                method="POST"
+                novalidate
             >
+
+                <!-- Configuração do envio por e-mail -->
+                <input type="hidden" name="_subject" value="Novo contato pelo site SmartMeds">
+                <input type="hidden" name="_template" value="table">
+                <input type="hidden" name="_captcha" value="true">
+                <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" class="contact-honeypot">
 
                 <div class="form-group">
 
@@ -1098,6 +1052,8 @@
                         placeholder="Seu nome completo"
                         autocomplete="name"
                         required
+                        minlength="3"
+                        maxlength="100"
                     >
 
                 </div>
@@ -1115,6 +1071,7 @@
                         name="email"
                         placeholder="seu@email.com"
                         autocomplete="email"
+                        maxlength="150"
                         required
                     >
 
@@ -1133,6 +1090,7 @@
                         name="telefone"
                         placeholder="(00) 00000-0000"
                         autocomplete="tel"
+                        maxlength="25"
                     >
 
                 </div>
@@ -1150,6 +1108,7 @@
                         name="empresa"
                         placeholder="Nome da empresa"
                         autocomplete="organization"
+                        maxlength="120"
                     >
 
                 </div>
@@ -1166,6 +1125,8 @@
                         name="mensagem"
                         rows="5"
                         placeholder="Conte um pouco sobre sua necessidade..."
+                        minlength="10"
+                        maxlength="3000"
                         required
                     ></textarea>
 
@@ -1183,6 +1144,8 @@
                     Seus dados serão utilizados apenas
                     para entrarmos em contato com você.
                 </small>
+
+                <p id="statusFormulario" class="form-status" role="status" aria-live="polite"></p>
 
             </form>
 
@@ -1370,6 +1333,74 @@
 
 </footer>
 
+
+
+<!-- PAINEL DE ACESSIBILIDADE -->
+<button class="accessibility-trigger" type="button" id="abrirAcessibilidade"
+        aria-controls="painelAcessibilidade" aria-expanded="false"
+        aria-label="Abrir painel de acessibilidade" title="Acessibilidade">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="12" cy="7.5" r="1.5" fill="currentColor"/>
+        <path d="M6.5 10.5h11M12 10.5v8m0-5-4 5m4-5 4 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</button>
+
+<aside class="accessibility-panel" id="painelAcessibilidade" aria-labelledby="tituloAcessibilidade"
+       aria-hidden="true" inert>
+    <div class="accessibility-header">
+        <div>
+            <h2 id="tituloAcessibilidade">Acessibilidade</h2>
+            <p>Personalize sua navegação</p>
+        </div>
+        <button type="button" class="accessibility-close" id="fecharAcessibilidade" aria-label="Fechar painel">×</button>
+    </div>
+    <div class="accessibility-body">
+        <section class="accessibility-section" aria-labelledby="tituloFonte">
+            <h3 id="tituloFonte">Tamanho do texto</h3>
+            <div class="accessibility-grid">
+                <button type="button" data-font="smaller" aria-label="Diminuir texto">A−</button>
+                <button type="button" data-font="normal" aria-label="Texto normal" aria-pressed="true">A</button>
+                <button type="button" data-font="larger" aria-label="Aumentar texto">A+</button>
+            </div>
+        </section>
+        <section class="accessibility-section" aria-labelledby="tituloVisual">
+            <h3 id="tituloVisual">Visualização</h3>
+            <button type="button" class="accessibility-option" id="alternarContraste" aria-pressed="false">
+                <span class="accessibility-option-icon" aria-hidden="true">◐</span>
+                <span><strong>Alto contraste</strong><small>Facilita a leitura dos elementos</small></span>
+            </button>
+            <button type="button" class="accessibility-option" id="alternarMono" aria-pressed="false">
+                <span class="accessibility-option-icon" aria-hidden="true">◉</span>
+                <span><strong>Monocromático</strong><small>Visualização sem cores</small></span>
+            </button>
+        </section>
+        <section class="accessibility-section" aria-labelledby="tituloLeitura">
+            <h3 id="tituloLeitura">Leitura e navegação</h3>
+            <button type="button" class="accessibility-option" id="leituraTab" aria-pressed="false">
+                <span class="accessibility-option-icon" aria-hidden="true">♧</span>
+                <span><strong>Ler ao navegar com Tab</strong><small>Anuncia o elemento em foco</small></span>
+            </button>
+            <button type="button" class="accessibility-option" id="lerPagina">
+                <span class="accessibility-option-icon" aria-hidden="true">▶</span>
+                <span><strong>Ler conteúdo da página</strong><small>Inicia a leitura em voz alta</small></span>
+            </button>
+            <button type="button" class="accessibility-option" id="pararLeitura">
+                <span class="accessibility-option-icon" aria-hidden="true">■</span>
+                <span><strong>Parar leitura</strong></span>
+            </button>
+        </section>
+        <button type="button" class="accessibility-reset" id="restaurarAcessibilidade">Restaurar padrão</button>
+        <p class="accessibility-status" id="statusAcessibilidade" role="status" aria-live="polite">Use Tab para navegar pelos controles e conteúdos.</p>
+    </div>
+</aside>
+<div class="accessibility-backdrop" id="fundoAcessibilidade" hidden></div>
+
+<!-- ENVIO DO FORMULÁRIO DE CONTATO -->
+<script src="./JavaScript_leadingPage/formulario.js" defer></script>
+
+<!-- SCRIPT DE ACESSIBILIDADE -->
+<script src="./JavaScript_leadingPage/acessibilidade.js" defer></script>
 
 <!-- BOOTSTRAP JS -->
 

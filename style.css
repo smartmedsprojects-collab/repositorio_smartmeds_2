@@ -2451,3 +2451,97 @@ body > header {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* =========================================================
+   PAINEL LATERAL DE ACESSIBILIDADE — SMARTMEDS
+   ========================================================= */
+.skip-link {
+    position: fixed; top: -100px; left: 16px; z-index: 10020;
+    padding: 12px 18px; color: #fff; background: #17131f;
+    border-radius: 8px; font-weight: 700; text-decoration: none;
+}
+.skip-link:focus { top: 16px; }
+.accessibility-trigger {
+    position: fixed; left: 20px; right: auto; bottom: 22px; z-index: 10010;
+    width: 54px; height: 54px; display: grid; place-items: center;
+    color: #fff; background: #7c3aed; border: 2px solid #fff;
+    border-radius: 16px; box-shadow: 0 5px 22px rgba(30,15,45,.28);
+    cursor: pointer; transition: transform .2s ease, background .2s ease;
+}
+.accessibility-trigger:hover { background: #5b21b6; transform: translateY(-2px); }
+.accessibility-trigger svg { width: 31px; height: 31px; }
+.accessibility-panel {
+    position: fixed; inset: 0 auto 0 0; z-index: 10030;
+    width: min(390px, 92vw); height: 100dvh; overflow-y: auto;
+    color: #211a2b; background: #fff;
+    box-shadow: 12px 0 35px rgba(0,0,0,.20);
+    transform: translateX(-105%); visibility: hidden;
+    transition: transform .28s ease, visibility .28s ease;
+}
+.accessibility-panel.is-open { transform: translateX(0); visibility: visible; }
+.accessibility-header {
+    position: sticky; top: 0; z-index: 2; display: flex; align-items: center;
+    justify-content: space-between; padding: 22px 24px; color: #fff;
+    background: #7c3aed; border-bottom: 4px solid #5b21b6;
+}
+.accessibility-header h2 { margin: 0; color: #fff; font-size: 23px; font-weight: 800; }
+.accessibility-header p { margin: 3px 0 0; color: #f1eaff; font-size: 13px; }
+.accessibility-close { width: 38px; height: 38px; color: #fff; background: transparent; font-size: 32px; line-height: 1; cursor: pointer; }
+.accessibility-body { padding: 8px 24px 28px; }
+.accessibility-section { padding: 19px 0; border-bottom: 1px solid #e8e3ee; }
+.accessibility-section h3 { margin: 0 0 12px; color: #30243d; font-size: 15px; font-weight: 800; }
+.accessibility-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.accessibility-grid button { min-height: 48px; color: #5b21b6; background: #fff; border: 1px solid #d9cdee; border-radius: 9px; font-size: 18px; font-weight: 800; cursor: pointer; }
+.accessibility-grid button:hover, .accessibility-grid button[aria-pressed="true"] { color: #fff; background: #7c3aed; border-color: #7c3aed; }
+.accessibility-option { width: 100%; display: flex; align-items: center; gap: 13px; margin-top: 9px; padding: 12px; text-align: left; color: #30243d; background: #fff; border: 1px solid #ded8e8; border-radius: 10px; cursor: pointer; }
+.accessibility-option:hover, .accessibility-option[aria-pressed="true"] { background: #f5f0ff; border-color: #7c3aed; }
+.accessibility-option-icon { flex: 0 0 34px; color: #7c3aed; font-size: 25px; text-align: center; }
+.accessibility-option strong { display: block; font-size: 14px; }
+.accessibility-option small { display: block; margin-top: 2px; color: #71687c; font-size: 12px; }
+.accessibility-reset { width: 100%; margin-top: 20px; padding: 12px; color: #5b21b6; background: #fff; border: 1px solid #7c3aed; border-radius: 9px; font-weight: 700; cursor: pointer; }
+.accessibility-reset:hover { color: #fff; background: #7c3aed; }
+.accessibility-status { margin: 13px 0 0; color: #71687c; font-size: 12px; }
+.accessibility-backdrop { position: fixed; inset: 0; z-index: 10020; background: rgba(15,10,22,.48); }
+body.accessibility-contrast { color: #fff !important; background: #000 !important; }
+body.accessibility-contrast :where(header,main,footer,section,article,div,nav,aside,form,details) { color: #fff !important; background-color: #000 !important; border-color: #ff0 !important; }
+body.accessibility-contrast :where(h1,h2,h3,h4,h5,h6,p,span,li,label,a,strong,summary) { color: #fff !important; }
+body.accessibility-contrast :where(a,button,input,textarea,select) { outline-color: #ff0; }
+body.accessibility-contrast :where(button,input,textarea,select) { color: #fff !important; background: #111 !important; border: 2px solid #ff0 !important; }
+body.accessibility-contrast .accessibility-panel, body.accessibility-contrast .accessibility-panel * { color: #211a2b !important; background-color: #fff !important; }
+body.accessibility-contrast .accessibility-header, body.accessibility-contrast .accessibility-header * { color: #fff !important; background-color: #000 !important; }
+body.accessibility-monochrome { filter: grayscale(1); }
+body.accessibility-font-small { font-size: 90%; }
+body.accessibility-font-normal { font-size: 100%; }
+body.accessibility-font-large { font-size: 112.5%; }
+:where(a,button,input,textarea,select,summary,[tabindex]):focus-visible { outline: 3px solid #f59e0b !important; outline-offset: 3px; }
+@media (max-width: 576px) {
+    .accessibility-trigger { left: 13px; right: auto; bottom: 14px; width: 49px; height: 49px; }
+    .accessibility-panel { width: min(350px, 94vw); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .accessibility-panel, .accessibility-trigger { transition: none; }
+}
+
+
+/* =========================================================
+   FORMULÁRIO DE CONTATO — ENVIO E RETORNO ACESSÍVEL
+   ========================================================= */
+.contact-honeypot {
+    position: absolute !important;
+    left: -10000px !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+}
+.form-status {
+    display: block;
+    min-height: 1.5em;
+    margin-top: 12px;
+    font-weight: 600;
+}
+.form-status-success { color: #15803d; }
+.form-status-error { color: #b91c1c; }
+.contact-form button[type="submit"]:disabled {
+    opacity: .7;
+    cursor: wait;
+}
