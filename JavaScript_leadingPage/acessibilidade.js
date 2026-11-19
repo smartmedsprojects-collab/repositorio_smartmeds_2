@@ -1,105 +1,162 @@
 (() => {
-    const body = document.body;
-    const panel = document.getElementById('painelAcessibilidade');
-    const trigger = document.getElementById('abrirAcessibilidade');
-    const closeButton = document.getElementById('fecharAcessibilidade');
-    const backdrop = document.getElementById('fundoAcessibilidade');
-    const status = document.getElementById('statusAcessibilidade');
-    const speech = window.speechSynthesis;
-    let readOnTab = false;
-    let previousFocus = null;
+    'use strict';
 
-    const announce = message => { if (status) status.textContent = message; };
-    const speak = text => {
-        if (!speech || !text) return;
-        speech.cancel();
-        const utterance = new SpeechSynthesisUtterance(text.trim().slice(0, 900));
-        utterance.lang = 'pt-BR';
-        speech.speak(utterance);
-    };
-    const stopSpeech = () => { if (speech) speech.cancel(); };
+    const root = document.documentElement;
+    const body = document.body;
+    const trigger = document.getElementById('accessibilityTrigger');
+    const panel = document.getElementById('accessibilityPanel');
+    const closeButton = document.getElementById('accessibilityClose');
+    const status = document.getElementById('accessibilityStatus');
+    const main = document.querySelector('main');
+    const storageKey = 'smartmeds-acessibilidade';
+
+    if (!trigger || !panel) return;
+
+    const defaults = { fontScale: 1, contrast: false, speech: true };
+    let settings = { ...defaults };
+    let keyboardNavigation = false;
+    try {
+        settings = { ...defaults, ...JSON.parse(localStorage.getItem(storageKey) || '{}') };
+    } catch (_) { /* Mantém os padrões quando o armazenamento estiver indisponível. */ }
+
+    function announce(message) {
+        if (status) status.textContent = message;
+    }
+
+    function saveSettings() {
+        try { localStorage.setItem(storageKey, JSON.stringify(settings)); } catch (_) { /* opcional */ }
+    }
+
+    function renderSettings() {
+        root.style.fontSize = `${Math.round(settings.fontScale * 100)}%`;
+        body.classList.toggle('accessibility-high-contrast', settings.contrast);
+        panel.querySelector('[data-access-action="contrast"]')?.setAttribute('aria-pressed', String(settings.contrast));
+        const speechButton = panel.querySelector('[data-access-action="speech"]');
+        if (speechButton) {
+            speechButton.setAttribute('aria-pressed', String(settings.speech));
+            const state = speechButton.querySelector('.accessibility-state');
+            if (state) state.textContent = settings.speech ? 'Ativado' : 'Desativado';
+        }
+    }
 
     function openPanel() {
-        previousFocus = document.activeElement;
-        panel.classList.add('is-open');
-        panel.removeAttribute('inert');
-        panel.setAttribute('aria-hidden', 'false');
+        panel.hidden = false;
         trigger.setAttribute('aria-expanded', 'true');
-        backdrop.hidden = false;
-        closeButton.focus();
+        trigger.setAttribute('aria-label', 'Fechar painel de acessibilidade');
+        panel.querySelector('button')?.focus();
     }
-    function closePanel() {
-        panel.classList.remove('is-open');
-        panel.setAttribute('aria-hidden', 'true');
-        panel.setAttribute('inert', '');
+
+    function closePanel(returnFocus = true) {
+        panel.hidden = true;
         trigger.setAttribute('aria-expanded', 'false');
-        backdrop.hidden = true;
-        if (previousFocus) previousFocus.focus();
+        trigger.setAttribute('aria-label', 'Abrir painel de acessibilidade');
+        if (returnFocus) trigger.focus();
     }
-    trigger.addEventListener('click', openPanel);
-    closeButton.addEventListener('click', closePanel);
-    backdrop.addEventListener('click', closePanel);
+
+    trigger.addEventListener('click', () => panel.hidden ? openPanel() : closePanel(false));
+    closeButton?.addEventListener('click', () => closePanel());
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && panel.classList.contains('is-open')) closePanel();
-        if (event.key === 'Tab' && panel.classList.contains('is-open')) {
-            const items = [...panel.querySelectorAll('button:not([disabled])')];
-            const first = items[0], last = items[items.length - 1];
-            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        if (event.key === 'Tab') keyboardNavigation = true;
+        if (event.key === 'Escape' && !panel.hidden) closePanel();
+    });
+    document.addEventListener('pointerdown', () => { keyboardNavigation = false; }, true);
+
+    function stopSpeech() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    function textForElement(element) {
+        if (!element) return '';
+        const explicit = element.getAttribute('aria-label');
+        if (explicit) return explicit;
+        if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement) {
+            const label = element.labels ? Array.from(element.labels).map(item => item.innerText.trim()).join('. ') : '';
+            const value = element.type === 'password' ? 'Campo de senha' : (element.value || element.placeholder || '');
+            const required = element.required ? 'Campo obrigatório.' : '';
+            return [label, value, required].filter(Boolean).join('. ');
+        }
+        if (element instanceof HTMLImageElement) return element.alt || '';
+        return (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function speak(text) {
+        if (!settings.speech || !text || !('speechSynthesis' in window)) return;
+        stopSpeech();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // Torna os blocos textuais navegáveis por Tab sem interferir em controles interativos.
+    function prepareReadableBlocks(scope = main) {
+        if (!scope) return;
+        const selector = 'h1,h2,h3,h4,h5,h6,p,li,td,th,label,legend,figcaption,blockquote,span,strong,small,.form-text,.lead,.card-title,.card-text,.list-group-item,.alert';
+        scope.querySelectorAll(selector).forEach(element => {
+            if (element.closest('[hidden],[aria-hidden="true"]')) return;
+            if (element !== scope && element.parentElement?.closest('[data-accessibility-readable]')) return;
+            if (element.closest('a,button,input,select,textarea,label,[contenteditable="true"]') !== element && element.closest('a,button,input,select,textarea,label,[contenteditable="true"]')) return;
+            if (element.querySelector('a,button,input,select,textarea,[contenteditable="true"]')) return;
+            if (!(element.innerText || '').trim()) return;
+            if (!element.hasAttribute('tabindex')) element.setAttribute('tabindex', '0');
+            element.setAttribute('data-accessibility-readable', 'true');
+        });
+    }
+
+    if (main) {
+        prepareReadableBlocks();
+        if ('MutationObserver' in window) {
+            const observer = new MutationObserver(() => prepareReadableBlocks());
+            observer.observe(main, { childList: true, subtree: true });
+        }
+    }
+
+    // A fala acompanha o foco em qualquer área do sistema, inclusive menu e formulários.
+    document.addEventListener('focusin', event => {
+        if (!keyboardNavigation) return;
+        const target = event.target;
+        if (!target || !target.matches) return;
+        if (target.matches('[data-accessibility-readable],a,button,input,select,textarea,[role="button"]')) {
+            speak(textForElement(target));
         }
     });
 
-    document.querySelectorAll('[data-font]').forEach(button => {
-        button.addEventListener('click', () => {
-            body.classList.remove('accessibility-font-small', 'accessibility-font-normal', 'accessibility-font-large');
-            const value = button.dataset.font;
-            body.classList.add(`accessibility-font-${value}`);
-            document.querySelectorAll('[data-font]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-            announce('Tamanho do texto atualizado.');
-        });
+    panel.addEventListener('click', event => {
+        const button = event.target.closest('[data-access-action]');
+        if (!button) return;
+        const action = button.dataset.accessAction;
+
+        switch (action) {
+            case 'increase-font':
+                settings.fontScale = Math.min(1.5, +(settings.fontScale + 0.1).toFixed(2));
+                announce(`Texto aumentado para ${Math.round(settings.fontScale * 100)} por cento.`);
+                break;
+            case 'decrease-font':
+                settings.fontScale = Math.max(0.9, +(settings.fontScale - 0.1).toFixed(2));
+                announce(`Texto ajustado para ${Math.round(settings.fontScale * 100)} por cento.`);
+                break;
+            case 'contrast':
+                settings.contrast = !settings.contrast;
+                announce(settings.contrast ? 'Alto contraste ativado.' : 'Alto contraste desativado.');
+                break;
+            case 'speech':
+                settings.speech = !settings.speech;
+                if (!settings.speech) stopSpeech();
+                announce(settings.speech ? 'Leitura automática ao navegar ativada.' : 'Leitura automática ao navegar desativada.');
+                break;
+            case 'stop-speech':
+                stopSpeech();
+                announce('Leitura interrompida.');
+                break;
+            case 'reset':
+                settings = { ...defaults };
+                stopSpeech();
+                announce('Preferências de acessibilidade restauradas.');
+                break;
+        }
+        renderSettings();
+        saveSettings();
     });
 
-    function toggleMode(id, className, label) {
-        const button = document.getElementById(id);
-        button.addEventListener('click', () => {
-            const active = body.classList.toggle(className);
-            button.setAttribute('aria-pressed', String(active));
-            announce(`${label} ${active ? 'ativado' : 'desativado'}.`);
-        });
-    }
-    toggleMode('alternarContraste', 'accessibility-contrast', 'Alto contraste');
-    toggleMode('alternarMono', 'accessibility-monochrome', 'Modo monocromático');
-
-    const tabButton = document.getElementById('leituraTab');
-    tabButton.addEventListener('click', () => {
-        readOnTab = !readOnTab;
-        tabButton.setAttribute('aria-pressed', String(readOnTab));
-        if (!readOnTab) stopSpeech();
-        announce(readOnTab ? 'Leitura por foco ativada. Use Tab para ouvir os elementos.' : 'Leitura por foco desativada.');
-    });
-    document.addEventListener('focusin', event => {
-        if (!readOnTab || event.target.closest('#painelAcessibilidade')) return;
-        const el = event.target;
-        const text = el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.value || el.getAttribute('alt') || '';
-        speak(text);
-    });
-
-    document.getElementById('lerPagina').addEventListener('click', () => {
-        const main = document.querySelector('main');
-        speak(main ? main.innerText : document.body.innerText);
-        announce('Leitura da página iniciada.');
-    });
-    document.getElementById('pararLeitura').addEventListener('click', () => {
-        stopSpeech(); announce('Leitura interrompida.');
-    });
-    document.getElementById('restaurarAcessibilidade').addEventListener('click', () => {
-        body.classList.remove('accessibility-contrast', 'accessibility-monochrome', 'accessibility-font-small', 'accessibility-font-large');
-        body.classList.add('accessibility-font-normal');
-        readOnTab = false;
-        stopSpeech();
-        tabButton.setAttribute('aria-pressed', 'false');
-        document.querySelectorAll('#alternarContraste, #alternarMono').forEach(button => button.setAttribute('aria-pressed', 'false'));
-        document.querySelectorAll('[data-font]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.font === 'normal')));
-        announce('Configurações restauradas.');
-    });
+    renderSettings();
 })();
