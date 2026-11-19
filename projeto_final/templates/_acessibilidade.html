@@ -1,74 +1,74 @@
 <a class="access-skip-link" href="#conteudo-principal">Pular para o conteúdo principal</a>
 
 <div class="accessibility-widget" id="accessibilityWidget">
-    <button class="accessibility-trigger" id="accessibilityTrigger" type="button"
-            aria-label="Abrir painel de acessibilidade" aria-expanded="false"
-            aria-controls="accessibilityPanel" title="Acessibilidade">
-        <i class="bi bi-universal-access-circle" aria-hidden="true"></i>
-        <span class="accessibility-trigger-text">Acessibilidade</span>
+    <button class="accessibility-trigger" type="button" id="abrirAcessibilidade"
+            aria-controls="painelAcessibilidade" aria-expanded="false"
+            aria-label="Abrir painel de acessibilidade" title="Acessibilidade">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <circle cx="12" cy="7.5" r="1.5" fill="currentColor" />
+            <path d="M6.5 10.5h11M12 10.5v8m0-5-4 5m4-5 4 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>Acessibilidade</span>
     </button>
 
-    <section class="accessibility-panel" id="accessibilityPanel" aria-labelledby="accessibilityTitle" hidden>
-        <div class="accessibility-panel-header">
+    <aside class="accessibility-panel" id="painelAcessibilidade"
+           aria-labelledby="tituloAcessibilidade" aria-hidden="true" inert hidden>
+        <div class="accessibility-header">
             <div>
-                <h2 id="accessibilityTitle">Acessibilidade</h2>
+                <h2 id="tituloAcessibilidade">Acessibilidade</h2>
                 <p>Personalize sua navegação</p>
             </div>
-            <button type="button" class="accessibility-close" id="accessibilityClose"
-                    aria-label="Fechar painel de acessibilidade">
-                <i class="bi bi-x-lg" aria-hidden="true"></i>
-            </button>
+            <button type="button" class="accessibility-close" id="fecharAcessibilidade"
+                    aria-label="Fechar painel de acessibilidade">×</button>
         </div>
 
-        <div class="accessibility-tools" role="group" aria-label="Ferramentas de acessibilidade">
-            <div class="accessibility-tool-row">
-                <span class="accessibility-tool-label">Tamanho do texto</span>
-                <div class="accessibility-button-group">
-                    <button type="button" data-access-action="decrease-font" aria-label="Diminuir texto">A−</button>
-                    <button type="button" data-access-action="increase-font" aria-label="Aumentar texto">A+</button>
+        <div class="accessibility-body">
+            <section class="accessibility-section" aria-labelledby="tituloFonte">
+                <h3 id="tituloFonte">Tamanho do texto</h3>
+                <div class="accessibility-grid">
+                    <button type="button" data-font="smaller" aria-label="Diminuir texto">A−</button>
+                    <button type="button" data-font="normal" aria-label="Texto normal" aria-pressed="true">A</button>
+                    <button type="button" data-font="larger" aria-label="Aumentar texto">A+</button>
                 </div>
-            </div>
+            </section>
 
-            <button type="button" class="accessibility-option" data-access-action="contrast"
-                    aria-pressed="false">
-                <i class="bi bi-circle-half" aria-hidden="true"></i>
-                <span>Alto contraste</span>
+            <section class="accessibility-section" aria-labelledby="tituloVisual">
+                <h3 id="tituloVisual">Visualização</h3>
+                <button type="button" class="accessibility-option" id="alternarContraste" aria-pressed="false">
+                    <span class="accessibility-option-icon" aria-hidden="true">◐</span>
+                    <span><strong>Alto contraste</strong><small>Facilita a leitura dos elementos</small></span>
+                </button>
+                <button type="button" class="accessibility-option" id="alternarMono" aria-pressed="false">
+                    <span class="accessibility-option-icon" aria-hidden="true">◉</span>
+                    <span><strong>Monocromático</strong><small>Visualização sem cores</small></span>
+                </button>
+            </section>
+
+            <section class="accessibility-section" aria-labelledby="tituloLeitura">
+                <h3 id="tituloLeitura">Leitura e navegação</h3>
+                <button type="button" class="accessibility-option" id="leituraTab" aria-pressed="false">
+                    <span class="accessibility-option-icon" aria-hidden="true">♧</span>
+                    <span><strong>Ler ao navegar com Tab</strong><small>Anuncia o elemento em foco</small></span>
+                </button>
+                <button type="button" class="accessibility-option" id="lerPagina">
+                    <span class="accessibility-option-icon" aria-hidden="true">▶</span>
+                    <span><strong>Ler conteúdo da página</strong><small>Inicia a leitura em voz alta</small></span>
+                </button>
+                <button type="button" class="accessibility-option" id="pararLeitura">
+                    <span class="accessibility-option-icon" aria-hidden="true">■</span>
+                    <span><strong>Parar leitura</strong></span>
+                </button>
+            </section>
+
+            <button type="button" class="accessibility-reset" id="restaurarAcessibilidade">
+                Restaurar padrão
             </button>
-
-            <button type="button" class="accessibility-option" data-access-action="speech"
-                    aria-pressed="true">
-                <i class="bi bi-volume-up" aria-hidden="true"></i>
-                <span>Falar ao usar Tab</span>
-                <span class="accessibility-state">Ativado</span>
-            </button>
-
-            <button type="button" class="accessibility-option" data-access-action="stop-speech">
-                <i class="bi bi-stop-circle" aria-hidden="true"></i>
-                <span>Parar leitura</span>
-            </button>
-
-            <div class="accessibility-libras-note">
-                <i class="bi bi-hand-index-thumb" aria-hidden="true"></i>
-                <span>Para tradução em Libras, use o botão azul de mãos no canto da tela.</span>
-            </div>
+            <p class="accessibility-status" id="statusAcessibilidade" role="status" aria-live="polite">
+                Use Tab para navegar pelos controles e conteúdos.
+            </p>
         </div>
-        <div class="accessibility-panel-footer">
-            <button type="button" data-access-action="reset">Restaurar padrão</button>
-        </div>
-        <p class="visually-hidden" id="accessibilityStatus" role="status" aria-live="polite"></p>
-    </section>
+    </aside>
 </div>
 
-<div vw class="enabled vlibras-widget">
-    <div vw-access-button class="active" aria-label="Abrir tradução em Libras"></div>
-    <div vw-plugin-wrapper>
-        <div class="vw-plugin-top-wrapper"></div>
-    </div>
-</div>
-<script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-<script>
-    if (window.VLibras && !window.__smartmedsVlibrasInicializado) {
-        window.__smartmedsVlibrasInicializado = true;
-        new window.VLibras.Widget('https://vlibras.gov.br/app');
-    }
-</script>
+<div class="accessibility-backdrop" id="fundoAcessibilidade" hidden></div>
