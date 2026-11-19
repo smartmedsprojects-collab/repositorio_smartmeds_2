@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- CSS do Projeto -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='acessibilidade.css') }}">
 
     <style>
         :root {
@@ -206,13 +207,15 @@
 
 <body>
 
+    {% include '_acessibilidade.html' %}
+
     <!-- BARRA SUPERIOR (HEADER) -->
     <header class="navbar topbar-navbar px-3 text-white">
         <div class="container-fluid d-flex justify-content-between align-items-center">
             
             <!-- ESQUERDA: BOTÃO MENU E TÍTULO -->
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-menu-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas">
+                <button class="btn btn-menu-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas" aria-controls="menuOffcanvas" aria-expanded="false" aria-label="Abrir menu principal">
                     <i class="bi bi-list fs-5"></i>
                     <span class="fw-medium d-none d-sm-inline">Menu</span>
                 </button>
@@ -356,11 +359,11 @@
     </header>
 
     <!-- GAVETA RETRÁTIL (OFFCANVAS) -->
-    <div class="offcanvas offcanvas-start offcanvas-custom text-white" tabindex="-1" id="menuOffcanvas">
+    <div class="offcanvas offcanvas-start offcanvas-custom text-white" tabindex="-1" id="menuOffcanvas" aria-labelledby="menuOffcanvasTitle">
         
         <div class="menu-header d-flex align-items-center justify-content-between">
             <div>
-                <div class="menu-title">Sistema de Gestão</div>
+                <div class="menu-title" id="menuOffcanvasTitle">Sistema de Gestão</div>
                 <div class="menu-subtitle">Acesso rápido</div>
             </div>
             <button type="button" class="btn btn-sm menu-close border-0" data-bs-dismiss="offcanvas" aria-label="Fechar">
@@ -427,7 +430,7 @@
     </div>
 
     <!-- CONTEÚDO PRINCIPAL -->
-    <main class="container-fluid p-4 content-area">
+    <main id="conteudo-principal" class="container-fluid p-4 content-area" tabindex="-1" aria-label="Conteúdo principal">
 
         <!-- MENSAGENS FLASH -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -479,8 +482,18 @@
     <!-- JS DO BOOTSTRAP -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script src="{{ url_for('static', filename='acessibilidade.js') }}"></script>
+
     <!-- JS DA APLICAÇÃO -->
     <script>
+        // Mantém o estado acessível do botão que abre o menu lateral.
+        const menuLateral = document.getElementById('menuOffcanvas');
+        const botaoMenuLateral = document.querySelector('[data-bs-target="#menuOffcanvas"]');
+        if (menuLateral && botaoMenuLateral) {
+            menuLateral.addEventListener('shown.bs.offcanvas', () => botaoMenuLateral.setAttribute('aria-expanded', 'true'));
+            menuLateral.addEventListener('hidden.bs.offcanvas', () => botaoMenuLateral.setAttribute('aria-expanded', 'false'));
+        }
+
         // Fecha o menu suavemente depois de escolher uma página.
         document.querySelectorAll('#menuOffcanvas .nav-link-custom').forEach(link => {
             link.addEventListener('click', () => {

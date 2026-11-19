@@ -1,0 +1,74 @@
+<a class="access-skip-link" href="#conteudo-principal">Pular para o conteúdo principal</a>
+
+<div class="accessibility-widget" id="accessibilityWidget">
+    <button class="accessibility-trigger" id="accessibilityTrigger" type="button"
+            aria-label="Abrir painel de acessibilidade" aria-expanded="false"
+            aria-controls="accessibilityPanel" title="Acessibilidade">
+        <i class="bi bi-universal-access-circle" aria-hidden="true"></i>
+        <span class="accessibility-trigger-text">Acessibilidade</span>
+    </button>
+
+    <section class="accessibility-panel" id="accessibilityPanel" aria-labelledby="accessibilityTitle" hidden>
+        <div class="accessibility-panel-header">
+            <div>
+                <h2 id="accessibilityTitle">Acessibilidade</h2>
+                <p>Personalize sua navegação</p>
+            </div>
+            <button type="button" class="accessibility-close" id="accessibilityClose"
+                    aria-label="Fechar painel de acessibilidade">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <div class="accessibility-tools" role="group" aria-label="Ferramentas de acessibilidade">
+            <div class="accessibility-tool-row">
+                <span class="accessibility-tool-label">Tamanho do texto</span>
+                <div class="accessibility-button-group">
+                    <button type="button" data-access-action="decrease-font" aria-label="Diminuir texto">A−</button>
+                    <button type="button" data-access-action="increase-font" aria-label="Aumentar texto">A+</button>
+                </div>
+            </div>
+
+            <button type="button" class="accessibility-option" data-access-action="contrast"
+                    aria-pressed="false">
+                <i class="bi bi-circle-half" aria-hidden="true"></i>
+                <span>Alto contraste</span>
+            </button>
+
+            <button type="button" class="accessibility-option" data-access-action="speech"
+                    aria-pressed="true">
+                <i class="bi bi-volume-up" aria-hidden="true"></i>
+                <span>Falar ao usar Tab</span>
+                <span class="accessibility-state">Ativado</span>
+            </button>
+
+            <button type="button" class="accessibility-option" data-access-action="stop-speech">
+                <i class="bi bi-stop-circle" aria-hidden="true"></i>
+                <span>Parar leitura</span>
+            </button>
+
+            <div class="accessibility-libras-note">
+                <i class="bi bi-hand-index-thumb" aria-hidden="true"></i>
+                <span>Para tradução em Libras, use o botão azul de mãos no canto da tela.</span>
+            </div>
+        </div>
+        <div class="accessibility-panel-footer">
+            <button type="button" data-access-action="reset">Restaurar padrão</button>
+        </div>
+        <p class="visually-hidden" id="accessibilityStatus" role="status" aria-live="polite"></p>
+    </section>
+</div>
+
+<div vw class="enabled vlibras-widget">
+    <div vw-access-button class="active" aria-label="Abrir tradução em Libras"></div>
+    <div vw-plugin-wrapper>
+        <div class="vw-plugin-top-wrapper"></div>
+    </div>
+</div>
+<script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+<script>
+    if (window.VLibras && !window.__smartmedsVlibrasInicializado) {
+        window.__smartmedsVlibrasInicializado = true;
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+    }
+</script>
