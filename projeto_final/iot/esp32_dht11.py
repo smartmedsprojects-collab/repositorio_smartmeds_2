@@ -19,7 +19,7 @@ MQTT_BROKER = "b1600c60a35c4520b32b9507d0b47b02.s1.eu.hivemq.cloud"
 MQTT_PORT = 8883
 MQTT_USER = "IOT-SENAI"
 MQTT_PASSWORD = "12345678"  # igual ao valor padrão de config.py; altere se necessário
-MQTT_TOPIC = b"sensores/leitura"
+MQTT_TOPIC = b"sensores/leitura/smartmeds"
 DEVICE_ID = "esp32-01"
 INTERVALO = 10
 

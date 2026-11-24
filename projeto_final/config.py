@@ -28,6 +28,7 @@ MQTT_PORT = int(os.getenv("SMARTMEDS_MQTT_PORT", "8883"))
 MQTT_USER = os.getenv("SMARTMEDS_MQTT_USER", "IOT-SENAI")
 MQTT_PASSWORD = os.getenv("SMARTMEDS_MQTT_PASSWORD", "12345678")
 MQTT_TOPIC = os.getenv("SMARTMEDS_MQTT_TOPIC", "sensores/leitura/smartmeds")
+MQTT_DEVICE_ID = os.getenv("SMARTMEDS_MQTT_DEVICE_ID", "esp32-01").strip()
 
 SENSOR_TEMP_MIN = float(os.getenv("SMARTMEDS_SENSOR_TEMP_MIN", "15"))
 SENSOR_TEMP_MAX = float(os.getenv("SMARTMEDS_SENSOR_TEMP_MAX", "30"))

@@ -1,3 +1,5 @@
+from math import isfinite
+
 from core.crud_base import CrudBase
 from core.database import Database
 from core.validator import Validator
@@ -26,6 +28,8 @@ class ItemEntrada(CrudBase):
             Validator.required(self.pedido_entrada_id, "Pedido"),
             Validator.required(self.movimentacao_id, "Movimentação"),
         ]
+        if self.valor is not None and not isfinite(self.valor):
+            erros.append("O valor deve ser um número válido.")
         return [erro for erro in erros if erro]
 
     @classmethod

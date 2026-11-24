@@ -1,4 +1,5 @@
 from core.database import Database
+from config import MQTT_DEVICE_ID
 
 
 class SensorLeitura:
@@ -38,6 +39,9 @@ class SensorLeitura:
         sensor = str(sensor or "").strip().upper()
         if sensor != SensorLeitura.SENSOR:
             return False
+        device_id = str(device_id or "").strip()
+        if not MQTT_DEVICE_ID or device_id != MQTT_DEVICE_ID:
+            return False
 
         conexao = Database.connect()
         cursor = conexao.cursor()
@@ -63,12 +67,10 @@ class SensorLeitura:
     @staticmethod
     def listar(device_id=None, sensor=None, limite=100):
         limite = max(1, min(int(limite), 1000))
-        filtros = ["sensor = 'DHT11'"]
-        valores = []
-
-        if device_id:
-            filtros.append("device_id = %s")
-            valores.append(str(device_id).strip())
+        if device_id is not None and str(device_id).strip() != MQTT_DEVICE_ID:
+            return []
+        filtros = ["sensor = 'DHT11'", "device_id = %s"]
+        valores = [MQTT_DEVICE_ID]
 
         if sensor and str(sensor).strip().upper() != SensorLeitura.SENSOR:
             return []
@@ -107,10 +109,11 @@ class SensorLeitura:
                 """
                 SELECT temperatura, umidade, timestamp, device_id
                 FROM sensor_leitura
-                WHERE sensor = 'DHT11'
+                WHERE sensor = 'DHT11' AND device_id = %s
                 ORDER BY timestamp DESC, id DESC
                 LIMIT 1
-                """
+                """,
+                (MQTT_DEVICE_ID,),
             )
             atual = cursor.fetchone()
 
@@ -134,10 +137,13 @@ class SensorLeitura:
                 SELECT device_id, temperatura, umidade,
                        DATE_FORMAT(timestamp, '%Y-%m-%d %H:%i:%s') AS timestamp
                 FROM sensor_leitura
-                WHERE sensor = 'DHT11' AND temperatura IS NOT NULL
+                WHERE sensor = 'DHT11'
+                  AND device_id = %s
+                  AND temperatura IS NOT NULL
                 ORDER BY timestamp DESC, id DESC
                 LIMIT 1
-                """
+                """,
+                (MQTT_DEVICE_ID,),
             )
             return cursor.fetchone()
         finally:
@@ -156,6 +162,7 @@ class SensorLeitura:
                        DATE_FORMAT(timestamp, '%d/%m/%Y %H:%i:%s') AS ultima_leitura
                 FROM sensor_leitura s
                 WHERE sensor = 'DHT11'
+                  AND device_id = %s
                   AND temperatura IS NOT NULL
                   AND NOT EXISTS (
                       SELECT 1
@@ -168,7 +175,8 @@ class SensorLeitura:
                         )
                   )
                 ORDER BY s.device_id
-                """
+                """,
+                (MQTT_DEVICE_ID,),
             )
             return cursor.fetchall()
         finally:

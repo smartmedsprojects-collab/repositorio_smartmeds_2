@@ -6,7 +6,9 @@ import uuid
 import certifi
 import paho.mqtt.client as mqtt
 
-from config import MQTT_BROKER, MQTT_PASSWORD, MQTT_PORT, MQTT_TOPIC, MQTT_USER
+from config import (
+    MQTT_BROKER, MQTT_DEVICE_ID, MQTT_PASSWORD, MQTT_PORT, MQTT_TOPIC, MQTT_USER,
+)
 from .sensor_leitura import SensorLeitura
 
 
@@ -70,8 +72,18 @@ class MQTTManager:
         try:
             dados = json.loads(msg.payload.decode("utf-8"))
             sensor = str(dados.get("sensor") or "").strip().upper()
+            device_id = str(dados.get("device_id") or "").strip()
             if sensor != "DHT11":
-                logger.warning("Mensagem ignorada: somente DHT11 é aceito (%s)", sensor or "sem sensor")
+                logger.warning(
+                    "Mensagem ignorada: somente DHT11 é aceito (%s)",
+                    sensor or "sem sensor",
+                )
+                return
+            if not MQTT_DEVICE_ID or device_id != MQTT_DEVICE_ID:
+                logger.warning(
+                    "Mensagem ignorada: dispositivo não autorizado (%s)",
+                    device_id or "sem device_id",
+                )
                 return
 
             if dados.get("temperatura") is None and dados.get("umidade") is None:
@@ -79,7 +91,7 @@ class MQTTManager:
                 return
 
             sucesso = SensorLeitura.salvar(
-                device_id=dados.get("device_id"),
+                device_id=device_id,
                 sensor="DHT11",
                 temperatura=dados.get("temperatura"),
                 umidade=dados.get("umidade"),

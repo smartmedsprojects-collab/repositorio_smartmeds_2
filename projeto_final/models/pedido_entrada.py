@@ -91,7 +91,7 @@ class PedidoEntrada(CrudBase):
     def _select_com_usuario(cls, cursor, condicao="", parametros=(), order_by=None):
         coluna = cls.coluna_usuario(cursor)
         alias_usuario = "" if coluna == "id_usuario" else f", pe.{coluna} AS id_usuario"
-        sql = f"SELECT pe.*{alias_usuario} FROM {cls.table} pe"
+        sql = f"SELECT pe.*, pe.{cls.pk} AS id{alias_usuario} FROM {cls.table} pe"
         if condicao:
             sql += f" WHERE {condicao}"
         if order_by:

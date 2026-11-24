@@ -856,17 +856,12 @@ def novo_pedido_entrada():
     user_id = session.get("usuario_id")
     usuario_atual = [Usuario.find_by_id(user_id)] if user_id else []
 
-    try:
-        produtos = Produto.find_all()
-    except Exception as e:
-        print("Erro ao buscar produtos:", e)
-        produtos = []
-
     return render_template(
         "pedido_entrada.html",
         pedido_entrada={},
         usuarios=usuario_atual,
-        produtos=produtos,
+        produtos=[],
+        itens=[],
     )
 
 
@@ -949,6 +944,7 @@ def buscar_pedido_entrada(id):
             usuarios=usuario_atual,
             movimentacoes=movimentacoes_list,
             itens=itens,
+            produtos=Produto.find_all(usuario_id=user_id),
         )
     except Exception:
         flash("Erro ao carregar pedido.", "erro")
@@ -965,20 +961,41 @@ def atualizar_pedido_entrada(id):
     erros = pedido_entrada.validate() if hasattr(pedido_entrada, "validate") else []
     usuario_atual = [Usuario.find_by_id(user_id)] if user_id else []
 
-    if erros:
-        for erro in erros:
-            flash(erro, "erro")
-        dados["id"] = id
-        return render_template(
-            "pedido_entrada.html",
-            pedido_entrada=dados,
-            usuarios=usuario_atual,
-        )
     try:
         pedido_existente = PedidoEntrada.find_by_id(id, usuario_id=user_id)
         if not pedido_existente:
             flash("Pedido não encontrado ou acesso negado.", "erro")
             return redirect(url_for("listar_pedido_entrada"))
+
+        if erros:
+            for erro in erros:
+                flash(erro, "erro")
+            dados["id"] = id
+            dados["id_pedido_entrada"] = id
+            return render_template(
+                "pedido_entrada.html",
+                pedido_entrada=dados,
+                usuarios=usuario_atual,
+                produtos=Produto.find_all(usuario_id=user_id),
+                itens=ItemEntrada.find_by_pedido(id),
+            )
+
+        # Não permitir marcar como cancelado um pedido cujos itens já alteraram o estoque.
+        if pedido_entrada.status == "CANCELADO":
+            conexao = Database.connect()
+            cursor = conexao.cursor()
+            try:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM item_entrada WHERE pedido_entrada_id = %s",
+                    (id,),
+                )
+                if cursor.fetchone()[0] > 0:
+                    raise ValueError(
+                        "Não é possível cancelar um pedido que já possui itens registrados no estoque."
+                    )
+            finally:
+                cursor.close()
+                conexao.close()
 
         linhas_afetadas = pedido_entrada.update(id, usuario_id=user_id)
         if linhas_afetadas == 0:
@@ -987,13 +1004,28 @@ def atualizar_pedido_entrada(id):
 
         flash("Pedido atualizado com sucesso.", "sucesso")
         return redirect(url_for("listar_pedido_entrada"))
-    except Exception:
-        flash("Erro ao atualizar pedido.", "erro")
+    except ValueError as erro:
+        flash(str(erro), "erro")
         dados["id"] = id
+        dados["id_pedido_entrada"] = id
         return render_template(
             "pedido_entrada.html",
             pedido_entrada=dados,
             usuarios=usuario_atual,
+            produtos=Produto.find_all(usuario_id=user_id),
+            itens=ItemEntrada.find_by_pedido(id),
+        )
+    except Exception:
+        app.logger.exception("Erro ao atualizar pedido de entrada")
+        flash("Erro ao atualizar pedido.", "erro")
+        dados["id"] = id
+        dados["id_pedido_entrada"] = id
+        return render_template(
+            "pedido_entrada.html",
+            pedido_entrada=dados,
+            usuarios=usuario_atual,
+            produtos=Produto.find_all(usuario_id=user_id),
+            itens=ItemEntrada.find_by_pedido(id),
         )
 
 
@@ -1026,77 +1058,116 @@ def excluir_pedido_entrada(id):
 @login_obrigatorio
 @permissao_obrigatoria("pedido_entrada")
 def salvar_item_entrada():
+    """Registra item, movimentação e saldo em uma única transação."""
     user_id = session.get("usuario_id")
-    pedido_id = request.form.get("pedido_entrada_id")
-    qtd_str = request.form.get("quantidade", "0").strip()
-    valor_str = request.form.get("valor", "0").strip().replace(",", ".")
-    produto_id = request.form.get("produto_id")
-
-    quantidade = int(qtd_str) if qtd_str.isdigit() else 0
+    pedido_raw = request.form.get("pedido_entrada_id", "").strip()
+    produto_raw = request.form.get("produto_id", "").strip()
+    qtd_raw = request.form.get("quantidade", "").strip()
+    valor_raw = request.form.get("valor", "0").strip().replace(",", ".")
 
     try:
-        valor = float(valor_str)
-    except ValueError:
-        valor = 0.0
-
-    if not pedido_id or not produto_id:
-        flash("Pedido e produto são obrigatórios.", "erro")
-        return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
-
-    if quantidade <= 0:
-        flash("A quantidade deve ser maior que zero.", "erro")
-        return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
-
-    pedido = PedidoEntrada.find_by_id(pedido_id, usuario_id=user_id)
-    produto = Produto.find_by_id(produto_id)
-
-    if not pedido or not produto:
-        flash("Acesso negado ou registro inválido.", "erro")
+        pedido_id = int(pedido_raw)
+        produto_id = int(produto_raw)
+        quantidade = int(qtd_raw)
+        valor = float(valor_raw)
+    except (TypeError, ValueError):
+        flash("Informe pedido, produto, quantidade e valor válidos.", "erro")
+        if pedido_raw.isdigit() and int(pedido_raw) > 0:
+            return redirect(url_for("buscar_pedido_entrada", id=int(pedido_raw)))
         return redirect(url_for("listar_pedido_entrada"))
 
+    if pedido_id <= 0 or produto_id <= 0:
+        flash("Selecione um pedido e um produto válidos.", "erro")
+        return redirect(url_for("listar_pedido_entrada"))
+    if quantidade < 50:
+        flash("A quantidade de entrada deve ser igual ou superior a 50 unidades.", "erro")
+        return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
+    if not isfinite(valor) or valor < 0:
+        flash("O valor não pode ser negativo ou inválido.", "erro")
+        return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
+
+    # Valida os dados antes de gravar qualquer registro no banco.
+    item_validacao = ItemEntrada(quantidade, valor, pedido_id, movimentacao_id=1)
+    erros = item_validacao.validate()
+    if erros:
+        for erro in erros:
+            flash(erro, "erro")
+        return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
+
+    conexao = None
+    cursor = None
     try:
-        mov = Movimentacao(
-            produto_id=int(produto_id),
-            tipo="ENTRADA",
-            quantidade=quantidade,
-            data_movimentacao=datetime.now(),
-        )
-        movimentacao_id = mov.insert()
-
-        item = ItemEntrada(
-            quantidade,
-            valor,
-            pedido_id,
-            movimentacao_id,
-        )
-
-        erros = item.validate() if hasattr(item, "validate") else []
-        if erros:
-            for erro in erros:
-                flash(erro, "erro")
-            return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
-
-        item.insert()
-
         conexao = Database.connect()
+        conexao.start_transaction()
         cursor = conexao.cursor()
+
+        # Compatibilidade com bancos que usam id_usuario ou usuario_id.
+        coluna_usuario = PedidoEntrada.coluna_usuario(cursor)
         cursor.execute(
-            """
-            UPDATE produto 
-            SET quantidade = quantidade + %s 
-            WHERE id = %s
-            """,
-            (quantidade, produto_id),
+            f"""SELECT id_pedido_entrada, status
+                FROM pedido_entrada
+                WHERE id_pedido_entrada = %s AND {coluna_usuario} = %s
+                FOR UPDATE""",
+            (pedido_id, user_id),
         )
+        pedido = cursor.fetchone()
+        if not pedido:
+            raise ValueError("Pedido não encontrado ou acesso negado.")
+
+        status_pedido = str(pedido[1] or "ABERTO").strip().upper()
+        if status_pedido in {"FINALIZADO", "CANCELADO"}:
+            raise ValueError("Não é possível adicionar itens a um pedido finalizado ou cancelado.")
+
+        # O produto precisa pertencer ao mesmo usuário do pedido.
+        cursor.execute(
+            """SELECT id FROM produto
+               WHERE id = %s AND usuario_id = %s
+               FOR UPDATE""",
+            (produto_id, user_id),
+        )
+        if not cursor.fetchone():
+            raise ValueError("Produto não encontrado ou não pertence à sua conta.")
+
+        cursor.execute(
+            """INSERT INTO movimentacao
+               (tipo_movimentacao, quantidade, data_movimentacao, produto_id)
+               VALUES ('ENTRADA', %s, %s, %s)""",
+            (quantidade, datetime.now(), produto_id),
+        )
+        movimentacao_id = cursor.lastrowid
+
+        cursor.execute(
+            """INSERT INTO item_entrada
+               (quantidade, valor, pedido_entrada_id, movimentacao_id)
+               VALUES (%s, %s, %s, %s)""",
+            (quantidade, valor, pedido_id, movimentacao_id),
+        )
+
+        cursor.execute(
+            """UPDATE produto
+               SET quantidade = quantidade + %s
+               WHERE id = %s AND usuario_id = %s""",
+            (quantidade, produto_id, user_id),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("Não foi possível atualizar o estoque do produto.")
+
         conexao.commit()
-        cursor.close()
-        conexao.close()
-
-        flash("Item adicionado e estoque atualizado com sucesso.", "sucesso")
-
-    except Exception as e:
-        print("ERRO AO ADICIONAR ITEM DE ENTRADA:", e)
-        flash(f"Erro ao adicionar item: {e}", "erro")
+        flash("Item de entrada registrado e estoque atualizado com sucesso.", "sucesso")
+    except ValueError as erro:
+        if conexao:
+            conexao.rollback()
+        flash(str(erro), "erro")
+    except Exception:
+        if conexao:
+            conexao.rollback()
+        app.logger.exception("Erro ao adicionar item de entrada")
+        flash("Não foi possível registrar a entrada. Nenhuma alteração parcial foi salva.", "erro")
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
 
     return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
 

@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS pedido_saida (
   id INT NOT NULL AUTO_INCREMENT,
   tipo VARCHAR(50) NOT NULL,
   pagamento VARCHAR(50) NOT NULL,
-  quantidade INT NOT NULL,
+  quantidade INT NOT NULL DEFAULT 0,
   valor DECIMAL(10,2) NOT NULL DEFAULT 0,
   data_pagamento DATE NOT NULL,
   cliente_id INT NOT NULL,
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS pedido_saida (
   KEY idx_pedido_saida_usuario (usuario_id),
   CONSTRAINT fk_pedido_saida_cliente FOREIGN KEY (cliente_id) REFERENCES cliente (id),
   CONSTRAINT fk_pedido_saida_usuario FOREIGN KEY (usuario_id) REFERENCES usuario (id),
-  CONSTRAINT chk_pedido_saida_quantidade CHECK (quantidade > 0),
+  CONSTRAINT chk_pedido_saida_quantidade CHECK (quantidade >= 0),
   CONSTRAINT chk_pedido_saida_valor CHECK (valor >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
