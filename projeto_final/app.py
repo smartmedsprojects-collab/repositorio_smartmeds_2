@@ -14,7 +14,7 @@ from models.usuario import Usuario
 from core.permissoes import permissao_obrigatoria
 from models.item_entrada import ItemEntrada
 from core.security import login_obrigatorio
-from config import FLASK_SECRET_KEY, MQTT_BROKER, MQTT_TOPIC, SENSOR_TEMP_MIN, SENSOR_TEMP_MAX
+from config import FLASK_SECRET_KEY, MQTT_BROKER, MQTT_TOPIC, MQTT_DEVICE_ID, SENSOR_TEMP_MIN, SENSOR_TEMP_MAX
 from iot.sensor_leitura import SensorLeitura
 from iot.mqtt_manager import mqtt_manager
 import atexit
@@ -165,22 +165,42 @@ def dashboard():
         produtos, key=lambda p: int(p.get("quantidade") or 0), reverse=True
     )[:8]
 
+    # O dashboard usa o mesmo resumo consultado pela tela de sensores.
+    # Isso evita divergências entre a consulta do painel e o monitor DHT11.
     try:
-        sensores = SensorLeitura.dispositivos_temperatura()
-    except Exception as erro:
-        print(f"Erro ao carregar sensores no dashboard: {erro}")
-        sensores = []
+        resumo_iot = SensorLeitura.resumo()
+    except Exception:
+        app.logger.exception("Não foi possível consultar a última leitura DHT11 para o dashboard.")
+        resumo_iot = {
+            "temperatura": None,
+            "umidade": None,
+            "device_id": None,
+            "ultima_leitura": None,
+        }
 
-    for sensor in sensores:
-        temperatura = sensor.get("temperatura")
-        sensor["temp_min"] = SENSOR_TEMP_MIN
-        sensor["temp_max"] = SENSOR_TEMP_MAX
-        sensor["status"] = (
+    temperatura_iot = resumo_iot.get("temperatura")
+    if temperatura_iot is not None:
+        status_iot_temperatura = (
             "critico"
-            if temperatura is not None and (temperatura < SENSOR_TEMP_MIN or temperatura > SENSOR_TEMP_MAX)
+            if temperatura_iot < SENSOR_TEMP_MIN or temperatura_iot > SENSOR_TEMP_MAX
             else "normal"
         )
-        sensor["produtos_armazenados"] = 0
+    else:
+        status_iot_temperatura = "aguardando"
+
+    sensores = []
+    if temperatura_iot is not None or resumo_iot.get("umidade") is not None:
+        sensores.append({
+            "nome": "SmartMeds – DHT11",
+            "device_id": resumo_iot.get("device_id"),
+            "temperatura": temperatura_iot,
+            "umidade": resumo_iot.get("umidade"),
+            "ultima_leitura": resumo_iot.get("ultima_leitura"),
+            "temp_min": SENSOR_TEMP_MIN,
+            "temp_max": SENSOR_TEMP_MAX,
+            "status": status_iot_temperatura,
+            "produtos_armazenados": 0,
+        })
 
     alertas_temperatura = [s for s in sensores if s["status"] == "critico"]
 
@@ -197,6 +217,8 @@ def dashboard():
         labels_estoque=[p["nome"] for p in produtos_ordenados],
         quantidades_estoque=[int(p.get("quantidade") or 0) for p in produtos_ordenados],
         sensores_temperatura=sensores,
+        resumo_iot=resumo_iot,
+        status_iot_temperatura=status_iot_temperatura,
         alertas_temperatura=alertas_temperatura,
         iot_conectado=mqtt_manager.conectado,
         limite_estoque_baixo=LIMITE_ESTOQUE_BAIXO,
@@ -1762,6 +1784,7 @@ def api_status_iot():
         "sensor": "DHT11",
         "broker": MQTT_BROKER,
         "topic": MQTT_TOPIC,
+        "device_id_autorizado": MQTT_DEVICE_ID,
     })
 
 

@@ -1,5 +1,6 @@
 from core.database import Database
 from config import MQTT_DEVICE_ID
+from .device_identity import normalizar_device_id, ids_device_permitidos
 
 
 class SensorLeitura:
@@ -39,8 +40,8 @@ class SensorLeitura:
         sensor = str(sensor or "").strip().upper()
         if sensor != SensorLeitura.SENSOR:
             return False
-        device_id = str(device_id or "").strip()
-        if not MQTT_DEVICE_ID or device_id != MQTT_DEVICE_ID:
+        device_id = normalizar_device_id(device_id)
+        if device_id is None:
             return False
 
         conexao = Database.connect()
@@ -53,7 +54,7 @@ class SensorLeitura:
                 VALUES (%s, 'DHT11', %s, %s)
                 """,
                 (
-                    str(device_id or "esp32-desconhecido").strip()[:50],
+                    str(device_id).strip()[:50],
                     SensorLeitura._numero(temperatura),
                     SensorLeitura._numero(umidade),
                 ),
@@ -67,10 +68,14 @@ class SensorLeitura:
     @staticmethod
     def listar(device_id=None, sensor=None, limite=100):
         limite = max(1, min(int(limite), 1000))
-        if device_id is not None and str(device_id).strip() != MQTT_DEVICE_ID:
+        if device_id is not None and normalizar_device_id(device_id) is None:
             return []
-        filtros = ["sensor = 'DHT11'", "device_id = %s"]
-        valores = [MQTT_DEVICE_ID]
+        ids_permitidos = ids_device_permitidos()
+        if not ids_permitidos:
+            return []
+        placeholders = ", ".join(["%s"] * len(ids_permitidos))
+        filtros = ["sensor = 'DHT11'", f"LOWER(TRIM(device_id)) IN ({placeholders})"]
+        valores = list(ids_permitidos)
 
         if sensor and str(sensor).strip().upper() != SensorLeitura.SENSOR:
             return []
@@ -102,6 +107,14 @@ class SensorLeitura:
 
     @staticmethod
     def resumo():
+        ids_permitidos = ids_device_permitidos()
+        if not ids_permitidos:
+            return {
+                "temperatura": None,
+                "umidade": None,
+                "device_id": None,
+                "ultima_leitura": None,
+            }
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
@@ -109,11 +122,12 @@ class SensorLeitura:
                 """
                 SELECT temperatura, umidade, timestamp, device_id
                 FROM sensor_leitura
-                WHERE sensor = 'DHT11' AND device_id = %s
+                WHERE sensor = 'DHT11'
+                  AND LOWER(TRIM(device_id)) IN ({})
                 ORDER BY timestamp DESC, id DESC
                 LIMIT 1
-                """,
-                (MQTT_DEVICE_ID,),
+                """.format(", ".join(["%s"] * len(ids_permitidos))),
+                tuple(ids_permitidos),
             )
             atual = cursor.fetchone()
 
@@ -129,6 +143,9 @@ class SensorLeitura:
 
     @staticmethod
     def temperatura_atual():
+        ids_permitidos = ids_device_permitidos()
+        if not ids_permitidos:
+            return None
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
@@ -138,12 +155,12 @@ class SensorLeitura:
                        DATE_FORMAT(timestamp, '%Y-%m-%d %H:%i:%s') AS timestamp
                 FROM sensor_leitura
                 WHERE sensor = 'DHT11'
-                  AND device_id = %s
+                  AND LOWER(TRIM(device_id)) IN ({})
                   AND temperatura IS NOT NULL
                 ORDER BY timestamp DESC, id DESC
                 LIMIT 1
-                """,
-                (MQTT_DEVICE_ID,),
+                """.format(", ".join(["%s"] * len(ids_permitidos))),
+                tuple(ids_permitidos),
             )
             return cursor.fetchone()
         finally:
@@ -152,31 +169,25 @@ class SensorLeitura:
 
     @staticmethod
     def dispositivos_temperatura():
+        ids_permitidos = ids_device_permitidos()
+        if not ids_permitidos:
+            return []
         conexao = Database.connect()
         cursor = conexao.cursor(dictionary=True)
         try:
             cursor.execute(
                 """
-                SELECT device_id AS nome,
+                SELECT %s AS nome,
                        temperatura, umidade,
                        DATE_FORMAT(timestamp, '%d/%m/%Y %H:%i:%s') AS ultima_leitura
-                FROM sensor_leitura s
+                FROM sensor_leitura
                 WHERE sensor = 'DHT11'
-                  AND device_id = %s
+                  AND LOWER(TRIM(device_id)) IN ({})
                   AND temperatura IS NOT NULL
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM sensor_leitura s2
-                      WHERE s2.sensor = 'DHT11'
-                        AND s2.device_id = s.device_id
-                        AND (
-                            s2.timestamp > s.timestamp
-                            OR (s2.timestamp = s.timestamp AND s2.id > s.id)
-                        )
-                  )
-                ORDER BY s.device_id
-                """,
-                (MQTT_DEVICE_ID,),
+                ORDER BY timestamp DESC, id DESC
+                LIMIT 1
+                """.format(", ".join(["%s"] * len(ids_permitidos))),
+                tuple([MQTT_DEVICE_ID] + ids_permitidos),
             )
             return cursor.fetchall()
         finally:

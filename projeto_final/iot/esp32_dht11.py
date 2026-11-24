@@ -53,7 +53,7 @@ def conectar_mqtt():
         ssl_params={"server_hostname": MQTT_BROKER},
     )
     cliente.connect()
-    print("Conectado ao HiveMQ; tópico:", MQTT_TOPIC.decode())
+    print("Conectado ao HiveMQ; dispositivo:", DEVICE_ID, "tópico:", MQTT_TOPIC.decode())
     return cliente
 
 
@@ -66,7 +66,8 @@ while True:
 
         sensor.measure()
         payload = {
-            "device_id": DEVICE_ID,
+            # O servidor aceita este ID e também o identificador legado "SmartMeds".
+        "device_id": DEVICE_ID,
             "sensor": "DHT11",
             "temperatura": sensor.temperature(),
             "umidade": sensor.humidity(),

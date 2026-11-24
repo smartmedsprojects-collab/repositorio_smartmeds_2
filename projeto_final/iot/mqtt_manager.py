@@ -7,9 +7,10 @@ import certifi
 import paho.mqtt.client as mqtt
 
 from config import (
-    MQTT_BROKER, MQTT_DEVICE_ID, MQTT_PASSWORD, MQTT_PORT, MQTT_TOPIC, MQTT_USER,
+    MQTT_BROKER, MQTT_PASSWORD, MQTT_PORT, MQTT_TOPIC, MQTT_USER,
 )
 from .sensor_leitura import SensorLeitura
+from .device_identity import normalizar_device_id
 
 
 logger = logging.getLogger("smartmeds.iot")
@@ -72,23 +73,31 @@ class MQTTManager:
         try:
             dados = json.loads(msg.payload.decode("utf-8"))
             sensor = str(dados.get("sensor") or "").strip().upper()
-            device_id = str(dados.get("device_id") or "").strip()
+            device_id_recebido = str(dados.get("device_id") or "").strip()
+            device_id = normalizar_device_id(device_id_recebido)
             if sensor != "DHT11":
                 logger.warning(
                     "Mensagem ignorada: somente DHT11 é aceito (%s)",
                     sensor or "sem sensor",
                 )
                 return
-            if not MQTT_DEVICE_ID or device_id != MQTT_DEVICE_ID:
+            if device_id is None:
                 logger.warning(
                     "Mensagem ignorada: dispositivo não autorizado (%s)",
-                    device_id or "sem device_id",
+                    device_id_recebido or "sem device_id",
                 )
                 return
 
             if dados.get("temperatura") is None and dados.get("umidade") is None:
                 logger.warning("Leitura DHT11 sem temperatura/umidade")
                 return
+
+            if device_id_recebido.casefold() != device_id.casefold():
+                logger.info(
+                    "Identificador legado do sensor reconhecido: %s -> %s",
+                    device_id_recebido,
+                    device_id,
+                )
 
             sucesso = SensorLeitura.salvar(
                 device_id=device_id,
