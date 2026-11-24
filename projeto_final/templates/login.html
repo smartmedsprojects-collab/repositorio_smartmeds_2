@@ -13,11 +13,21 @@
     <!-- CSS próprio -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='acessibilidade.css') }}" />
+
+    <style>
+        body.login-body {
+            background-image: url("{{ url_for('static', filename='fundo-login.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+    </style>
 </head>
 
-<body class="login-body bg-light">
+<body class="login-body">
     {% include '_acessibilidade.html' %}
-    <main id="conteudo-principal" class="gradient min-vh-100 d-flex align-items-center justify-content-center py-5" tabindex="-1" aria-label="Conteúdo principal do acesso">
+    <main id="conteudo-principal" class="min-vh-100 d-flex align-items-center justify-content-center py-5" tabindex="-1" aria-label="Conteúdo principal do acesso">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-12 col-xl-10">
@@ -99,7 +109,7 @@
                                 <!-- RODAPÉ -->
                                 <div class="text-center">
                                     <small class="text-muted">
-                                        &copy; 2026 SENAI &bull; Sistema SmartMeds
+                                        © 2026 SENAI • Sistema SmartMeds
                                     </small>
                                 </div>
 
