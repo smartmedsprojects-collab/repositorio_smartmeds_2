@@ -13,8 +13,8 @@ class PedidoSaida(CrudBase):
         self,
         tipo=None,
         pagamento=None,
-        quantidade=None,
-        valor=None,
+        quantidade=0,
+        valor=0.0,
         data_pagamento=None,
         cliente_id=None,
         usuario_id=None,
@@ -23,11 +23,11 @@ class PedidoSaida(CrudBase):
         self.tipo = tipo.strip().upper() if isinstance(tipo, str) else tipo
         self.pagamento = pagamento.strip().upper() if isinstance(pagamento, str) else pagamento
         try:
-            self.quantidade = int(quantidade) if quantidade not in (None, "") else None
+            self.quantidade = int(quantidade) if quantidade not in (None, "") else 0
         except (ValueError, TypeError):
             self.quantidade = None
         try:
-            self.valor = float(str(valor).replace(",", ".")) if valor not in (None, "") else None
+            self.valor = float(str(valor).replace(",", ".")) if valor not in (None, "") else 0.0
         except (ValueError, TypeError):
             self.valor = None
         self.data_pagamento = data_pagamento
@@ -44,7 +44,7 @@ class PedidoSaida(CrudBase):
         erros = [
             Validator.required(self.tipo, "Tipo"),
             Validator.required(self.pagamento, "Pagamento"),
-            Validator.positive(self.quantidade, "Quantidade"),
+            Validator.non_negative(self.quantidade, "Quantidade"),
             Validator.non_negative(self.valor, "Valor"),
             Validator.required(self.data_pagamento, "Data de pagamento"),
             Validator.date(self.data_pagamento, "Data de pagamento"),

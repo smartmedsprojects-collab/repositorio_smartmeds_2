@@ -92,7 +92,7 @@
     <div class="row justify-content-center">
         <div class="col-12 col-xl-11">
             
-            <!-- CARD 1: DADOS GERAIS DO PEDIDO (CABEÇALHO ENXUTO) -->
+            <!-- CARD 1: DADOS GERAIS DO PEDIDO -->
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                 <div class="row g-0">
                     
@@ -136,7 +136,7 @@
                         </div>
                     </div>
 
-                    <!-- FORMULÁRIO DO CABEÇALHO DO PEDIDO -->
+                    <!-- FORMULÁRIO DO CABEÇALHO DO PEDIDO (TODOS OS CAMPOS SEMPRE VISÍVEIS) -->
                     <div class="col-lg-9 p-4 bg-white">
                         <form method="POST" action="{% if is_pedido_aberto %}{{ url_for('atualizar_pedido_saida', id=pedido_saida.id) }}{% else %}{{ url_for('salvar_pedido_saida') }}{% endif %}">
                             <div class="row g-3">
@@ -173,8 +173,7 @@
                                     </select>
                                 </div>
 
-                                <!-- CAMPOS CONDICIONAIS: EXIBIDOS APENAS SE FOR VENDA -->
-                                <div class="col-md-6 grupo-financeiro">
+                                <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary small">Forma de Pagamento</label>
                                     <select name="pagamento" id="selectPagamento" class="form-select bg-light border-1" required>
                                         <option value="">Selecione...</option>
@@ -185,7 +184,7 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-6 grupo-financeiro">
+                                <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary small">Data Pagamento</label>
                                     <input type="date" name="data_pagamento" id="inputDataPagamento" class="form-control bg-light border-1" value="{{ pedido_saida.data_pagamento if pedido_saida else '' }}" required>
                                 </div>
@@ -301,7 +300,6 @@
                                                 <td class="text-end text-muted small">R$ {{ "%.2f"|format(val) }}</td>
                                                 <td class="text-end fw-bold" style="color: var(--sm-primary);">R$ {{ "%.2f"|format(qtd * val) }}</td>
                                                 <td class="text-center pe-2">
-                                                    <!-- Ajuste a rota 'excluir_item_saida' conforme seu backend -->
                                                     <form method="POST" action="{{ url_for('excluir_item_saida', id=item.id) }}#area-itens" class="d-inline" onsubmit="return confirm('Remover este item do pedido?');">
                                                         <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Remover item">
                                                             <i class="bi bi-trash3-fill"></i>
@@ -388,12 +386,10 @@
                                     <span class="fw-bold text-dark">{{ ns.total_itens }}</span>
                                 </div>
 
-                                {% if is_venda %}
                                 <div class="d-flex justify-content-between align-items-center small mb-2">
                                     <span class="text-muted">Forma de Pagamento:</span>
                                     <span class="badge bg-secondary-subtle text-secondary fw-bold">{{ pedido_saida.pagamento or 'PENDENTE' }}</span>
                                 </div>
-                                {% endif %}
 
                                 <!-- TOTAL EM DESTAQUE -->
                                 <div class="p-3 bg-dark text-white rounded-3 text-center my-3 shadow-sm" style="background: #0f172a !important;">
@@ -442,43 +438,15 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // 1. LÓGICA DO CABEÇALHO (VENDA VS DOAÇÃO/DESCARTE)
-    const selectTipo = document.getElementById('selectTipoSaida');
-    const gruposFinanceiros = document.querySelectorAll('.grupo-financeiro');
-    const selectPagamento = document.getElementById('selectPagamento');
+    // 1. PREENCHIMENTO PADRÃO DA DATA DE PAGAMENTO
     const inputDataPagamento = document.getElementById('inputDataPagamento');
-    const labelCliente = document.getElementById('labelCliente');
 
-    // Preenche data de hoje por padrão se estiver vazio
     if (inputDataPagamento && !inputDataPagamento.value) {
         inputDataPagamento.value = new Date().toISOString().split('T')[0];
     }
 
-    function atualizarCamposTipoSaida() {
-        if (!selectTipo) return;
-        const tipo = selectTipo.value;
-        const isVenda = (tipo === 'VENDA');
-
-        gruposFinanceiros.forEach(el => {
-            el.style.display = isVenda ? 'block' : 'none';
-        });
-
-        if (selectPagamento) selectPagamento.required = isVenda;
-        if (inputDataPagamento) inputDataPagamento.required = isVenda;
-
-        if (labelCliente) {
-            labelCliente.textContent = tipo === 'DESCARTE' 
-                ? 'Responsável / Empresa Coletora' 
-                : (tipo === 'DOACAO' ? 'Beneficiário / Instituição' : 'Cliente');
-        }
-    }
-
-    if (selectTipo) {
-        selectTipo.addEventListener('change', atualizarCamposTipoSaida);
-        atualizarCamposTipoSaida();
-    }
-
     // 2. LÓGICA DE LANÇAMENTO DE ITENS (PREÇO INSTANTÂNEO + TRAVA DE ESTOQUE)
+    const formAdicionarItem = document.getElementById('formAdicionarItem');
     const selectProduto = document.getElementById('selectProduto');
     const inputQuantidade = document.getElementById('inputQuantidade');
     const inputValor = document.getElementById('inputValorUnitario');
@@ -489,24 +457,26 @@ document.addEventListener("DOMContentLoaded", function () {
     function recalcularSubtotal() {
         if (!inputQuantidade || !inputValor || !displaySubtotal) return;
         const qtd = parseFloat(inputQuantidade.value) || 0;
-        const val = parseFloat(inputValor.value) || 0;
+        const val = parseFloat(inputValor.value.replace(',', '.')) || 0;
         displaySubtotal.value = (qtd * val).toFixed(2);
     }
 
     function validarEstoque() {
-        if (!selectProduto || !inputQuantidade) return;
+        if (!selectProduto || !inputQuantidade) return true;
         const option = selectProduto.options[selectProduto.selectedIndex];
         const estoqueMax = parseInt(option?.dataset.estoque || 0);
         const qtdDigitada = parseInt(inputQuantidade.value || 0);
 
-        if (selectProduto.value && qtdDigitada > estoqueMax) {
-            inputQuantidade.setCustomValidity(`Estoque insuficiente. Máximo disponível: ${estoqueMax}`);
+        if (selectProduto.value && (qtdDigitada <= 0 || qtdDigitada > estoqueMax)) {
+            inputQuantidade.setCustomValidity(`Quantidade inválida. Máximo disponível: ${estoqueMax}`);
             inputQuantidade.classList.add('is-invalid');
             if (btnAdicionar) btnAdicionar.disabled = true;
+            return false;
         } else {
             inputQuantidade.setCustomValidity('');
             inputQuantidade.classList.remove('is-invalid');
             if (btnAdicionar) btnAdicionar.disabled = false;
+            return true;
         }
     }
 
@@ -517,10 +487,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const estoque = parseInt(option?.dataset.estoque || 0);
 
             if (this.value) {
-                // Se for descarte, sugere valor 0; se for venda/doação, puxa o preço cadastrado
-                const tipoAtual = selectTipo ? selectTipo.value : 'VENDA';
-                inputValor.value = (tipoAtual === 'DESCARTE') ? '0.00' : preco.toFixed(2);
-                
+                inputValor.value = preco.toFixed(2);
                 inputQuantidade.max = estoque;
                 inputQuantidade.value = estoque > 0 ? 1 : 0;
                 badgeEstoque.innerHTML = `<span class="text-success">Disponível: ${estoque} un.</span>`;
@@ -544,6 +511,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (inputValor) {
         inputValor.addEventListener('input', recalcularSubtotal);
+    }
+
+    // 3. PROTEÇÃO CONTRA DUPLO ENVIO E FORMATAÇÃO DO VALOR
+    if (formAdicionarItem) {
+        formAdicionarItem.addEventListener('submit', function (e) {
+            if (!selectProduto.value || !validarEstoque()) {
+                e.preventDefault();
+                return;
+            }
+
+            // Garante ponto decimal antes de enviar ao Python/Flask
+            if (inputValor && inputValor.value) {
+                inputValor.value = inputValor.value.replace(',', '.');
+            }
+
+            // Desativa o botão imediatamente para impedir clique duplo
+            if (btnAdicionar) {
+                btnAdicionar.disabled = true;
+                btnAdicionar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> ADICIONANDO...';
+            }
+        });
     }
 });
 </script>

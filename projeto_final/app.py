@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from math import isfinite
 import os
 from flask import Flask, jsonify, render_template, request, redirect, session, url_for, flash
 from core.database import Database
@@ -33,13 +34,7 @@ _erro_migracao_refrigeracao_registrado = False
 
 
 def garantir_coluna_refrigeracao():
-    """Garante a coluna usada pelo cadastro de produtos em bancos antigos.
-
-    A alteração é aditiva: cria somente a coluna ausente, com valor padrão 0,
-    sem apagar nem modificar os produtos já cadastrados. Se o usuário do banco
-    não tiver permissão ALTER, o erro fica registrado no log e há uma migração
-    SQL manual em migracao_produtos_refrigerados.sql.
-    """
+    """Garante a coluna usada pelo cadastro de produtos em bancos antigos."""
     global _coluna_refrigeracao_ok, _erro_migracao_refrigeracao_registrado
 
     if _coluna_refrigeracao_ok:
@@ -61,7 +56,6 @@ def garantir_coluna_refrigeracao():
             )
             tabela_existe = cursor.fetchone()[0] > 0
             if not tabela_existe:
-                # O banco pode ainda não ter recebido o esquema inicial.
                 return False
 
             cursor.execute(
@@ -90,9 +84,7 @@ def garantir_coluna_refrigeracao():
         except Exception:
             if not _erro_migracao_refrigeracao_registrado:
                 app.logger.exception(
-                    "Não foi possível preparar a coluna de refrigeração. "
-                    "Confira as permissões do MySQL e execute "
-                    "migracao_produtos_refrigerados.sql no banco configurado."
+                    "Não foi possível preparar a coluna de refrigeração."
                 )
                 _erro_migracao_refrigeracao_registrado = True
             return False
@@ -120,7 +112,6 @@ def iniciar_integracao_iot():
 
 @app.before_request
 def preparar_iot():
-    # Atualiza bancos antigos antes de qualquer rota consultar/salvar produtos.
     garantir_coluna_refrigeracao()
     iniciar_integracao_iot()
 
@@ -249,7 +240,6 @@ def get_produto_form():
     }
 
 
-
 def get_pedido_entrada_form():
     return {
         "numero_documento": request.form.get("numero_documento", "").strip(),
@@ -278,11 +268,11 @@ def get_pedido_saida_form():
     except (TypeError, ValueError):
         cliente_id = None
     try:
-        quantidade = int(qtd_raw) if qtd_raw else None
+        quantidade = int(qtd_raw) if qtd_raw != "" else 0
     except (TypeError, ValueError):
         quantidade = None
     try:
-        valor = float(valor_raw) if valor_raw else None
+        valor = float(valor_raw) if valor_raw != "" else 0.0
     except (TypeError, ValueError):
         valor = None
 
@@ -290,13 +280,11 @@ def get_pedido_saida_form():
         "tipo": request.form.get("tipo", "").strip(),
         "pagamento": request.form.get("pagamento", "").strip(),
         "cliente_id": cliente_id,
-        # Nunca confiar no usuário enviado por um campo oculto ou seletor HTML.
         "usuario_id": session.get("usuario_id"),
         "quantidade": quantidade,
         "valor": valor,
         "data_pagamento": request.form.get("data_pagamento", "").strip(),
     }
-
 
 
 def get_usuario_form():
@@ -447,12 +435,10 @@ def salvar_usuario():
         usuario.insert()
         flash("Usuário cadastrado com sucesso.", "sucesso")
         return redirect(url_for("listar_usuarios"))
-    except Exception as erro:
+    except Exception:
         app.logger.exception("Erro ao cadastrar usuário")
         flash("Não foi possível cadastrar o usuário. Verifique se o e-mail já existe.", "erro")
         return render_template("usuario.html", usuario=dados)
-
-
 
 
 @app.route("/usuario/<int:id>/editar", methods=["GET"])
@@ -506,8 +492,6 @@ def atualizar_usuario(id):
         return render_template("usuario.html", usuario=dados)
 
 
-
-
 @app.route("/usuario/<int:id>/excluir", methods=["POST"])
 @login_obrigatorio
 @permissao_obrigatoria("usuarios_excluir")
@@ -547,7 +531,7 @@ def listar_clientes():
     try:
         clientes = Cliente.find_all(usuario_id=user_id, order_by="id DESC")
         return render_template("cliente_lista.html", clientes=clientes)
-    except Exception as e:
+    except Exception:
         flash("Erro ao carregar clientes.", "erro")
         return render_template("cliente_lista.html", clientes=[])
 
@@ -577,8 +561,6 @@ def salvar_cliente():
         return render_template("cliente.html", cliente=cliente)
 
 
-
-
 @app.route("/cliente/<int:id>/editar", methods=["GET"])
 @login_obrigatorio
 @permissao_obrigatoria("clientes_editar")
@@ -590,7 +572,7 @@ def buscar_cliente(id):
             flash("Cliente não encontrado ou acesso negado.", "erro")
             return redirect(url_for("listar_clientes"))
         return render_template("cliente.html", cliente=cliente)
-    except Exception as e:
+    except Exception:
         flash("Erro ao carregar cliente.", "erro")
         return redirect(url_for("listar_clientes"))
 
@@ -632,8 +614,6 @@ def atualizar_cliente(id):
         return render_template("cliente.html", cliente=dados)
 
 
-
-
 @app.route("/cliente/<int:id>/excluir", methods=["POST"])
 @login_obrigatorio
 @permissao_obrigatoria("clientes_excluir")
@@ -650,7 +630,7 @@ def excluir_cliente(id):
         flash("Cliente excluído com sucesso.", "sucesso")
     except ValueError as e:
         flash(str(e), "erro")
-    except Exception as e:
+    except Exception:
         flash("Erro ao excluir cliente.", "erro")
     return redirect(url_for("listar_clientes"))
 
@@ -728,8 +708,6 @@ def salvar_produto():
             cursor.close()
         if conexao:
             conexao.close()
-
-
 
 
 @app.route("/produto/<int:id>/editar", methods=["GET"])
@@ -839,8 +817,6 @@ def excluir_produto(id):
         app.logger.exception("Erro ao excluir produto")
         flash("Não foi possível excluir o produto. Verifique os registros vinculados.", "erro")
     return redirect(url_for("listar_produtos"))
-
-
 
 
 # (Movimentação)===========================================================================================
@@ -974,7 +950,7 @@ def buscar_pedido_entrada(id):
             movimentacoes=movimentacoes_list,
             itens=itens,
         )
-    except Exception as e:
+    except Exception:
         flash("Erro ao carregar pedido.", "erro")
         return redirect(url_for("listar_pedido_entrada"))
 
@@ -1040,7 +1016,7 @@ def excluir_pedido_entrada(id):
         flash("Pedido de entrada excluído com sucesso.", "sucesso")
     except ValueError as e:
         flash(str(e), "erro")
-    except Exception as e:
+    except Exception:
         flash("Erro ao excluir pedido de entrada.", "erro")
     return redirect(url_for("listar_pedido_entrada"))
 
@@ -1125,7 +1101,6 @@ def salvar_item_entrada():
     return redirect(url_for("buscar_pedido_entrada", id=pedido_id))
 
 
-
 # (Localização)===========================================================================================
 @app.route("/localizacao/novo")
 @login_obrigatorio
@@ -1133,8 +1108,6 @@ def salvar_item_entrada():
 def nova_localizacao():
     produtos = Produto.find_all(usuario_id=session.get("usuario_id"))
     return render_template("localizacao.html", produtos=produtos)
-
-
 
 
 @app.route("/localizacao")
@@ -1207,8 +1180,73 @@ def salvar_localizacao():
     return redirect(url_for("listar_localizacao"))
 
 
-
 # (Pedido de Saída)============================================================================================
+def _buscar_itens_pedido_saida(pedido_id):
+    """Busca os itens vinculados a um pedido de saída com o nome do produto."""
+    conexao = None
+    cursor = None
+    try:
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+        cursor.execute(
+            """
+            SELECT 
+                i.id,
+                i.quantidade,
+                i.valor,
+                i.pedido_saida_id,
+                i.movimentacao_id,
+                p.nome
+            FROM item_saida i
+            INNER JOIN movimentacao m ON i.movimentacao_id = m.id
+            INNER JOIN produto p ON m.produto_id = p.id
+            WHERE i.pedido_saida_id = %s
+            ORDER BY i.id ASC
+            """,
+            (pedido_id,),
+        )
+        linhas = cursor.fetchall()
+        return [
+            {
+                "id": linha[0],
+                "quantidade": int(linha[1] or 0),
+                "valor": float(linha[2] or 0.0),
+                "pedido_saida_id": linha[3],
+                "movimentacao_id": linha[4],
+                "produto": linha[5],
+            }
+            for linha in linhas
+        ]
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
+
+
+def _recalcular_totais_pedido_saida(cursor, pedido_id):
+    """Atualiza quantidade total e valor total na tabela pedido_saida."""
+    cursor.execute(
+        """
+        SELECT 
+            COALESCE(SUM(quantidade), 0),
+            COALESCE(SUM(quantidade * valor), 0)
+        FROM item_saida
+        WHERE pedido_saida_id = %s
+        """,
+        (pedido_id,),
+    )
+    total_qtd, total_valor = cursor.fetchone()
+    cursor.execute(
+        """
+        UPDATE pedido_saida
+        SET quantidade = %s, valor = %s
+        WHERE id = %s
+        """,
+        (int(total_qtd or 0), float(total_valor or 0.0), pedido_id),
+    )
+
+
 @app.route("/pedido_saida/novo")
 @login_obrigatorio
 @permissao_obrigatoria("pedido_saida")
@@ -1240,7 +1278,8 @@ def listar_pedido_saida():
             else PedidoSaida.find_all(usuario_id=user_id)
         )
         return render_template("pedido_saida_lista.html", pedidos_saida=pedidos_saida)
-    except Exception as e:
+    except Exception:
+        app.logger.exception("Erro ao listar pedidos de saída")
         flash("Erro ao carregar pedidos de saída.", "erro")
         return render_template("pedido_saida_lista.html", pedidos_saida=[])
 
@@ -1259,9 +1298,8 @@ def buscar_pedido_saida(id):
         clientes = Cliente.find_all(usuario_id=user_id, order_by="nome")
         usuario_atual = [Usuario.find_by_id(user_id)] if user_id else []
         produtos = Produto.find_all(usuario_id=user_id)
-        itens = (
-            ItemSaida.find_by_pedido(id) if hasattr(ItemSaida, "find_by_pedido") else []
-        )
+        itens = _buscar_itens_pedido_saida(id)
+
         return render_template(
             "pedido_saida.html",
             pedido_saida=pedido_saida,
@@ -1294,26 +1332,24 @@ def salvar_pedido_saida():
             flash(erro, "erro")
         return render_template(
             "pedido_saida.html",
-            pedido_saida=pedido_saida,
+            pedido_saida=dados,
             clientes=clientes,
             usuarios=usuario_atual,
             produtos=Produto.find_all(usuario_id=user_id),
-            movimentacoes=[],
             itens=[],
         )
     try:
         novo_id = pedido_saida.insert()
         flash("Pedido de saída cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("buscar_pedido_saida", id=novo_id, _anchor="itens"))
+        return redirect(url_for("buscar_pedido_saida", id=novo_id, _anchor="area-itens"))
     except Exception as e:
         flash(f"Erro ao cadastrar pedido: {e}", "erro")
         return render_template(
             "pedido_saida.html",
-            pedido_saida=pedido_saida,
+            pedido_saida=dados,
             clientes=clientes,
             usuarios=usuario_atual,
             produtos=Produto.find_all(usuario_id=user_id),
-            movimentacoes=[],
             itens=[],
         )
 
@@ -1323,7 +1359,25 @@ def salvar_pedido_saida():
 @permissao_obrigatoria("pedido_saida")
 def atualizar_pedido_saida(id):
     user_id = session.get("usuario_id")
+    pedido_existente = PedidoSaida.find_by_id(id, usuario_id=user_id)
+    if not pedido_existente:
+        flash("Pedido de saída não encontrado ou acesso negado.", "erro")
+        return redirect(url_for("listar_pedido_saida"))
+
     dados = get_pedido_saida_form()
+    if "quantidade" not in request.form:
+        dados["quantidade"] = (
+            pedido_existente.get("quantidade", 0)
+            if isinstance(pedido_existente, dict)
+            else getattr(pedido_existente, "quantidade", 0)
+        ) or 0
+    if "valor" not in request.form:
+        dados["valor"] = (
+            pedido_existente.get("valor", 0.0)
+            if isinstance(pedido_existente, dict)
+            else getattr(pedido_existente, "valor", 0.0)
+        ) or 0.0
+
     pedido_saida = PedidoSaida(**dados)
     erros = pedido_saida.validate()
     usuario_atual = [Usuario.find_by_id(user_id)] if user_id else []
@@ -1341,21 +1395,15 @@ def atualizar_pedido_saida(id):
             clientes=clientes,
             usuarios=usuario_atual,
             produtos=Produto.find_all(usuario_id=user_id),
-            movimentacoes=[],
-            itens=[],
+            itens=_buscar_itens_pedido_saida(id),
         )
     try:
-        pedido_existente = PedidoSaida.find_by_id(id, usuario_id=user_id)
-        if not pedido_existente:
-            flash("Pedido de saída não encontrado ou acesso negado.", "erro")
-            return redirect(url_for("listar_pedido_saida"))
-
         linhas_afetadas = pedido_saida.update(id, usuario_id=user_id)
         if linhas_afetadas == 0:
             flash("Nenhuma alteração realizada.", "info")
-
-        flash("Pedido de saída atualizado com sucesso.", "sucesso")
-        return redirect(url_for("listar_pedido_saida"))
+        else:
+            flash("Pedido de saída atualizado com sucesso.", "sucesso")
+        return redirect(url_for("buscar_pedido_saida", id=id, _anchor="area-itens"))
     except Exception as e:
         flash(f"Erro ao atualizar pedido: {e}", "erro")
         dados["id"] = id
@@ -1365,9 +1413,9 @@ def atualizar_pedido_saida(id):
             clientes=clientes,
             usuarios=usuario_atual,
             produtos=Produto.find_all(usuario_id=user_id),
-            movimentacoes=[],
-            itens=[],
+            itens=_buscar_itens_pedido_saida(id),
         )
+
 
 @app.route("/api/produto/<int:id>", methods=["GET"])
 @login_obrigatorio
@@ -1380,6 +1428,7 @@ def api_produto(id):
     else:
         produto.quantidade = int(getattr(produto, "quantidade", 0))
     return produto
+
 
 @app.route("/item_saida/salvar", methods=["POST"])
 @login_obrigatorio
@@ -1399,16 +1448,15 @@ def salvar_item_saida():
     except (TypeError, ValueError):
         flash("Informe pedido, produto, quantidade e valor válidos.", "erro")
         if pedido_raw.isdigit() and int(pedido_raw) > 0:
-            return redirect(url_for("buscar_pedido_saida", id=int(pedido_raw), _anchor="itens"))
+            return redirect(url_for("buscar_pedido_saida", id=int(pedido_raw), _anchor="area-itens"))
         return redirect(url_for("listar_pedido_saida"))
 
-    from math import isfinite
     if quantidade <= 0:
         flash("A quantidade de saída deve ser maior que zero.", "erro")
-        return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
+        return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="area-itens"))
     if not isfinite(valor) or valor < 0:
         flash("O valor deve ser um número válido e não pode ser negativo.", "erro")
-        return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
+        return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="area-itens"))
 
     conexao = None
     cursor = None
@@ -1453,6 +1501,8 @@ def salvar_item_saida():
         )
         if cursor.rowcount != 1:
             raise ValueError("O estoque mudou durante a operação. Atualize a página e tente novamente.")
+
+        _recalcular_totais_pedido_saida(cursor, pedido_id)
         conexao.commit()
         flash("Item de saída registrado e estoque atualizado com sucesso.", "sucesso")
     except ValueError as erro:
@@ -1470,9 +1520,65 @@ def salvar_item_saida():
         if conexao:
             conexao.close()
 
-    return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="itens"))
+    return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="area-itens"))
 
 
+@app.route("/item_saida/<int:id>/excluir", methods=["POST"])
+@login_obrigatorio
+@permissao_obrigatoria("pedido_saida")
+def excluir_item_saida(id):
+    user_id = session.get("usuario_id")
+    pedido_id = None
+    conexao = None
+    cursor = None
+    try:
+        conexao = Database.connect()
+        cursor = conexao.cursor()
+        cursor.execute(
+            """
+            SELECT i.pedido_saida_id, i.quantidade, i.movimentacao_id, m.produto_id
+            FROM item_saida i
+            INNER JOIN pedido_saida ps ON i.pedido_saida_id = ps.id
+            INNER JOIN movimentacao m ON i.movimentacao_id = m.id
+            WHERE i.id = %s AND ps.usuario_id = %s
+            FOR UPDATE
+            """,
+            (id, user_id),
+        )
+        registro = cursor.fetchone()
+        if not registro:
+            raise ValueError("Item não encontrado ou acesso negado.")
+
+        pedido_id, quantidade, movimentacao_id, produto_id = registro
+
+        cursor.execute("DELETE FROM item_saida WHERE id = %s", (id,))
+        cursor.execute("DELETE FROM movimentacao WHERE id = %s", (movimentacao_id,))
+        cursor.execute(
+            "UPDATE produto SET quantidade = quantidade + %s WHERE id = %s AND usuario_id = %s",
+            (quantidade, produto_id, user_id),
+        )
+
+        _recalcular_totais_pedido_saida(cursor, pedido_id)
+        conexao.commit()
+        flash("Item removido e estoque estornado com sucesso.", "sucesso")
+    except ValueError as erro:
+        if conexao:
+            conexao.rollback()
+        flash(str(erro), "erro")
+    except Exception:
+        if conexao:
+            conexao.rollback()
+        app.logger.exception("Erro ao excluir item de saída")
+        flash("Erro ao remover item do pedido.", "erro")
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
+
+    if pedido_id:
+        return redirect(url_for("buscar_pedido_saida", id=pedido_id, _anchor="area-itens"))
+    return redirect(url_for("listar_pedido_saida"))
 
 
 @app.route("/pedido_saida/<int:id>/excluir", methods=["POST"])
@@ -1494,6 +1600,7 @@ def excluir_pedido_saida(id):
         flash("Erro ao excluir pedido de saída.", "erro")
     return redirect(url_for("listar_pedido_saida"))
 
+
 @app.route("/pedido_saida/<int:id>/nota_fiscal")
 @login_obrigatorio
 @permissao_obrigatoria("pedido_saida")
@@ -1508,10 +1615,9 @@ def gerar_nota_fiscal_saida(id):
         cliente_id = pedido.get("cliente_id") if isinstance(pedido, dict) else getattr(pedido, "cliente_id", None)
         if cliente_id:
             cliente = Cliente.find_by_id(cliente_id, usuario_id=user_id)
-        itens = ItemSaida.find_by_pedido(id) if hasattr(ItemSaida, "find_by_pedido") else []
+        itens = _buscar_itens_pedido_saida(id)
         total_pedido = sum(
-            (float(it.get("valor", 0)) if isinstance(it, dict) else float(getattr(it, "valor", 0))) *
-            (int(it.get("quantidade", 0)) if isinstance(it, dict) else int(getattr(it, "quantidade", 0)))
+            float(it.get("valor", 0)) * int(it.get("quantidade", 0))
             for it in itens
         ) if itens else (pedido.get("valor", 0) if isinstance(pedido, dict) else getattr(pedido, "valor", 0))
         return render_template(
@@ -1592,7 +1698,6 @@ def api_status_iot():
 @app.errorhandler(404)
 def pagina_nao_encontrada(erro):
     """Exibe uma página amigável para URLs inexistentes."""
-    # APIs devem retornar JSON, em vez de HTML, quando o recurso não existir.
     if request.path.startswith("/api/"):
         return jsonify({
             "erro": "Recurso não encontrado.",
@@ -1600,6 +1705,7 @@ def pagina_nao_encontrada(erro):
         }), 404
 
     return render_template("404.html"), 404
+
 
 if __name__ == "__main__":
     debug_ativo = os.getenv("SMARTMEDS_DEBUG", "false").strip().lower() in {"1", "true", "sim", "yes"}
